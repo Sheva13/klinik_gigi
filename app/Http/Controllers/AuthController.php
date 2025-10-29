@@ -40,7 +40,7 @@ class AuthController extends Controller
                 'email'             => 'nullable|email|max:100|unique:users,email',
                 'no_hp'             => 'nullable|string|max:20|unique:users,no_hp',
                 'tanggal_lahir'     => 'nullable|date',
-                'jenis_kelamin'     => 'nullable|in:L,P',
+                'jenis_kelamin'     => 'nullable|in:Laki-laki,Perempuan',
                 'password'          => 'required|string|min:6|confirmed',
             ]);
 
@@ -96,7 +96,7 @@ class AuthController extends Controller
                     'user_id' => $user->user_id,
                     'nama_pengguna' => $user->nama_pengguna,
                     'email' => $user->email,
-                    'token' => $token, // ✅ kirim token ke front-end
+                    'token' => $token, // 
                 ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -163,7 +163,7 @@ class AuthController extends Controller
             $user = $request->user();
 
             if ($user) {
-                // ✅ hapus semua token aktif
+                // 
                 $user->tokens()->delete();
                 $user->update(['current_token' => null]);
             }
