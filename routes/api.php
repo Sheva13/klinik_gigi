@@ -1,15 +1,15 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
-// route testing
-Route::get('/check', function () {
-    return response()->json(['message' => 'API aktif']);
-});
-
-// route login-register
+// Route bebas (guest)
+Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout']);
+
+// ✅ Route yang butuh token
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    // Tambahkan route lain yang harus login di sini
+});
