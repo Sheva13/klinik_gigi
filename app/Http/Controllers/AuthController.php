@@ -17,9 +17,9 @@ class AuthController extends Controller
      */
     private function generateUniqueUserId()
     {
-        $tanggal = Carbon::now()->format('Ymd'); // contoh: 20251026
+        $tanggal = Carbon::now()->format('Ymd');
         do {
-            $random = random_int(100, 999); // tiga digit acak
+            $random = random_int(100, 999);
             $userId = "PSN{$tanggal}{$random}";
         } while (MpUser::where('user_id', $userId)->exists());
 
@@ -44,98 +44,71 @@ class AuthController extends Controller
                 'password'          => 'required|string|min:6|confirmed',
             ]);
 
-            /**
-             * === PASIEN LAMA ===
-             */
             if ($validated['tipe_pasien'] === 'lama') {
-                // Ambil data rekam medis berdasarkan kode RM
                 $rekamMedis = DB::table('rekam_medis')
                     ->where('rekam_medis', $validated['rekam_medis_id'])
                     ->first();
 
-                // Jika tidak ditemukan
                 if (!$rekamMedis) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Nomor rekam medis tidak ditemukan',
-                    ], 404);
+                    return response()->json(['success' => false, 'message' => 'Nomor rekam medis tidak ditemukan'], 404);
                 }
 
-                // Cek apakah sudah pernah dibuatkan akun user
                 $existingUser = MpUser::where('rekam_medis_id', $rekamMedis->id)->first();
                 if ($existingUser) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Akun untuk rekam medis ini sudah terdaftar',
-                    ], 409);
+                    return response()->json(['success' => false, 'message' => 'Akun untuk rekam medis ini sudah terdaftar'], 409);
                 }
 
-                // Buat akun user baru dari data rekam medis
                 $user = MpUser::create([
                     'user_id'         => $this->generateUniqueUserId(),
                     'nama_pengguna'   => $rekamMedis->nama,
                     'nik'             => $rekamMedis->no_identitas,
-                    'rekam_medis_id'  => $rekamMedis->id, // FIX di sini
+                    'rekam_medis_id'  => $rekamMedis->id,
                     'tanggal_lahir'   => $rekamMedis->tanggal_lahir,
                     'jenis_kelamin'   => $rekamMedis->jenis_kelamin,
                     'no_hp'           => $rekamMedis->hp ?: ($validated['no_hp'] ?? null),
                     'email'           => $validated['email'] ?? null,
                     'password'        => Hash::make($validated['password']),
                 ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Akun pasien lama berhasil dibuat',
-                    'data'    => $user,
-                ], 201);
+            } else {
+                $user = MpUser::create([
+                    'user_id'         => $this->generateUniqueUserId(),
+                    'nama_pengguna'   => $validated['nama_pengguna'],
+                    'nik'             => $validated['nik'],
+                    'rekam_medis_id'  => null,
+                    'tanggal_lahir'   => $validated['tanggal_lahir'] ?? null,
+                    'jenis_kelamin'   => $validated['jenis_kelamin'] ?? null,
+                    'no_hp'           => $validated['no_hp'],
+                    'email'           => $validated['email'],
+                    'password'        => Hash::make($validated['password']),
+                ]);
             }
 
-            /**
-             * === PASIEN BARU ===
-             */
-            $user = MpUser::create([
-                'user_id'         => $this->generateUniqueUserId(),
-                'nama_pengguna'   => $validated['nama_pengguna'],
-                'nik'             => $validated['nik'],
-                'rekam_medis_id'  => null,
-                'tanggal_lahir'   => $validated['tanggal_lahir'] ?? null,
-                'jenis_kelamin'   => $validated['jenis_kelamin'] ?? null,
-                'no_hp'           => $validated['no_hp'],
-                'email'           => $validated['email'],
-                'password'        => Hash::make($validated['password']),
-            ]);
+            // ✅ Tambahan di bawah ini → generate token setelah register
+            $token = $user->createToken('auth_token')->plainTextToken;
+            $user->update(['current_token' => $token]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Registrasi pasien baru berhasil',
+                'message' => $validated['tipe_pasien'] === 'lama'
+                    ? 'Akun pasien lama berhasil dibuat'
+                    : 'Registrasi pasien baru berhasil',
                 'data' => [
-                    'user_id'         => $user->user_id,
-                    'nama_pengguna'   => $user->nama_pengguna,
-                    'email'           => $user->email,
-                    'no_hp'           => $user->no_hp,
-                    'rekam_medis_id'  => $user->rekam_medis_id,
+                    'user_id' => $user->user_id,
+                    'nama_pengguna' => $user->nama_pengguna,
+                    'email' => $user->email,
+                    'token' => $token, // ✅ kirim token ke front-end
                 ],
             ], 201);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors'  => $e->errors(),
-            ], 422);
-
+            return response()->json(['success' => false, 'message' => 'Validasi gagal', 'errors' => $e->errors()], 422);
         } catch (Exception $e) {
             Log::error('Register Error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan server',
-                'error'   => $e->getMessage(),
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan server', 'error' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Login user (bisa pakai NIK atau Email)
+     * Login user (bisa pakai NIK / Email / Rekam Medis)
      */
     public function login(Request $request)
     {
@@ -153,18 +126,16 @@ class AuthController extends Controller
                 ->first();
 
             if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Akun tidak ditemukan',
-                ], 404);
+                return response()->json(['success' => false, 'message' => 'Akun tidak ditemukan'], 404);
             }
 
             if (!Hash::check($validated['password'], $user->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Password salah',
-                ], 401);
+                return response()->json(['success' => false, 'message' => 'Password salah'], 401);
             }
+
+            // ✅ Tambahan di bawah ini → generate token saat login
+            $token = $user->createToken('auth_token')->plainTextToken;
+            $user->update(['current_token' => $token]);
 
             return response()->json([
                 'success' => true,
@@ -172,29 +143,37 @@ class AuthController extends Controller
                 'data' => [
                     'user_id'        => $user->user_id,
                     'nama_pengguna'  => $user->nama_pengguna,
-                    'rekam_medis_id' => $user->rekam_medis_id,
                     'email'          => $user->email,
+                    'rekam_medis_id' => $user->rekam_medis_id,
+                    'token'          => $token, // ✅ kirim token
                 ],
             ]);
-
         } catch (Exception $e) {
             Log::error('Login Error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Server error',
-                'error'   => $e->getMessage(),
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Server error', 'error' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Logout (dummy)
+     * Logout (hapus token Sanctum)
      */
-    public function logout()
+    public function logout(Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'message' => 'Logout berhasil',
-        ]);
+        try {
+            $user = $request->user();
+
+            if ($user) {
+                // ✅ hapus semua token aktif
+                $user->tokens()->delete();
+                $user->update(['current_token' => null]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Logout berhasil, token dihapus',
+            ]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Gagal logout', 'error' => $e->getMessage()], 500);
+        }
     }
 }

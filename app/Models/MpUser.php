@@ -3,15 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens; 
 
 class MpUser extends Authenticatable
 {
+    use HasApiTokens; 
+
     protected $table = 'users';
     protected $primaryKey = 'user_id';
     public $incrementing = false;
     protected $keyType = 'string';
     public $timestamps = true;
-    
 
     protected $fillable = [
         'user_id',
@@ -23,10 +25,13 @@ class MpUser extends Authenticatable
         'no_hp',
         'email',
         'password',
+        'current_token',  
     ];
 
     protected $hidden = [
         'password',
+        'remember_token', 
+        'current_token',  
     ];
 
     public function getAuthPassword()
@@ -38,5 +43,4 @@ class MpUser extends Authenticatable
     {
         return $this->belongsTo(RekamMedis::class, 'rekam_medis_id');
     }
-
 }
