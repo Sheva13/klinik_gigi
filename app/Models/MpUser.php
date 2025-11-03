@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Laravel\Sanctum\HasApiTokens; 
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use App\Models\RekamMedis;
 
 class MpUser extends Authenticatable
 {
@@ -37,6 +40,15 @@ class MpUser extends Authenticatable
     public function getAuthPassword()
     {
         return $this->password;
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'tanggal_lahir' => 'date',
+        ];
     }
     
     public function rekamMedis()
