@@ -10,12 +10,12 @@ use App\Models\RekamMedis;
 
 class MpUser extends Authenticatable
 {
-    use HasApiTokens; 
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'users';
     protected $primaryKey = 'user_id';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    public $incrementing = true;      // ubah ke true jika user_id berupa angka (INT)
+    protected $keyType = 'int';       // ubah ke 'string' kalau user_id misalnya 'USR001'
     public $timestamps = true;
 
     protected $fillable = [
@@ -28,19 +28,15 @@ class MpUser extends Authenticatable
         'no_hp',
         'email',
         'password',
-        'current_token',  
+        'file_foto',
+        'current_token',
     ];
 
     protected $hidden = [
         'password',
-        'remember_token', 
-        'current_token',  
+        'remember_token',
+        'current_token',
     ];
-
-    public function getAuthPassword()
-    {
-        return $this->password;
-    }
 
     protected function casts(): array
     {
@@ -50,9 +46,10 @@ class MpUser extends Authenticatable
             'tanggal_lahir' => 'date',
         ];
     }
-    
+
+    // Relasi ke rekam medis
     public function rekamMedis()
     {
-        return $this->belongsTo(RekamMedis::class, 'rekam_medis_id');
+        return $this->belongsTo(RekamMedis::class, 'rekam_medis_id', 'id');
     }
 }
