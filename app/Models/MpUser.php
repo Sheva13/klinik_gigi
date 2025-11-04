@@ -32,7 +32,7 @@ class MpUser extends Authenticatable
         'password',
         'remember_token', 
         'current_token',  
-    ];
+    ]; //ini aku buat ya gess buat ngehidden password
 
     public function getAuthPassword()
     {

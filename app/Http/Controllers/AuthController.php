@@ -41,7 +41,7 @@ class AuthController extends Controller
                 'no_hp'             => 'nullable|string|max:20|unique:users,no_hp',
                 'tanggal_lahir'     => 'nullable|date',
                 'jenis_kelamin'     => 'nullable|in:Laki-laki,Perempuan',
-                'password'          => 'required|string|min:6|confirmed',
+                'password'          => 'required|string|min:8|confirmed',
             ]);
 
             if ($validated['tipe_pasien'] === 'lama') {
