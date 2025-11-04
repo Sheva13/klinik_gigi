@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # IZINKAN AKSES LANGSUNG KE FOLDER UPLOADS
+    RewriteCond %{REQUEST_URI} !^/uploads/
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
