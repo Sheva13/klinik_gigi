@@ -3,12 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasienController;
+use App\Http\Controllers\DokterController;
 
 // Route bebas (guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-
+Route::get('/dokter', [DokterController::class, 'index']);
 // ✅ Route untuk mengambil SEMUA pasien (sesuai method getPasien)
 Route::get('/pasien', [PasienController::class, 'getPasien']);
 
