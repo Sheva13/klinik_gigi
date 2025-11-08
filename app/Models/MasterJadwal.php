@@ -41,5 +41,13 @@ class MasterJadwal extends Model
     {
         return $this->belongsTo(MasterPoli::class, 'kode_poli', 'kode_poli');
     }
-    
+
+    /**
+     * Relasi ke tabel Reservasi
+     * Satu jadwal bisa memiliki banyak reservasi
+     */
+    public function reservasi()
+    {
+        return $this->hasMany(Reservasi::class, 'jadwal_id', 'id');
+    }
 }

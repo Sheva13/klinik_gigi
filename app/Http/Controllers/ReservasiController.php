@@ -100,7 +100,7 @@ class ReservasiController extends Controller
     public function getJadwalDenganKuota(Request $request)
     {
         $request->validate([
-            'kode_dokter'       => 'required|varchar|exists:master_dokter,kode_dokter',
+            'kode_dokter'       => 'required|string|exists:master_dokter,kode_dokter',
             'tanggal_reservasi' => 'required|date_format:Y-m-d',
         ]);
 
@@ -125,7 +125,7 @@ class ReservasiController extends Controller
         foreach ($jadwalDokter as $jadwal) {
             $reservasiTerpakai = Reservasi::where('jadwal_id', $jadwal->id)
                 ->where('tanggal_pesan', $tanggalReservasi)
-                ->whereIn('status_pembayaran', ['Lunas', 'Pending', 'Belum Dibayar'])
+                ->whereIn('status_pembayaran', ['menunggu_pembayaran', 'menunggu verifikasi', 'terverifikasi'])
                 ->count();
 
             $sisaKuota = $jadwal->quota - $reservasiTerpakai;
@@ -155,37 +155,31 @@ class ReservasiController extends Controller
     // 🔹 PROSES RESERVASI & PEMBAYARAN
     // ============================================================
 
-    /**
-     * 🔹 Buat reservasi baru (setelah konfirmasi & klik bayar)
-     */
     public function createReservasi(Request $request)
     {
         DB::beginTransaction();
 
         try {
             $validated = $request->validate([
-                'rekam_medis_id'    => 'required|varchar|exists:rekam_medis,rekam_medis',
-                'dokter_id'         => 'required|varchar|exists:master_dokter,kode_dokter',
-                'id'                => 'required|integer|exists:master_jadwal,id',
+                'rekam_medis_id'    => 'required|string|exists:rekam_medis,rekam_medis',
+                'dokter_id'         => 'required|string|exists:master_dokter,kode_dokter',
+                'jadwal_id'         => 'required|integer|exists:master_jadwal,id',
                 'tanggal_pesan'     => 'required|date_format:Y-m-d',
                 'keluhan'           => 'nullable|string|max:255',
                 'metode_pembayaran' => 'required|string|in:Transfer Bank,QRIS,Tunai',
-                'jenis_pasien'      => 'required|string|in:Lama,Baru',
+                'jenis_pasien'      => 'required|string|in:umum,BPJS,asuransi',
             ]);
 
-            // 🔍 Cek data pasien
             $pasien = RekamMedis::where('rekam_medis', $validated['rekam_medis_id'])->first();
             if (!$pasien) {
                 return response()->json(['success' => false, 'message' => 'Data pasien tidak ditemukan'], 404);
             }
 
-            // 🔍 Cek data dokter
             $dokter = MasterDokter::where('kode_dokter', $validated['dokter_id'])->first();
             if (!$dokter) {
                 return response()->json(['success' => false, 'message' => 'Data dokter tidak ditemukan'], 404);
             }
 
-            // 🔍 Cek jadwal
             $jadwal = MasterJadwal::find($validated['jadwal_id']);
             if (!$jadwal) {
                 return response()->json(['success' => false, 'message' => 'Jadwal tidak ditemukan'], 404);
@@ -194,7 +188,7 @@ class ReservasiController extends Controller
             // 🔍 Validasi kuota ulang sebelum simpan
             $reservasiTerpakai = Reservasi::where('jadwal_id', $jadwal->id)
                 ->where('tanggal_pesan', $validated['tanggal_pesan'])
-                ->whereIn('status_pembayaran', ['Lunas', 'Pending', 'Belum Dibayar'])
+                ->whereIn('status_pembayaran', ['menunggu_pembayaran', 'menunggu verifikasi', 'terverifikasi'])
                 ->count();
 
             if ($reservasiTerpakai >= $jadwal->quota) {
@@ -205,10 +199,8 @@ class ReservasiController extends Controller
                 ], 409);
             }
 
-            // 🔹 Generate nomor pemeriksaan unik
             $noPemeriksaan = $this->generateNoPemeriksaan();
 
-            // 🔹 Simpan ke tabel reservasi
             $reservasi = Reservasi::create([
                 'no_pemeriksaan'    => $noPemeriksaan,
                 'pasien_id'         => $pasien->rekam_medis,
@@ -221,9 +213,9 @@ class ReservasiController extends Controller
                 'keluhan'           => $validated['keluhan'] ?? null,
                 'biaya_reservasi'   => 25000,
                 'status'            => 'Menunggu Konfirmasi',
-                'status_reservasi'  => 'Pending',
+                'status_reservasi'  => 'menunggu',
                 'metode_pembayaran' => $validated['metode_pembayaran'],
-                'status_pembayaran' => 'Belum Dibayar',
+                'status_pembayaran' => 'menunggu_pembayaran',
                 'pembayaran_total'  => 25000,
                 'jenis_pasien'      => $validated['jenis_pasien'],
             ]);
@@ -246,6 +238,7 @@ class ReservasiController extends Controller
                     'info_pembayaran'   => 'Cek info pembayaran sesuai metode: ' . $validated['metode_pembayaran'],
                 ]
             ], 201);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             return response()->json([
@@ -264,9 +257,6 @@ class ReservasiController extends Controller
         }
     }
 
-    /**
-     * 🔹 Update status pembayaran (mis. dari webhook gateway)
-     */
     public function updatePembayaran(Request $request, $no_pemeriksaan)
     {
         try {
@@ -277,8 +267,8 @@ class ReservasiController extends Controller
             }
 
             $reservasi->update([
-                'status_pembayaran' => 'Lunas',
-                'status_reservasi'  => 'Berhasil',
+                'status_pembayaran' => 'terverifikasi',
+                'status_reservasi'  => 'selesai',
                 'status'            => 'Aktif',
             ]);
 
@@ -297,9 +287,6 @@ class ReservasiController extends Controller
         }
     }
 
-    /**
-     * 🔹 Lihat riwayat reservasi pasien
-     */
     public function riwayatReservasi($rekam_medis_id)
     {
         $data = Reservasi::where('pasien_id', $rekam_medis_id)

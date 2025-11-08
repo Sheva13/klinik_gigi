@@ -16,22 +16,16 @@ Route::get('/dokter', [DokterController::class, 'index']);
 Route::get('/pasien', [PasienController::class, 'getPasien']);
 
 // ✅ Route BARU untuk mengambil SATU pasien berdasarkan ID (sesuai kebutuhan Flutter)
-// PENTING: Ini menggunakan format RESTful dengan parameter {userId} di URL
 Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
-
 
 // 🔒 Route yang butuh token (Auth: Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    
-    // ✅ Route ini dipindahkan ke dalam group middleware agar terproteksi
     Route::get('/pasien/me', [PasienController::class, 'me']); 
-    
-    // Tambahkan route lain yang harus login di sini
 });
 
 // ==============================
-// 🔹 ROUTE BARU UNTUK RESERVASI
+// 🔹 ROUTE UNTUK RESERVASI
 // ==============================
 
 // Langkah 1 — Ambil semua poli
@@ -41,9 +35,10 @@ Route::get('/reservasi/poli', [ReservasiController::class, 'getDaftarPoli']);
 Route::post('/reservasi/dokter', [ReservasiController::class, 'getDokterByPoli']);
 
 // Langkah 3 — Tampilkan jadwal dokter & sisa kuota
+// Parameter: kode_dokter, tanggal_reservasi
 Route::post('/reservasi/jadwal', [ReservasiController::class, 'getJadwalDenganKuota']);
 
-// Langkah 4 — Buat reservasi (setelah konfirmasi)
+// Langkah 4 — Buat reservasi (setelah konfirmasi & pilih metode pembayaran)
 Route::post('/reservasi/create', [ReservasiController::class, 'createReservasi']);
 
 // Langkah 5 — Update status pembayaran (misal setelah transaksi berhasil)
