@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasienController;
 use App\Http\Controllers\DokterController;
+use App\Http\Controllers\ReservasiController;
+
 
 // Route bebas (guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
@@ -16,6 +18,8 @@ Route::get('/pasien', [PasienController::class, 'getPasien']);
 // ✅ Route BARU untuk mengambil SATU pasien berdasarkan ID (sesuai kebutuhan Flutter)
 // PENTING: Ini menggunakan format RESTful dengan parameter {userId} di URL
 Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
+
+Route::get('/riwayat', [ReservasiController::class, 'getRiwayat']);
 
 
 // 🔒 Route yang butuh token (Auth: Sanctum)
