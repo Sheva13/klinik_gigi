@@ -5,39 +5,37 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class MasterJadwal extends Model
+class MasterDokter extends Model
 {
     use HasFactory;
 
     // Nama tabel di database
-    protected $table = 'master_jadwal';
+    protected $table = 'master_dokter';
 
     // Kolom yang bisa diisi
     protected $fillable = [
         'kode_dokter',
-        'kode_poli',
-        'hari',
-        'jam_mulai',
-        'jam_selesai',
-        'keterangan',
-        'quota',
+        'nama',
+        'gelar',
+        'spesialisasi',
+        'alamat',
+        'hp',
+        'tipe',
+        'dokter_str',
+        'dokter_str_mulai',
+        'dokter_str_expire',
+        'dokter_sip',
+        'dokter_sip_berlaku',
+        'dokter_sip_expired',
+        'inisial',
     ];
 
     /**
-     * Relasi ke tabel MasterDokter
-     * Setiap jadwal dimiliki oleh satu dokter
+     * Relasi ke tabel master_jadwal
+     * Satu dokter bisa memiliki banyak jadwal praktik
      */
-    public function dokter()
+    public function jadwal()
     {
-        return $this->belongsTo(MasterDokter::class, 'kode_dokter', 'kode_dokter');
-    }
-
-    /**
-     * Relasi ke tabel MasterPoli
-     * Setiap jadwal termasuk dalam satu poli
-     */
-    public function poli()
-    {
-        return $this->belongsTo(MasterPoli::class, 'kode_poli', 'kode_poli');
+        return $this->hasMany(MasterJadwal::class, 'kode_dokter', 'kode_dokter');
     }
 }
