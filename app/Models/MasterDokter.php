@@ -1,21 +1,21 @@
-<?php 
+<?php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class MasterJadwal extends Model
+class MasterDokter extends Model
 {
     use HasFactory;
 
     // Nama tabel di database
-    protected $table = 'master_jadwal';
+    protected $table = 'master_dokter';
 
     // Kolom yang bisa diisi
     protected $fillable = [
+        'id',
         'kode_dokter',
-        'kode_poli',
         'nama',
         'gelar',
         'spesialisasi',
@@ -32,29 +32,20 @@ class MasterJadwal extends Model
     ];
 
     /**
-     * Relasi ke tabel MasterDokter
-     * Setiap jadwal dimiliki oleh satu dokter
+     * Relasi ke tabel master_jadwal
+     * Satu dokter bisa memiliki banyak jadwal praktik
      */
-    public function dokter()
+    public function jadwal()
     {
-        return $this->belongsTo(MasterDokter::class, 'kode_dokter', 'kode_dokter');
+        return $this->hasMany(MasterJadwal::class, 'kode_dokter', 'kode_dokter');
     }
 
     /**
-     * Relasi ke tabel MasterPoli
-     * Setiap jadwal termasuk dalam satu poli
-     */
-    public function poli()
-    {
-        return $this->belongsTo(MasterPoli::class, 'kode_poli', 'kode_poli');
-    }
-
-    /**
-     * Relasi ke tabel reservasi
-     * Satu dokter bisa memiliki banyak reservasi
+     * Relasi ke tabel Reservasi
+     * Satu jadwal bisa memiliki banyak reservasi
      */
     public function reservasi()
     {
-        return $this->hasMany(Reservasi::class, 'dokter_id', 'kode_dokter');
+        return $this->hasMany(Reservasi::class, 'jadwal_id', 'id');
     }
 }
