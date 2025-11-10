@@ -5,7 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasienController;
 use App\Http\Controllers\DokterController;
 use App\Http\Controllers\ReservasiController;
-
+use App\Http\Controllers\RiwayatController;
 
 // Route bebas (guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
@@ -19,7 +19,7 @@ Route::get('/pasien', [PasienController::class, 'getPasien']);
 // ✅ Route BARU untuk mengambil SATU pasien berdasarkan ID (sesuai kebutuhan Flutter)
 Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
 
-Route::get('/riwayat', [ReservasiController::class, 'getRiwayat']);
+Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
 
 
 // 🔒 Route yang butuh token (Auth: Sanctum)
