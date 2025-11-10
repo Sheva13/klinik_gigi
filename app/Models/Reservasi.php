@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\RekamMedis;
+use App\Models\MasterDokter;
+use App\Models\MasterJadwal;
 
 class Reservasi extends Model
 {
@@ -53,7 +56,7 @@ class Reservasi extends Model
      */
     public function dokter()
     {
-        return $this->belongsTo(MasterDokter::class, 'dokter_id', 'kode_dokter');
+        return $this->belongsTo(MasterJadwal::class, 'dokter_id', 'kode_dokter');
     }
 
     /**
@@ -62,6 +65,6 @@ class Reservasi extends Model
      */
     public function jadwal()
     {
-        return $this->belongsTo(MasterJadwal::class, 'jadwal_id', 'id');
+        return $this->belongsTo(MasterDokter::class, 'jadwal_id', 'id');
     }
 }
