@@ -14,8 +14,15 @@ class MpUser extends Authenticatable
 
     protected $table = 'users';
     protected $primaryKey = 'user_id';
-    public $incrementing = true;      // ubah ke true jika user_id berupa angka (INT)
-    protected $keyType = 'int';       // ubah ke 'string' kalau user_id misalnya 'USR001'
+
+    // ✅ PERBAIKAN 1: Set 'incrementing' ke false
+    // Ini memberi tahu Laravel bahwa 'user_id' tidak auto-increment.
+    public $incrementing = false;
+
+    // ✅ PERBAIKAN 2: Set 'keyType' ke string
+    // Ini memberi tahu Laravel bahwa 'user_id' adalah string (seperti 'PSN...').
+    protected $keyType = 'string';
+
     public $timestamps = true;
 
     protected $fillable = [
