@@ -27,4 +27,9 @@ class MasterPoli extends Model
     {
         return $this->hasMany(MasterJadwal::class, 'kode_poli', 'kode_poli');
     }
+    public function dokter()
+    {
+        return $this->hasMany(MasterDokter::class, 'kode_poli', 'kode_poli');
+    }
+
 }
