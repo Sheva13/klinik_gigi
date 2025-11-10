@@ -14,6 +14,7 @@ class MasterJadwal extends Model
 
     // Kolom yang bisa diisi
     protected $fillable = [
+        'id',
         'kode_dokter',
         'kode_poli',
         'hari',
@@ -39,5 +40,14 @@ class MasterJadwal extends Model
     public function poli()
     {
         return $this->belongsTo(MasterPoli::class, 'kode_poli', 'kode_poli');
+    }
+
+    /**
+     * Relasi ke tabel Reservasi
+     * Satu jadwal bisa memiliki banyak reservasi
+     */
+    public function reservasi()
+    {
+        return $this->hasMany(Reservasi::class, 'jadwal_id', 'id');
     }
 }
