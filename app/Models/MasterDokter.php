@@ -14,6 +14,7 @@ class MasterDokter extends Model
 
     // Kolom yang bisa diisi
     protected $fillable = [
+        'id',
         'kode_dokter',
         'nama',
         'gelar',
@@ -37,5 +38,14 @@ class MasterDokter extends Model
     public function jadwal()
     {
         return $this->hasMany(MasterJadwal::class, 'kode_dokter', 'kode_dokter');
+    }
+
+    /**
+     * Relasi ke tabel Reservasi
+     * Satu jadwal bisa memiliki banyak reservasi
+     */
+    public function reservasi()
+    {
+        return $this->hasMany(Reservasi::class, 'jadwal_id', 'id');
     }
 }

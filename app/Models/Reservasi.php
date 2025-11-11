@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\RekamMedis;
+use App\Models\MasterDokter;
+use App\Models\MasterJadwal;
 
 class Reservasi extends Model
 {
@@ -34,16 +37,21 @@ class Reservasi extends Model
     ];
 
     /**
-     * Relasi ke tabel RekamMedis (pasien)
-     * Satu reservasi dimiliki oleh satu pasien
+     * 🔹 Relasi ke tabel RekamMedis (pasien)
+     * Setiap reservasi dimiliki oleh satu pasien
      */
     public function pasien()
     {
+        // 👉 ubah ke kolom yang benar sesuai struktur tabel kamu
+        // kalau kolom di tabel rekam_medis adalah `rekam_medis`, biarkan begini:
         return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
+
+        // kalau ternyata kolomnya `id`, ubah jadi:
+        // return $this->belongsTo(RekamMedis::class, 'pasien_id', 'id');
     }
 
     /**
-     * Relasi ke tabel MasterDokter
+     * 🔹 Relasi ke tabel MasterDokter
      * Satu reservasi dilakukan dengan satu dokter
      */
     public function dokter()
@@ -52,7 +60,7 @@ class Reservasi extends Model
     }
 
     /**
-     * Relasi ke tabel MasterJadwal
+     * 🔹 Relasi ke tabel MasterJadwal
      * Satu reservasi mengambil jadwal tertentu
      */
     public function jadwal()
