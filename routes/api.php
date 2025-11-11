@@ -7,22 +7,22 @@ use App\Http\Controllers\DokterController;
 use App\Http\Controllers\HomeCareController;
 use App\Http\Controllers\ReservasiController;
 use App\Http\Controllers\RiwayatController;
+use App\Http\Controllers\PromoController;
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Mengambil daftar semua dokter (publik)
 Route::get('/dokter', [DokterController::class, 'index']);
 
-// ✅ Route untuk mengambil SEMUA pasien (sesuai method getPasien)
 Route::get('/pasien', [PasienController::class, 'getPasien']);
 
-// ✅ Route BARU untuk mengambil SATU pasien berdasarkan ID (sesuai kebutuhan Flutter)
 Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
 
 Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
+
+Route::get('/promo', [PromoController::class, 'index']);
 
 
 // Route Terproteksi (Wajib Login / Kirim Token)
