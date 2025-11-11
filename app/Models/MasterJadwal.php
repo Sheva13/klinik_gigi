@@ -14,21 +14,15 @@ class MasterJadwal extends Model
 
     // Kolom yang bisa diisi
     protected $fillable = [
+        'id',
         'kode_dokter',
         'kode_poli',
-        'nama',
-        'gelar',
-        'spesialisasi',
+        'hari',
+        'jam_mulai',
+        'jam_selesai',
         'alamat',
-        'hp',
-        'tipe',
-        'dokter_str',
-        'dokter_str_mulai',
-        'dokter_str_expire',
-        'dokter_sip',
-        'dokter_sip_berlaku',
-        'dokter_sip_expired',
-        'inisial',
+        'keterangan',
+        'quota',
     ];
 
     /**
