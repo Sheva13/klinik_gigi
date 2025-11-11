@@ -9,7 +9,7 @@ class RiwayatController extends Controller
 {
     public function getRiwayat()
     {
-        $riwayat = Reservasi::with(['pasien', 'dokter', 'jadwal', 'jadwal.poli'])
+        $riwayat = Reservasi::with(['pasien', 'dokter', 'jadwal'])
             ->orderBy('tanggal_pesan', 'desc')
             ->get()
             ->map(function ($item) {
