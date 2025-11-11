@@ -48,4 +48,11 @@ class MasterDokter extends Model
     {
         return $this->hasMany(Reservasi::class, 'jadwal_id', 'id');
     }
+
+    public function spesialis()
+    {
+        // 'spesialisasi' adalah foreign key di tabel master_dokter
+        // 'id' adalah primary key di tabel master_spesialis
+        return $this->belongsTo(MasterSpesialis::class, 'spesialisasi', 'id');
+    }
 }
