@@ -38,11 +38,11 @@ class DokterController extends Controller
 
                 // 5. Format data agar SESUAI dengan 'dokter_model.dart' di Flutter
                 return [
-                    'dokter_id' => $dokter->kode_dokter, // Flutter mengharapkan 'dokter_id', kita berikan 'kode_dokter'
-                    'nama_dokter' => $dokter->nama, // Flutter mengharapkan 'nama_dokter', kita berikan 'nama'
-                    'spesialisasi' => $dokter->spesialis ? $dokter->spesialis->nama : 'Spesialis', // Ambil 'nama' dari relasi spesialis
-                    'foto_profil' => $fotoUrl,
-                ];
+                    'dokter_id' => $dokter->dokter_id,
+                    'nama_dokter' => $dokter->nama ?? '', 
+                    'spesialisasi' => $dokter->spesialis?->nama ?? '', 
+                    'foto_profil' => $fotoUrl, // Ini sudah benar
+];
             });
 
             return response()->json([
