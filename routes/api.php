@@ -8,6 +8,8 @@ use App\Http\Controllers\HomeCareController;
 use App\Http\Controllers\ReservasiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
+use App\Http\Controllers\ProfilController;
+
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
