@@ -71,7 +71,9 @@ Route::middleware('auth:sanctum')->group(function () {
      * Endpoint: /api/homecare/booking/{id}/tracking
      */
     Route::get('/homecare/booking/{id}/tracking', [HomeCareController::class, 'getTrackingHistory']);
-
+    
+    Route::get('/profil', [ProfilController::class, 'show']);
+    Route::post('/profil/update', [ProfilController::class, 'update']);
 });
     Route::get('/pasien/me', [PasienController::class, 'me']);
 
