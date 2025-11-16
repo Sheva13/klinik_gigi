@@ -16,14 +16,13 @@ Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// Rute ini (GET) tetap publik agar semua orang bisa melihat daftar dokter
+// Endpoint ini sekarang mendukung pencarian: /api/dokter?search=nama
 Route::get('/dokter', [DokterController::class, 'index']);
 
 Route::get('/pasien', [PasienController::class, 'getPasien']);
-
 Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
-
 Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
-
 Route::get('/promo', [PromoController::class, 'index']);
 
 
@@ -32,53 +31,28 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // --- Rute Autentikasi & Pasien ---
     Route::post('/logout', [AuthController::class, 'logout']);
-    
-    // (Dashboard Flutter) Mengambil data pasien (MpUser) berdasarkan token
     Route::get('/pasien', [PasienController::class, 'index']);
-
-    // Mengambil data user (tabel users) berdasarkan token
     Route::get('/pasien/me', [PasienController::class, 'me']); 
     
-    // Jika butuh rute untuk admin mengambil SEMUA pasien:
-    // Route::get('/pasien/all', [PasienController::class, 'getPasien']);
-
-    
     // --- RUTE BARU UNTUK DENTAL HOME CARE ---
-
-    /**
-     * Mendapatkan daftar jadwal dokter untuk Home Care
-     * Method: GET
-     * Endpoint: /api/homecare/jadwal
-     */
     Route::get('/homecare/jadwal', [HomeCareController::class, 'getMasterJadwal']);
-
-    /**
-     * Pasien membuat booking Home Care baru
-     * Method: POST
-     * Endpoint: /api/homecare/booking
-     * Body: { master_jadwal_id, tanggal, keluhan, latitude_pasien, longitude_pasien }
-     */
     Route::post('/homecare/booking', [HomeCareController::class, 'storeBooking']);
-
-    /**
-     * Pasien konfirmasi sudah bayar DP
-     * Method: POST
-     * Endpoint: /api/homecare/booking/{id}/konfirmasi-bayar
-     */
     Route::post('/homecare/booking/{id}/konfirmasi-bayar', [HomeCareController::class, 'confirmPayment']);
-
-    /**
-     * Pasien melihat riwayat tracking per booking
-     * Method: GET
-     * Endpoint: /api/homecare/booking/{id}/tracking
-     */
     Route::get('/homecare/booking/{id}/tracking', [HomeCareController::class, 'getTrackingHistory']);
     
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);
-});
-    Route::get('/pasien/me', [PasienController::class, 'me']);
 
+
+    // ==========================================================
+    // 🔹 ROUTE UPLOAD FOTO DOKTER
+    // ==========================================================
+    // Route ini sekarang hanya mewajibkan user untuk LOGIN.
+    Route::post('/dokter/upload-foto/{id}', [DokterController::class, 'uploadFotoProfil']);
+          // ->middleware('admin'); // nonaktifkan sementara sampai ada role admin/pasien untuk users
+
+});
+    
 // ==============================
 // 🔹 ROUTE UNTUK RESERVASI
 // ==============================
