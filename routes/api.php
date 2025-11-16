@@ -8,21 +8,21 @@ use App\Http\Controllers\HomeCareController;
 use App\Http\Controllers\ReservasiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
+use App\Http\Controllers\ProfilController;
+use App\Http\Controllers\SettingController;
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-
 Route::get('/dokter', [DokterController::class, 'index']);
-
 Route::get('/pasien', [PasienController::class, 'getPasien']);
-
 Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
-
 Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
-
 Route::get('/promo', [PromoController::class, 'index']);
+Route::post('/auth/request-otp', [AuthController::class, 'requestOtpEmail']);
+Route::post('/auth/verify-otp',  [AuthController::class, 'verifyOtpEmail']);
+
 
 
 // Route Terproteksi (Wajib Login / Kirim Token)
@@ -71,7 +71,9 @@ Route::middleware('auth:sanctum')->group(function () {
      * Endpoint: /api/homecare/booking/{id}/tracking
      */
     Route::get('/homecare/booking/{id}/tracking', [HomeCareController::class, 'getTrackingHistory']);
-
+    
+    Route::get('/profil', [ProfilController::class, 'show']);
+    Route::post('/profil/update', [ProfilController::class, 'update']);
 });
     Route::get('/pasien/me', [PasienController::class, 'me']);
 
