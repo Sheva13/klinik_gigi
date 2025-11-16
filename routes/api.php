@@ -8,6 +8,7 @@ use App\Http\Controllers\HomeCareController;
 use App\Http\Controllers\ReservasiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
+use App\Http\Controllers\SettingController;
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
@@ -27,6 +28,7 @@ Route::get('/promo', [PromoController::class, 'index']);
 
 // Route Terproteksi (Wajib Login / Kirim Token)
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/setting', [SettingController::class, 'getUsername']);
     
     // --- Rute Autentikasi & Pasien ---
     Route::post('/logout', [AuthController::class, 'logout']);
