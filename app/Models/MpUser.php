@@ -45,14 +45,12 @@ class MpUser extends Authenticatable
         'current_token',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'tanggal_lahir' => 'date',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'tanggal_lahir' => 'date',
+    ];
+    
 
     // Relasi ke rekam medis
     public function rekamMedis()
