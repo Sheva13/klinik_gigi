@@ -9,7 +9,7 @@ use App\Http\Controllers\ReservasiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ProfilController;
-
+use App\Http\Controllers\SettingController;
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
