@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MasterDokter;
-use Illuminate\Http\Request; // Penting: pastikan ini ada
+use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Storage;
 
 class DokterController extends Controller
@@ -15,23 +15,17 @@ class DokterController extends Controller
     public function index(Request $request) 
     {
         try {
-            
-            // --- PERUBAHAN 2: Logika pencarian ditambahkan ---
+
             $query = MasterDokter::with('spesialis');
 
-            // Cek apakah ada parameter 'search' di URL
-            // (contoh: /api/dokter?search=bawa)
             $query->when($request->input('search'), function ($q, $search) {
-                // Cari berdasarkan nama dokter ATAU nama spesialis
                 $q->where('nama', 'LIKE', "%{$search}%")
                   ->orWhereHas('spesialis', function ($sq) use ($search) {
                       $sq->where('nama', 'LIKE', "%{$search}%");
                   });
             });
 
-            // Eksekusi query yang sudah difilter
             $dokters = $query->get();
-            // --- AKHIR PERUBAHAN 2 ---
 
             $data = $dokters->map(function ($dokter) {
                 
@@ -79,8 +73,8 @@ class DokterController extends Controller
             
             // proses foto
             $fotoUrl = null;
-            if (!empty($dokter->foto)) { 
-                $fotoUrl = asset(Storage::url($dokter->foto));
+            if (!empty($dokter->foto_profil)) { 
+                $fotoUrl = asset(Storage::url($dokter->foto_profil));
             }
 
             // Susun data respons

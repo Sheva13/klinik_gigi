@@ -8,11 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class MasterDokter extends Model
 {
     use HasFactory;
-
-
     protected $table = 'master_dokter';
-
-
     protected $fillable = [
         'kode_dokter',
         'nama',
@@ -31,12 +27,12 @@ class MasterDokter extends Model
         'kode_poli',
     ];
 
-    public function poli()
+    public function masterPoli()
     {
         return $this->belongsTo(MasterPoli::class, 'kode_poli', 'kode_poli');
     }
 
-    public function jadwal()
+    public function masterJadwal()
     {
         return $this->hasMany(MasterJadwal::class, 'kode_dokter', 'kode_dokter');
     }
