@@ -1,0 +1,1 @@
+SELECT user_id, nama_pengguna, email, rekam_medis_id FROM users LIMIT 10;
