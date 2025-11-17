@@ -9,7 +9,7 @@ use App\Http\Controllers\ReservasiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ProfilController;
-
+use App\Http\Controllers\SettingController;
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
@@ -19,11 +19,13 @@ Route::post('/login', [AuthController::class, 'login']);
 // Rute ini (GET) tetap publik agar semua orang bisa melihat daftar dokter
 // Endpoint ini sekarang mendukung pencarian: /api/dokter?search=nama
 Route::get('/dokter', [DokterController::class, 'index']);
-
 Route::get('/pasien', [PasienController::class, 'getPasien']);
 Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
 Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
 Route::get('/promo', [PromoController::class, 'index']);
+Route::post('/auth/request-otp', [AuthController::class, 'requestOtpEmail']);
+Route::post('/auth/verify-otp',  [AuthController::class, 'verifyOtpEmail']);
+
 
 
 // Route Terproteksi (Wajib Login / Kirim Token)
