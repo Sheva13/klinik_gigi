@@ -42,6 +42,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // 🔹 Riwayat reservasi berdasarkan user yang login
     Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
     
+    // Router untuk RESERVASI //
+    Route::get('/reservasi/user', [ReservasiController::class, 'getUserData']);
+    
     // --- RUTE BARU UNTUK DENTAL HOME CARE ---
 
     /**
@@ -100,3 +103,4 @@ Route::put('/reservasi/pembayaran/{no_pemeriksaan}', [ReservasiController::class
 
 // Langkah 6 — Lihat riwayat reservasi pasien
 Route::get('/reservasi/riwayat/{rekam_medis_id}', [ReservasiController::class, 'riwayatReservasi']);
+

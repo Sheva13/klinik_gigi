@@ -9,12 +9,11 @@ class MasterDokter extends Model
 {
     use HasFactory;
 
-    // Nama tabel di database
+
     protected $table = 'master_dokter';
 
-    // Kolom yang bisa diisi
+
     protected $fillable = [
-        'id',
         'kode_dokter',
         'nama',
         'gelar',
@@ -29,30 +28,31 @@ class MasterDokter extends Model
         'dokter_sip_berlaku',
         'dokter_sip_expired',
         'inisial',
+        'kode_poli',
     ];
 
-    /**
-     * Relasi ke tabel master_jadwal
-     * Satu dokter bisa memiliki banyak jadwal praktik
-     */
+    public function poli()
+    {
+        return $this->belongsTo(MasterPoli::class, 'kode_poli', 'kode_poli');
+    }
+
     public function jadwal()
     {
         return $this->hasMany(MasterJadwal::class, 'kode_dokter', 'kode_dokter');
     }
 
-    /**
-     * Relasi ke tabel Reservasi
-     * Satu jadwal bisa memiliki banyak reservasi
-     */
+
     public function reservasi()
     {
-        return $this->hasMany(Reservasi::class, 'jadwal_id', 'id');
+        return $this->hasMany(Reservasi::class, 'dokter_id', 'kode_dokter');
     }
 
     public function spesialis()
     {
-        // 'spesialisasi' adalah foreign key di tabel master_dokter
-        // 'id' adalah primary key di tabel master_spesialis
+        
         return $this->belongsTo(MasterSpesialis::class, 'spesialisasi', 'id');
     }
+
+    
+
 }
