@@ -63,6 +63,50 @@ class DokterController extends Controller
         }
     }
 
+    public function show($id)
+    {
+        try {
+            // mengmbil data dokter berdasarkan ID.
+            $dokter = MasterDokter::with(['masterPoli', 'masterJadwal']) 
+                                ->find($id);
+
+            if (!$dokter) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Dokter tidak ditemukan',
+                ], 404);
+            }
+            
+            // proses foto
+            $fotoUrl = null;
+            if (!empty($dokter->foto)) { 
+                $fotoUrl = asset(Storage::url($dokter->foto));
+            }
+
+            // Susun data respons
+            $data = [
+                'id' => $dokter->id, 
+                'nama' => $dokter->nama,
+                'foto' => $fotoUrl, 
+                'spesialisasi' => $dokter->spesialisasi, 
+                'masterPoli' => $dokter->masterPoli,    
+                'masterJadwal' => $dokter->masterJadwal, 
+            ];
+
+            // Kembalikan data sebagai JSON
+            return response()->json([
+                'status' => 'success',
+                'data' => $data,
+            ], 200, [], JSON_UNESCAPED_SLASHES);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengambil detail dokter: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * Method untuk meng-upload foto profil (Hanya Admin).
      */

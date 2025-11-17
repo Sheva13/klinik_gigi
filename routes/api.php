@@ -19,6 +19,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // Rute ini (GET) tetap publik agar semua orang bisa melihat daftar dokter
 // Endpoint ini sekarang mendukung pencarian: /api/dokter?search=nama
 Route::get('/dokter', [DokterController::class, 'index']);
+Route::get('/dokter/{id}', [DokterController::class, 'show']);
 Route::get('/pasien', [PasienController::class, 'getPasien']);
 Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
 Route::get('/promo', [PromoController::class, 'index']);
@@ -40,6 +41,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // 🔹 Riwayat reservasi berdasarkan user yang login
     Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
+    
+    // Router untuk RESERVASI //
+    Route::get('/reservasi/user', [ReservasiController::class, 'getUserData']);
     
     // --- RUTE BARU UNTUK DENTAL HOME CARE ---
     Route::get('/homecare/jadwal', [HomeCareController::class, 'getMasterJadwal']);
@@ -83,3 +87,4 @@ Route::put('/reservasi/pembayaran/{no_pemeriksaan}', [ReservasiController::class
 
 // Langkah 6 — Lihat riwayat reservasi pasien
 Route::get('/reservasi/riwayat/{rekam_medis_id}', [ReservasiController::class, 'riwayatReservasi']);
+

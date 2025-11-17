@@ -171,8 +171,6 @@ class HomeCareController extends Controller
         return response()->json(['message' => 'Konfirmasi pembayaran berhasil.', 'data' => $booking]);
     }
     
-    // === CATATAN: Endpoint untuk ADMIN ===
-    // Anda perlu endpoint terpisah (mungkin di grup Admin)
     // untuk mengubah status 0 -> 1 (Menyetujui Jadwal)
     
     /*
