@@ -9,7 +9,7 @@ use App\Models\JadwalHarian;
 use App\Models\MasterJadwal;
 use App\Models\MpUser;
 use App\Models\RekamMedis; 
-
+use App\Models\Reservasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -215,5 +215,64 @@ class HomeCareController extends Controller
                             ->get();
         
         return response()->json(['data' => $trackingHistory]);
+    }
+
+    public function updateStatus(Request $request)
+    {
+        // 1. Validasi input
+        $validator = Validator::make($request->all(), [
+            'reservasi_id' => 'required|integer|exists:reservasi,id',
+            'status_tracking' => 'required|integer|in:2,3,4', // Status 2, 3, or 4
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validasi gagal', 'errors' => $validator->errors()], 422);
+        }
+
+        // 2. Cek Role Pengguna (HARUS DOKTER atau ADMIN)
+        $user = Auth::user();
+        if ($user->role !== 'admin' && $user->role !== 'dokter') {
+            return response()->json(['message' => 'Anda tidak memiliki wewenang untuk aksi ini'], 403);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            // 3. Mulai Database Transaction
+            $tracking = DB::transaction(function () use ($validated, $user) {
+                
+                // Cari reservasi
+                $reservasi = Reservasi::findOrFail($validated['reservasi_id']);
+
+                // 4. Buat entri tracking BARU
+                $newTracking = HomeCareTracking::create([
+                    'reservasi_id' => $reservasi->id,
+                    'status_tracking' => $validated['status_tracking'],
+                    'waktu' => now(),
+                    'created_by' => $user->id, // Opsional: mencatat siapa yang update
+                ]);
+
+                // 5. Update status utama di tabel reservasi
+                if ($validated['status_tracking'] == 4) {
+                    // Status 4 = Selesai
+                    $reservasi->status_reservasi = 'selesai';
+                } else {
+                    // Status 2 atau 3 = Proses
+                    $reservasi->status_reservasi = 'proses';
+                }
+                $reservasi->save();
+
+                return $newTracking;
+            });
+
+            // 6. Beri respon sukses
+            return response()->json([
+                'message' => 'Status progres berhasil diperbarui',
+                'data' => $tracking
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
+        }
     }
 }

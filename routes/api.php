@@ -46,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/homecare/booking', [HomeCareController::class, 'storeBooking']);
     Route::post('/homecare/booking/{id}/konfirmasi-bayar', [HomeCareController::class, 'confirmPayment']);
     Route::get('/homecare/booking/{id}/tracking', [HomeCareController::class, 'getTrackingHistory']);
+    Route::post('/homecare/update-status', [HomeCareController::class, 'updateStatus']);
     
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);
