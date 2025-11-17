@@ -82,11 +82,22 @@ class RiwayatController extends Controller
             // Mapping data
             $mappedRiwayat = $riwayat->map(function ($item) {
                 return [
+                    // Informasi reservasi
                     'no_pemeriksaan' => $item->no_pemeriksaan,
                     'dokter' => $item->dokter?->nama ?? '-',
                     'tanggal' => $item->tanggal_pesan,
+                    'tanggal_pesan' => $item->tanggal_pesan,
                     'poli' => $item->jadwal?->poli?->nama_poli ?? '-',
                     'status_reservasi' => $item->status_reservasi,
+                    'jam_mulai' => $item->jam_mulai ?? '-',
+                    'jam_selesai' => $item->jam_selesai ?? '-',
+                    'biaya' => $item->biaya_reservasi ?? '0',
+                    
+                    // Informasi pasien (dari relasi RekamMedis)
+                    'nama' => $item->pasien?->nama ?? '-',
+                    'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
+                    'no_rekam_medis' => $item->pasien?->rekam_medis ?? '-',
+                    'foto' => $item->pasien?->file_foto ?? '',
                 ];
             });
 
