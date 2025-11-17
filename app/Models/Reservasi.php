@@ -39,6 +39,16 @@ class Reservasi extends Model
         return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
     }
 
+    /**
+     * Alias relation to maintain compatibility with controllers using 'pasien'
+     * Some code (controllers/routes) eager-load or access 'pasien' relation.
+     * Provide a pasien() method that points to the same RekamMedis relation.
+     */
+    public function pasien()
+    {
+        return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
+    }
+
     public function dokter()
     {
         return $this->belongsTo(MasterDokter::class, 'dokter_id', 'kode_dokter');
