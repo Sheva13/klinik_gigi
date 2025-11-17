@@ -57,4 +57,16 @@ class MpUser extends Authenticatable
     {
         return $this->belongsTo(RekamMedis::class, 'rekam_medis_id', 'id');
     }
+
+    public function reservasi()
+    {
+        return $this->hasManyThrough(
+            Reservasi::class,
+            RekamMedis::class,
+            'id',          // Foreign key di RekamMedis (ke MpUser)
+            'pasien_id',   // Foreign key di Reservasi (ke RekamMedis)
+            'rekam_medis_id', // Lokal key di MpUser
+            'rekam_medis'  // Lokal key di RekamMedis
+        );
+    }
 }

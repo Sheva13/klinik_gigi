@@ -21,7 +21,6 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/dokter', [DokterController::class, 'index']);
 Route::get('/pasien', [PasienController::class, 'getPasien']);
 Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
-Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
 Route::get('/promo', [PromoController::class, 'index']);
 Route::post('/auth/request-otp', [AuthController::class, 'requestOtpEmail']);
 Route::post('/auth/verify-otp',  [AuthController::class, 'verifyOtpEmail']);
@@ -35,6 +34,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/pasien', [PasienController::class, 'index']);
     Route::get('/pasien/me', [PasienController::class, 'me']); 
+    
+    // Jika butuh rute untuk admin mengambil SEMUA pasien:
+    // Route::get('/pasien/all', [PasienController::class, 'getPasien']);
+
+    // 🔹 Riwayat reservasi berdasarkan user yang login
+    Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
     
     // --- RUTE BARU UNTUK DENTAL HOME CARE ---
     Route::get('/homecare/jadwal', [HomeCareController::class, 'getMasterJadwal']);
