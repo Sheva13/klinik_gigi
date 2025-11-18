@@ -38,9 +38,7 @@ class Otp extends Model
 
     public function markUsed()
     {
-        $this->used_at = Carbon::now();
-        // Optionally remove code hash to avoid reuse
-        $this->code_hash = null;
-        $this->save();
+        $this->used_at = now(); 
+        $this->save(['timestamps' => true]);
     }
 }

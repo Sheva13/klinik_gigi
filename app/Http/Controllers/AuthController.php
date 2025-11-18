@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use App\Models\MpUser;
 use App\Models\Otp;
 use App\Models\OtpAuditLog;
@@ -269,171 +270,197 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'code' => 'required|string'
+            'code'  => 'required|string'
         ]);
-
-        $email = strtolower($request->input('email'));
-        $code = $request->input('code');
-
+    
+        $email = strtolower($request->email);
+        $code  = $request->code;
+    
         // Check block
         if ($this->isBlocked($email)) {
-            $this->audit($email, 'blocked', ['reason' => 'blocked_temporary_on_verify']);
-            return response()->json(['success' => false, 'message' => 'Too many failed attempts. Try again later.'], 429);
+            $this->audit($email, 'blocked', [
+                'reason' => 'blocked_temporary_on_verify'
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many failed attempts. Try again later.'
+            ], 429);
         }
-
-        // Get latest non-used OTP for this email
+    
+        // Ambil OTP terbaru yang masih aktif
         $otp = Otp::where('email', $email)
             ->whereNull('used_at')
             ->where('expires_at', '>', Carbon::now())
             ->orderBy('created_at', 'desc')
             ->first();
-
+    
         if (!$otp) {
             $this->incrementFailedAttempt($email);
-            $this->audit($email, 'verification_failed', ['reason' => 'no_active_otp', 'ip' => $request->ip()]);
-            return response()->json(['success' => false, 'message' => 'OTP tidak ditemukan atau sudah kadaluarsa.'], 404);
+            $this->audit($email, 'verification_failed', [
+                'reason' => 'no_active_otp',
+                'ip'     => $request->ip()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP tidak ditemukan atau sudah kadaluarsa.'
+            ], 404);
         }
-
-        // Check attempts limit
+    
+        // Attempt limit
         if ($otp->attempts >= $this->maxVerifyAttemptsPerOtp) {
-            $otp->markUsed(); // invalidate
+            $otp->markUsed(); // Hanguskan OTP yg disalahgunakan
             $this->incrementFailedAttempt($email);
-            $this->audit($email, 'verification_failed', ['reason' => 'attempts_exceeded', 'otp_id' => $otp->id]);
-            return response()->json(['success' => false, 'message' => 'Maksimal percobaan verifikasi tercapai.'], 429);
+            $this->audit($email, 'verification_failed', [
+                'reason' => 'attempts_exceeded',
+                'otp_id' => $otp->id
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Maksimal percobaan verifikasi tercapai.'
+            ], 429);
         }
-
-        // Check hash
+    
+        // CHECK HASH
         $isValid = Hash::check($code, $otp->code_hash);
-
-        // increment attempts
-        $otp->increment('attempts');
-
+    
         if (!$isValid) {
+            // hanya tambah attempt kalau salah
+            $otp->increment('attempts');
+    
             $this->incrementFailedAttempt($email);
-            $this->audit($email, 'verification_failed', ['reason' => 'invalid_code', 'otp_id' => $otp->id, 'attempts' => $otp->attempts]);
-            return response()->json(['success' => false, 'message' => 'Kode salah.'], 401);
+            $this->audit($email, 'verification_failed', [
+                'reason'   => 'invalid_code',
+                'otp_id'   => $otp->id,
+                'attempts' => $otp->attempts
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode salah.'
+            ], 401);
         }
-
-        // Success: mark used, audit, issue token / login
+    
+        // ----- IF VALID -----
         $otp->markUsed();
-        $this->audit($email, 'verification_success', ['otp_id' => $otp->id, 'ip' => $request->ip()]);
-
-        // Find or create user by email (depends on flow)
+        $this->audit($email, 'verification_success', [
+            'otp_id' => $otp->id,
+            'ip'     => $request->ip()
+        ]);
+    
+        // Clear fail counters
+        $this->clearFailedAttempts($email);
+    
+        // Find or create user
         $user = MpUser::where('email', $email)->first();
-
+    
         if (!$user) {
-            // If you allow passwordless signup, create a new user skeleton
             $user = MpUser::create([
-                'user_id' => $this->generateUniqueUserId(),
-                'email' => $email,
+                'user_id'       => $this->generateUniqueUserId(),
+                'email'         => $email,
                 'nama_pengguna' => explode('@', $email)[0],
-                'password' => Hash::make(Str::random(16)), // random password
+                'password'      => Hash::make(Str::random(16))
             ]);
         }
-
-        // Issue Sanctum token (or your token)
-        $tokenResult = $user->createToken('auth_token');
-        $token = $tokenResult->plainTextToken;
-
-        // Save current token
+    
+        // Generate token
+        $token = $user->createToken('auth_token')->plainTextToken;
+    
         $user->update(['current_token' => $token]);
-
-        // Clear failed counters on success
-        $this->clearFailedAttempts($email);
-
+    
         return response()->json([
             'success' => true,
             'message' => 'Verifikasi berhasil',
             'data' => [
-                'user_id' => $user->user_id,
-                'nama_pengguna' => $user->nama_pengguna,
-                'email' => $user->email,
-                'token' => $token,
-                'token_expires_in' => config('sanctum.expiration') ?? null,
+                'user_id'         => $user->user_id,
+                'nama_pengguna'   => $user->nama_pengguna,
+                'email'           => $user->email,
+                'token'           => $token,
+                'token_expires_in'=> config('sanctum.expiration') ?? null,
             ]
         ]);
     }
+    
 
     /* ------------------
        Helper functions: rate limit, block, audit, counters
        ------------------ */
 
-    private function cooldownKey($email)
-    {
-        return "otp:cooldown:" . md5($email);
-    }
-
-    private function requestCounterKey($email)
-    {
-        // track per hour
-        return "otp:requests:hour:" . date('YmdH') . ":" . md5($email);
-    }
-
-    private function failedCounterKey($email)
-    {
-        return "otp:failed:" . md5($email);
-    }
-
-    private function blockedKey($email)
-    {
-        return "otp:blocked:" . md5($email);
-    }
-
-    private function allowRequestOtp($email)
-    {
-        $key = $this->requestCounterKey($email);
-        $count = Cache::get($key, 0);
-        return $count < $this->maxRequestsPerHour;
-    }
-
-    private function incrementRequestCounter($email)
-    {
-        $key = $this->requestCounterKey($email);
-        $expiresAt = Carbon::now()->addHour()->diffInSeconds(Carbon::now());
-        Cache::increment($key);
-        // Ensure TTL set
-        if (!Cache::has($key . ':ttl')) {
-            Cache::put($key, Cache::get($key, 0), 3600);
-            Cache::put($key . ':ttl', true, 3600);
-        }
-    }
-
-    private function incrementFailedAttempt($email)
-    {
-        $key = $this->failedCounterKey($email);
-        $count = Cache::increment($key);
-        if (!$count) {
-            Cache::put($key, 1, 3600);
-            $count = 1;
-        }
-
-        if ($count >= $this->blockAfterFailedAttempts) {
-            Cache::put($this->blockedKey($email), true, $this->blockMinutes * 60);
-            $this->audit($email, 'blocked', ['reason' => 'auto_block', 'failed_count' => $count]);
-        }
-    }
-
-    private function clearFailedAttempts($email)
-    {
-        Cache::forget($this->failedCounterKey($email));
-        Cache::forget($this->blockedKey($email));
-    }
-
-    private function isBlocked($email)
-    {
-        return Cache::has($this->blockedKey($email));
-    }
-
-    private function audit($email, $action, $meta = [])
-    {
-        try {
-            OtpAuditLog::create([
-                'email' => $email,
-                'action' => $action,
-                'meta' => $meta,
-            ]);
-        } catch (Exception $e) {
-            Log::error('Audit log failed: ' . $e->getMessage());
-        }
-    }
-}
+       private function cooldownKey($email)
+       {
+           return "otp:cooldown:" . md5($email);
+       }
+       
+       private function requestCounterKey($email)
+       {
+           return "otp:requests:hour:" . date('YmdH') . ":" . md5($email);
+       }
+       
+       private function failedCounterKey($email)
+       {
+           return "otp:failed:" . md5($email);
+       }
+       
+       private function blockedKey($email)
+       {
+           return "otp:blocked:" . md5($email);
+       }
+       
+       private function allowRequestOtp($email)
+       {
+           $key = $this->requestCounterKey($email);
+           return Cache::get($key, 0) < $this->maxRequestsPerHour;
+       }
+       
+       private function incrementRequestCounter($email)
+       {
+           $key = $this->requestCounterKey($email);
+           Cache::increment($key);
+       
+           if (!Cache::has($key . ':ttl')) {
+               Cache::put($key, Cache::get($key, 0), 3600);
+               Cache::put($key . ':ttl', true, 3600);
+           }
+       }
+       
+       private function incrementFailedAttempt($email)
+       {
+           $key = $this->failedCounterKey($email);
+           $count = Cache::increment($key);
+       
+           if (!$count) {
+               Cache::put($key, 1, 3600);
+               $count = 1;
+           }
+       
+           if ($count >= $this->blockAfterFailedAttempts) {
+               Cache::put($this->blockedKey($email), true, $this->blockMinutes * 60);
+               $this->audit($email, 'blocked', [
+                   'reason'       => 'auto_block',
+                   'failed_count' => $count
+               ]);
+           }
+       }
+       
+       private function clearFailedAttempts($email)
+       {
+           Cache::forget($this->failedCounterKey($email));
+           Cache::forget($this->blockedKey($email));
+       }
+       
+       private function isBlocked($email)
+       {
+           return Cache::has($this->blockedKey($email));
+       }
+       
+       private function audit($email, $action, $meta = [])
+       {
+           try {
+               OtpAuditLog::create([
+                   'email'  => $email,
+                   'action' => $action,
+                   'meta'   => $meta,
+               ]);
+           } catch (\Exception $e) {
+               Log::error("Audit log failed: " . $e->getMessage());
+           }
+       }
+    }       
