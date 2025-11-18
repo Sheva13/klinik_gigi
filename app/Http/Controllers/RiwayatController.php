@@ -91,7 +91,7 @@ class RiwayatController extends Controller
                     'status_reservasi' => $item->status_reservasi,
                     'jam_mulai' => $item->jam_mulai ?? '-',
                     'jam_selesai' => $item->jam_selesai ?? '-',
-                    'biaya' => $item->biaya_reservasi ?? '0',
+                    'biaya' => $item->pembayaran_total ?? '0',
                     
                     // Informasi pasien (dari relasi RekamMedis)
                     'nama' => $item->pasien?->nama ?? '-',
