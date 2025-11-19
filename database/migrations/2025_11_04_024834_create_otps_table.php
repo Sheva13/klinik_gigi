@@ -18,6 +18,7 @@ class CreateOtpsTable extends Migration
             $table->string('request_ip')->nullable();
             $table->string('user_agent')->nullable();
             $table->timestamps();
+            $table->string('purpose')->default('CHANGE_PASSWORD');
         });
 
         Schema::table('otps', function (Blueprint $table) {

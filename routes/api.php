@@ -10,6 +10,7 @@ use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\UbahPasswordController;    
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
@@ -26,6 +27,8 @@ Route::post('/auth/verify-otp',  [AuthController::class, 'verifyOtpEmail']);
 
 // Route Terproteksi (Wajib Login / Kirim Token)
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/password/request-change', [UbahPasswordController::class, 'requestOtpForPasswordChange']);
+    Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtpAndChangePassword']);
     
     // --- Rute Autentikasi & Pasien ---
     Route::post('/logout', [AuthController::class, 'logout']);
