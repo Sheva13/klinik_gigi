@@ -186,6 +186,7 @@ class ReservasiController extends Controller
                     'kuota_total' => $jadwal->quota,
                     'kuota_terpakai' => $reservasiTerpakai,
                     'sisa_kuota' => $sisaKuota,
+                    'hari' => Carbon::parse($tanggalReservasi)->translatedFormat('l'),
                 ];
             }
         }
