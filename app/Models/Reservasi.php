@@ -32,6 +32,12 @@ class Reservasi extends Model
         'bank_transaksi_id',
         'pembayaran_total',
         'jenis_pasien',
+        'tipe_layanan', 
+        'alamat_lengkap', 
+        'latitude', 
+        'longitude', 
+        'biaya_transport', 
+        'metode_pembayaran'
     ];
 
     public function rekamMedis()
