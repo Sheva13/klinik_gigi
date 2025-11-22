@@ -33,7 +33,9 @@ Route::post('/auth/verify-otp',  [AuthController::class, 'verifyOtpEmail']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/password/request-change', [UbahPasswordController::class, 'requestOtpForPasswordChange']);
     Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtpAndChangePassword']);
-    
+    Route::post('/homecare/calculate', [HomeCareController::class, 'calculateCost']);
+    Route::post('/homecare/book', [HomeCareController::class, 'store']);
+
     // --- Rute Autentikasi & Pasien ---
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/pasien', [PasienController::class, 'index']);
