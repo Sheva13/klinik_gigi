@@ -92,6 +92,13 @@
     </div>
 
     {{-- Table Section --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert" 
+             style="background-color: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; color: #28a745;">
+            <i class="bi bi-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
     <div class="card card-custom overflow-hidden">
         <div class="table-responsive">
             <table class="table table-custom mb-0 align-middle">
@@ -134,13 +141,13 @@
                                 <a href="#" class="btn btn-icon btn-sm text-warning" title="Edit">
                                     <span class="material-symbols-outlined">edit</span>
                                 </a>
-                                <form action="#" method="POST" class="d-inline" onsubmit="return confirm('Hapus promo ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-icon btn-sm text-danger" title="Hapus">
-                                        <span class="material-symbols-outlined">delete</span>
-                                    </button>
-                                </form>
+                                <form action="{{ route('promo.destroy', $promo->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus promo ini?')">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-icon btn-sm text-danger" title="Hapus">
+                <span class="material-symbols-outlined">delete</span>
+            </button>
+        </form>
                             </div>
                         </td>
                     </tr>

@@ -135,21 +135,24 @@
 
             {{-- Navigasi diberi padding di CSS (.sidebar nav) --}}
             <nav class="d-flex flex-column gap-2"> 
-    {{-- UBAH BARIS INI: Tambahkan || request()->is('/') --}}
+    {{-- Dashboard --}}
     <a href="/" class="{{ request()->is('/') || request()->is('dashboard') ? 'active' : '' }}">
         <span class="material-symbols-outlined">dashboard</span> Dashboard
     </a>
     
-    <a href="/promo" class="{{ request()->is('promo') ? 'active' : '' }}">
+    {{-- BAGIAN PROMO DIPERBAIKI DI SINI --}}
+    <a href="{{ route('promo.index') }}" class="{{ request()->is('promo*') ? 'active' : '' }}">
         <span class="material-symbols-outlined">bookmark_manager</span> Promo
     </a>
-    <a href="/dental-care" class="{{ request()->is('dental-care') ? 'active' : '' }}">
+
+    {{-- Menu Lainnya (Biarkan tetap seperti semula atau sesuaikan nanti) --}}
+    <a href="/dental-care" class="{{ request()->is('dental-care*') ? 'active' : '' }}">
         <span class="material-symbols-outlined">dentistry</span> Dental Care
     </a>
-    <a href="/jadwal" class="{{ request()->is('jadwal') ? 'active' : '' }}">
+    <a href="/jadwal" class="{{ request()->is('jadwal*') ? 'active' : '' }}">
         <span class="material-symbols-outlined">calendar_month</span> Jadwal Praktek
     </a>
-    <a href="/dokter" class="{{ request()->is('dokter') ? 'active' : '' }}">
+    <a href="/dokter" class="{{ request()->is('dokter*') ? 'active' : '' }}">
         <span class="material-symbols-outlined">health_and_safety</span> Dokter
     </a>
 </nav>
