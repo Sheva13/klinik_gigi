@@ -18,6 +18,73 @@ use Illuminate\Support\Facades\Validator;
 
 class HomeCareController extends Controller
 {
+     /**
+     * Menggunakan Rumus Haversine untuk menghitung jarak dan biaya.
+     * Menggantikan penggunaan Google Maps API eksternal.
+     *
+     * @param float $userLat Latitude pasien
+     * @param float $userLng Longitude pasien
+     * @return array{'jarakDalamKm': float, 'biayaJarak': int}
+     */
+    private function calculateDistanceAndCost($userLat, $userLng)
+    {
+        // --- Konfigurasi dari Environment ---
+        // Anda HARUS menambahkan nilai ini ke file .env Anda:
+        // CLINIC_LAT=-6.806433
+        // CLINIC_LNG=110.842188
+        // HOMECARE_HARGA_PER_KM=5000
+        // HOMECARE_BIAYA_DASAR=100000 (Opsional untuk estimasi)
+        
+        $clinicLat = env('CLINIC_LAT', -6.9961); // Default koordinat klinik diperbarui
+        $clinicLng = env('CLINIC_LNG', 110.4191); // Default koordinat klinik diperbarui
+        $hargaPerKm = env('HOMECARE_HARGA_PER_KM', 5000); 
+
+        // RUMUS HAVERSINE (Menghitung jarak 2 titik koordinat bumi)
+        $earthRadius = 6371; // Radius bumi dalam KM
+        $dLat = deg2rad($clinicLat - $userLat);
+        $dLon = deg2rad($clinicLng - $userLng);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+            cos(deg2rad($userLat)) * cos(deg2rad($clinicLat)) *
+            sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $distance = $earthRadius * $c; // Jarak dalam KM
+
+        // Biaya jarak: Jarak (dibulatkan ke atas) dikalikan harga per KM
+        $biayaJarak = ceil($distance) * $hargaPerKm;
+
+        return [
+            'jarakDalamKm' => $distance,
+            'biayaJarak' => (int) $biayaJarak // Pastikan integer untuk biaya
+        ];
+    }
+
+    // 1. Endpoint untuk Estimasi Biaya Jarak (Dipanggil oleh Frontend)
+    public function calculateCost(Request $request)
+    {
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        $calculation = $this->calculateDistanceAndCost(
+            $request->latitude,
+            $request->longitude
+        );
+        
+        // Asumsi biaya dasar Home Care (Jika ada)
+        $biayaDasarHomeCare = env('HOMECARE_BIAYA_DASAR', 100000); 
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'jarak_km' => round($calculation['jarakDalamKm'], 2),
+                'biaya_transport' => $calculation['biayaJarak'],
+                'estimasi_total' => $calculation['biayaJarak'] + $biayaDasarHomeCare
+            ]
+        ]);
+    }
     // === Mendapatkan Jadwal ===
     // Mengambil semua template jadwal dokter (bukan jadwal harian)
     public function getMasterJadwal()
