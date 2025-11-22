@@ -9,7 +9,7 @@ use App\Models\JadwalHarian;
 use App\Models\MasterJadwal;
 use App\Models\MpUser;
 use App\Models\RekamMedis; 
-use App\Models\Reservasi;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +18,73 @@ use Illuminate\Support\Facades\Validator;
 
 class HomeCareController extends Controller
 {
+     /**
+     * Menggunakan Rumus Haversine untuk menghitung jarak dan biaya.
+     * Menggantikan penggunaan Google Maps API eksternal.
+     *
+     * @param float $userLat Latitude pasien
+     * @param float $userLng Longitude pasien
+     * @return array{'jarakDalamKm': float, 'biayaJarak': int}
+     */
+    private function calculateDistanceAndCost($userLat, $userLng)
+    {
+        // --- Konfigurasi dari Environment ---
+        // Anda HARUS menambahkan nilai ini ke file .env Anda:
+        // CLINIC_LAT=-6.806433
+        // CLINIC_LNG=110.842188
+        // HOMECARE_HARGA_PER_KM=5000
+        // HOMECARE_BIAYA_DASAR=100000 (Opsional untuk estimasi)
+        
+        $clinicLat = env('CLINIC_LAT', -6.9961); // Default koordinat klinik diperbarui
+        $clinicLng = env('CLINIC_LNG', 110.4191); // Default koordinat klinik diperbarui
+        $hargaPerKm = env('HOMECARE_HARGA_PER_KM', 5000); 
+
+        // RUMUS HAVERSINE (Menghitung jarak 2 titik koordinat bumi)
+        $earthRadius = 6371; // Radius bumi dalam KM
+        $dLat = deg2rad($clinicLat - $userLat);
+        $dLon = deg2rad($clinicLng - $userLng);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+            cos(deg2rad($userLat)) * cos(deg2rad($clinicLat)) *
+            sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $distance = $earthRadius * $c; // Jarak dalam KM
+
+        // Biaya jarak: Jarak (dibulatkan ke atas) dikalikan harga per KM
+        $biayaJarak = ceil($distance) * $hargaPerKm;
+
+        return [
+            'jarakDalamKm' => $distance,
+            'biayaJarak' => (int) $biayaJarak // Pastikan integer untuk biaya
+        ];
+    }
+
+    // 1. Endpoint untuk Estimasi Biaya Jarak (Dipanggil oleh Frontend)
+    public function calculateCost(Request $request)
+    {
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        $calculation = $this->calculateDistanceAndCost(
+            $request->latitude,
+            $request->longitude
+        );
+        
+        // Asumsi biaya dasar Home Care (Jika ada)
+        $biayaDasarHomeCare = env('HOMECARE_BIAYA_DASAR', 100000); 
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'jarak_km' => round($calculation['jarakDalamKm'], 2),
+                'biaya_transport' => $calculation['biayaJarak'],
+                'estimasi_total' => $calculation['biayaJarak'] + $biayaDasarHomeCare
+            ]
+        ]);
+    }
     // === Mendapatkan Jadwal ===
     // Mengambil semua template jadwal dokter (bukan jadwal harian)
     public function getMasterJadwal()
@@ -64,6 +131,12 @@ class HomeCareController extends Controller
                 'key' => $apiKey,
                 'units' => 'metric' // untuk kilometer
             ]);
+            // Menggunakan fungsi internal Haversine untuk kalkulasi
+            $calculation = $this->calculateDistanceAndCost(
+                $request->latitude_pasien,
+                $request->longitude_pasien
+            );
+            $biayaJarak = $calculation['biayaJarak'];
 
             $data = $response->json();
             
@@ -171,6 +244,8 @@ class HomeCareController extends Controller
         return response()->json(['message' => 'Konfirmasi pembayaran berhasil.', 'data' => $booking]);
     }
     
+    // === CATATAN: Endpoint untuk ADMIN ===
+    // Anda perlu endpoint terpisah (mungkin di grup Admin)
     // untuk mengubah status 0 -> 1 (Menyetujui Jadwal)
     
     /*
@@ -213,64 +288,5 @@ class HomeCareController extends Controller
                             ->get();
         
         return response()->json(['data' => $trackingHistory]);
-    }
-
-    public function updateStatus(Request $request)
-    {
-        // 1. Validasi input
-        $validator = Validator::make($request->all(), [
-            'reservasi_id' => 'required|integer|exists:reservasi,id',
-            'status_tracking' => 'required|integer|in:2,3,4', // Status 2, 3, or 4
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['message' => 'Validasi gagal', 'errors' => $validator->errors()], 422);
-        }
-
-        // 2. Cek Role Pengguna (HARUS DOKTER atau ADMIN)
-        $user = Auth::user();
-        if ($user->role !== 'admin' && $user->role !== 'dokter') {
-            return response()->json(['message' => 'Anda tidak memiliki wewenang untuk aksi ini'], 403);
-        }
-
-        $validated = $validator->validated();
-
-        try {
-            // 3. Mulai Database Transaction
-            $tracking = DB::transaction(function () use ($validated, $user) {
-                
-                // Cari reservasi
-                $reservasi = Reservasi::findOrFail($validated['reservasi_id']);
-
-                // 4. Buat entri tracking BARU
-                $newTracking = HomeCareTracking::create([
-                    'reservasi_id' => $reservasi->id,
-                    'status_tracking' => $validated['status_tracking'],
-                    'waktu' => now(),
-                    'created_by' => $user->id, // Opsional: mencatat siapa yang update
-                ]);
-
-                // 5. Update status utama di tabel reservasi
-                if ($validated['status_tracking'] == 4) {
-                    // Status 4 = Selesai
-                    $reservasi->status_reservasi = 'selesai';
-                } else {
-                    // Status 2 atau 3 = Proses
-                    $reservasi->status_reservasi = 'proses';
-                }
-                $reservasi->save();
-
-                return $newTracking;
-            });
-
-            // 6. Beri respon sukses
-            return response()->json([
-                'message' => 'Status progres berhasil diperbarui',
-                'data' => $tracking
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
-        }
     }
 }
