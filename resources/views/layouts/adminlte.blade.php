@@ -135,24 +135,24 @@
 
             {{-- Navigasi diberi padding di CSS (.sidebar nav) --}}
             <nav class="d-flex flex-column gap-2"> 
-                <a href="/dashboard" class="{{ request()->is('dashboard') ? 'active' : '' }}">
-                    <span class="material-symbols-outlined">dashboard</span> Dashboard
-                </a>
-                
-                {{-- Perhatikan penambahan class 'text-warning' dihapus dari link promo, dental-care, jadwal, dokter --}}
-                <a href="/promo" class="{{ request()->is('promo') ? 'active' : '' }}">
-                    <span class="material-symbols-outlined">bookmark_manager</span> Promo
-                </a>
-                <a href="/dental-care" class="{{ request()->is('dental-care') ? 'active' : '' }}">
-                    <span class="material-symbols-outlined">dentistry</span> Dental Care
-                </a>
-                <a href="/jadwal" class="{{ request()->is('jadwal') ? 'active' : '' }}">
-                    <span class="material-symbols-outlined">calendar_month</span> Jadwal Praktek
-                </a>
-                <a href="/dokter" class="{{ request()->is('dokter') ? 'active' : '' }}">
-                    <span class="material-symbols-outlined">health_and_safety</span> Dokter
-                </a>
-            </nav>
+    {{-- UBAH BARIS INI: Tambahkan || request()->is('/') --}}
+    <a href="/" class="{{ request()->is('/') || request()->is('dashboard') ? 'active' : '' }}">
+        <span class="material-symbols-outlined">dashboard</span> Dashboard
+    </a>
+    
+    <a href="/promo" class="{{ request()->is('promo') ? 'active' : '' }}">
+        <span class="material-symbols-outlined">bookmark_manager</span> Promo
+    </a>
+    <a href="/dental-care" class="{{ request()->is('dental-care') ? 'active' : '' }}">
+        <span class="material-symbols-outlined">dentistry</span> Dental Care
+    </a>
+    <a href="/jadwal" class="{{ request()->is('jadwal') ? 'active' : '' }}">
+        <span class="material-symbols-outlined">calendar_month</span> Jadwal Praktek
+    </a>
+    <a href="/dokter" class="{{ request()->is('dokter') ? 'active' : '' }}">
+        <span class="material-symbols-outlined">health_and_safety</span> Dokter
+    </a>
+</nav>
         </div>
 
         <div class="sidebar-footer">

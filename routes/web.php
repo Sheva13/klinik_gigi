@@ -1,18 +1,9 @@
 <?php
-
+use App\Http\Controllers\PromoControllerWeb;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
-// 1. Halaman Utama (Wajib GET agar bisa dibuka di browser)
+// Route untuk halaman utama (root) langsung ke dashboard
 Route::get('/', function () {
-    return view('auth/login'); // Pastikan file resources/views/welcome.blade.php ada
+    // Mengembalikan view 'dashboard' (pastikan file dashboard.blade.php ada)
+    return view('dashboard');
 });
-
-// 2. Proses Login (Wajib POST untuk menerima data form)
-Route::post('/login', [AuthController::class, 'login'])->name('login');
