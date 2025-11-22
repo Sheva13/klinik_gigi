@@ -76,10 +76,10 @@
         
         <div class="d-flex align-items-center gap-4">
             {{-- Tombol Tambah --}}
-            <a href="#" class="btn btn-gold">
-                <span class="material-symbols-outlined" style="font-size: 20px;">add</span>
-                Tambah Promo Baru
-            </a>
+            <a href="{{ route('promo.create') }}" class="btn btn-gold">
+    <span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+    Tambah Promo Baru
+</a>
             
             {{-- Profil Admin Kecil --}}
             <div class="d-flex align-items-center gap-2 border-start border-secondary ps-4">
@@ -138,9 +138,9 @@
                         </td>
                         <td class="text-end">
                             <div class="d-flex gap-2 justify-content-end">
-                                <a href="#" class="btn btn-icon btn-sm text-warning" title="Edit">
-                                    <span class="material-symbols-outlined">edit</span>
-                                </a>
+                                <a href="{{ route('promo.edit', $promo->id) }}" class="btn btn-icon btn-sm text-warning" title="Edit">
+    <span class="material-symbols-outlined">edit</span>
+</a>
                                 <form action="{{ route('promo.destroy', $promo->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus promo ini?')">
             @csrf
             @method('DELETE')

@@ -10,3 +10,11 @@ Route::get('/', function () {
 
 Route::get('/promo', [PromoControllerWeb::class, 'index'])->name('promo.index');
 Route::delete('/promo/{id}', [PromoControllerWeb::class, 'destroy'])->name('promo.destroy');
+
+// --- TAMBAHKAN RUTE BARU INI ---
+Route::get('/promo/create', [PromoControllerWeb::class, 'create'])->name('promo.create');
+Route::post('/promo', [PromoControllerWeb::class, 'store'])->name('promo.store');
+
+// --- TAMBAHKAN INI UNTUK EDIT ---
+Route::get('/promo/{id}/edit', [PromoControllerWeb::class, 'edit'])->name('promo.edit');
+Route::put('/promo/{id}', [PromoControllerWeb::class, 'update'])->name('promo.update');
