@@ -115,7 +115,14 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
-
+    {{-- TAMBAHKAN INI: Alert Error --}}
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert"
+         style="background-color: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; color: #dc3545;">
+        <i class="bi bi-exclamation-circle me-2"></i> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
     <h4 class="text-white fw-bold mb-4 border-bottom border-secondary pb-3">Daftar Dokter Terdaftar</h4>
 
     {{-- Grid Dokter --}}
@@ -177,20 +184,22 @@
                 <div class="d-flex gap-2 mt-auto">
                     {{-- Edit Button (Pastikan route edit sudah ada) --}}
                     {{-- Asumsi Anda akan membuat route edit nanti, sementara pakai # --}}
-                    <a href="#" class="btn btn-outline-warning w-100 d-flex align-items-center justify-content-center gap-2" style="border-color: #f5c542; color: #f5c542;">
-                        <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
-                        Edit
-                    </a>
+                    <a href="{{ route('dokter.edit', $dokter->id) }}" 
+   class="btn btn-outline-warning w-100 d-flex align-items-center justify-content-center gap-2" 
+   style="border-color: #f5c542; color: #f5c542;">
+    <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+    Edit
+</a>
                     
                     {{-- Delete Button --}}
                     <form action="{{ route('dokter.destroy', $dokter->id) }}" method="POST" class="w-100" onsubmit="return confirm('Yakin ingin menghapus data dokter ini?')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" style="border-color: #ef4444; color: #ef4444;">
-                            <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
-                            Hapus
-                        </button>
-                    </form>
+    @csrf
+    @method('DELETE')
+    <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" style="border-color: #ef4444; color: #ef4444;">
+        <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+        Hapus
+    </button>
+</form>
                 </div>
 
             </div>
