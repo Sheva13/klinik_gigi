@@ -14,20 +14,17 @@ use Illuminate\Support\Facades\Validator;
 
 class HomeCareController extends Controller
 {
-    // Konfigurasi Hardcode (Agar aman jika env bermasalah di production)
-    // Idealnya dipindah ke file config
+    // Konfigurasi Hardcode (Agar aman jika env bermasalah)
     private $clinicLat = -6.9961; 
     private $clinicLng = 110.4191;
     private $hargaPerKm = 5000;
     private $biayaDasar = 100000;
     private $uangMuka = 25000;
-
     /**
      * Rumus Haversine (Private Helper)
      */
     private function calculateDistanceAndCost($userLat, $userLng)
     {   
-        // Ambil dari env jika ada, jika tidak pakai default private property
         $latKlinik = env('CLINIC_LAT', $this->clinicLat);
         $lngKlinik = env('CLINIC_LNG', $this->clinicLng);
         $tarif = env('HOMECARE_HARGA_PER_KM', $this->hargaPerKm);
