@@ -152,7 +152,7 @@
     <a href="/jadwal" class="{{ request()->is('jadwal*') ? 'active' : '' }}">
         <span class="material-symbols-outlined">calendar_month</span> Jadwal Praktek
     </a>
-    <a href="/dokter" class="{{ request()->is('dokter*') ? 'active' : '' }}">
+    <a href="{{ route('dokter.index') }}" class="{{ request()->is('dokter*') ? 'active' : '' }}">
         <span class="material-symbols-outlined">health_and_safety</span> Dokter
     </a>
 </nav>

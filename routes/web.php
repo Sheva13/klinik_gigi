@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\PromoControllerWeb;
+use App\Http\Controllers\DokterControllerWeb;
 use Illuminate\Support\Facades\Route;
 
 // Route untuk halaman utama (root) langsung ke dashboard
@@ -18,3 +19,6 @@ Route::post('/promo', [PromoControllerWeb::class, 'store'])->name('promo.store')
 // --- TAMBAHKAN INI UNTUK EDIT ---
 Route::get('/promo/{id}/edit', [PromoControllerWeb::class, 'edit'])->name('promo.edit');
 Route::put('/promo/{id}', [PromoControllerWeb::class, 'update'])->name('promo.update');
+
+// --- TAMBAHKAN ROUTE DOKTER DI SINI ---
+Route::resource('dokter', DokterControllerWeb::class);
