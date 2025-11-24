@@ -40,7 +40,7 @@ class DokterControllerWeb extends Controller
             'hp'                => 'required|string|max:15',
             'alamat'            => 'required|string|max:50',
             'dokter_str'        => 'required|string|max:250',
-            'file_foto'         => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'file_foto'         => 'required|image|mimes:jpeg,png,jpg|max:2048',
 
             // Data Opsional (Nullable)
             'kode_poli'         => 'nullable|string|max:15',

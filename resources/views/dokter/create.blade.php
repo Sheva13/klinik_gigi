@@ -144,7 +144,8 @@
             {{-- KOLOM KIRI: Foto & Info Dasar --}}
             <div class="col-12 col-lg-4">
                 <div class="card card-dark p-4 h-100">
-                    <h5 class="section-title">Foto Profil</h5>
+                    {{-- UPDATE 1: Tambah Bintang Merah --}}
+                    <h5 class="section-title">Foto Profil <span class="text-danger">*</span></h5>
                     
                     <div class="upload-area mb-4" onclick="document.getElementById('file_foto').click()">
                         <img id="preview_foto" src="#" alt="Preview Foto">
@@ -154,7 +155,8 @@
                             <small class="text-xs text-secondary">(Format: JPG/PNG, Max 2MB)</small>
                         </div>
                     </div>
-                    <input type="file" name="file_foto" id="file_foto" class="d-none" accept="image/*" onchange="previewImage(this)">
+                    {{-- UPDATE 2: Tambah attribute required --}}
+                    <input type="file" name="file_foto" id="file_foto" class="d-none" accept="image/*" onchange="previewImage(this)" required>
 
                     <h5 class="section-title mt-2">Identitas Dasar</h5>
                     
@@ -275,6 +277,7 @@
 </div>
 
 <script>
+    // Fungsi Preview Image (Tetap Sama)
     function previewImage(input) {
         var preview = document.getElementById('preview_foto');
         var placeholder = document.getElementById('placeholder_content');
@@ -291,5 +294,24 @@
             reader.readAsDataURL(input.files[0]);
         }
     }
+
+    // UPDATE 3: Script Validasi Manual sebelum Submit
+    // Ini diperlukan karena input file-nya di-hidden (d-none), jadi browser kadang tidak menampilkan pesan "please fill out this field"
+    document.querySelector('form').addEventListener('submit', function(e) {
+        var fileInput = document.getElementById('file_foto');
+        
+        // Cek jika user belum memilih file (length 0)
+        if (fileInput.files.length === 0) {
+            e.preventDefault(); // Batalkan pengiriman form
+            
+            alert('Wajib upload foto profil dokter!'); // Tampilkan alert
+            
+            // Scroll ke atas agar user melihat area upload
+            document.querySelector('.upload-area').scrollIntoView({ behavior: 'smooth' });
+            
+            // Beri highlight merah pada border area upload
+            document.querySelector('.upload-area').style.borderColor = '#dc3545';
+        }
+    });
 </script>
 @endsection

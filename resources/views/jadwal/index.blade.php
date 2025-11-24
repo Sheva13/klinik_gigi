@@ -103,12 +103,14 @@
                         <span class="input-group-text bg-dark border-secondary text-secondary">
                             <span class="material-symbols-outlined fs-5">search</span>
                         </span>
-                        <input type="text" class="form-control form-control-dark" placeholder="Cari dokter...">
+                        {{-- PERUBAHAN 1: Tambahkan ID cariDokterInput --}}
+                        <input type="text" id="cariDokterInput" class="form-control form-control-dark" placeholder="Cari dokter...">
                     </div>
 
                     <div class="d-flex flex-column gap-3" style="max-height: 600px; overflow-y: auto;">
                         @foreach($dokters as $dokter)
-                        <a href="{{ route('jadwal.index', ['dokter_id' => $dokter->kode_dokter]) }}" class="text-decoration-none">
+                        {{-- PERUBAHAN 2: Tambahkan class dokter-item --}}
+                        <a href="{{ route('jadwal.index', ['dokter_id' => $dokter->kode_dokter]) }}" class="text-decoration-none dokter-item">
                             <div class="card bg-transparent dokter-card p-3 rounded-3 {{ ($selectedDokter && $selectedDokter->kode_dokter == $dokter->kode_dokter) ? 'active' : '' }}">
                                 <div class="d-flex align-items-center gap-3">
                                     
@@ -370,17 +372,48 @@
         </div>
     </div>
 </div>
+@endif
 
+{{-- PERUBAHAN 3: Script dipindah ke sini (di luar if selectedDokter) agar fungsi search selalu ada --}}
 <script>
+    // FUNGSI PENCARIAN (Live Search)
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('cariDokterInput');
+        if(searchInput){
+            searchInput.addEventListener('keyup', function() {
+                let filter = this.value.toLowerCase();
+                let items = document.querySelectorAll('.dokter-item');
+
+                items.forEach(function(item) {
+                    let nameElement = item.querySelector('h6');
+                    if(nameElement) {
+                        let name = nameElement.innerText.toLowerCase();
+                        if (name.indexOf(filter) > -1) {
+                            item.style.display = '';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    }
+                });
+            });
+        }
+    });
+
+    // FUNGSI EDIT JADWAL
     function editJadwal(id) {
         fetch(`/jadwal/${id}/edit`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Gagal mengambil data, pastikan route edit sudah dibuat');
+                }
+                return response.json();
+            })
             .then(data => {
                 document.getElementById('edit_kode_poli').value = data.kode_poli;
                 document.getElementById('edit_hari').value = data.hari;
                 
-                let jamMulai = data.jam_mulai.substring(0, 5);
-                let jamSelesai = data.jam_selesai.substring(0, 5);
+                let jamMulai = data.jam_mulai ? data.jam_mulai.substring(0, 5) : '';
+                let jamSelesai = data.jam_selesai ? data.jam_selesai.substring(0, 5) : '';
 
                 document.getElementById('edit_jam_mulai').value = jamMulai;
                 document.getElementById('edit_jam_selesai').value = jamSelesai;
@@ -396,10 +429,9 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Gagal mengambil data jadwal.');
+                alert('Terjadi kesalahan saat memuat data jadwal.');
             });
     }
 </script>
-@endif
 
 @endsection

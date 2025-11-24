@@ -66,4 +66,29 @@ class JadwalController extends Controller
 
         return redirect()->back()->with('success', 'Jadwal berhasil dihapus.');
     }
+    // TAMBAHKAN INI: Method untuk mengambil data jadwal (JSON) untuk Modal Edit
+    public function edit($id)
+    {
+        $jadwal = MasterJadwal::findOrFail($id);
+        return response()->json($jadwal);
+    }
+
+    // TAMBAHKAN INI: Method untuk menyimpan perubahan (Update)
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'kode_poli'   => 'required|exists:master_poli,kode_poli',
+            'hari'        => 'required|integer|min:1|max:7',
+            'jam_mulai'   => 'required',
+            'jam_selesai' => 'required',
+        ]);
+
+        $jadwal = MasterJadwal::findOrFail($id);
+        
+        // Kita gunakan update dengan except kode_dokter agar dokter tidak berubah
+        // (karena di form edit tidak ada input kode_dokter)
+        $jadwal->update($request->except(['_token', '_method', 'kode_dokter']));
+
+        return redirect()->back()->with('success', 'Jadwal berhasil diperbarui.');
+    }
 }
