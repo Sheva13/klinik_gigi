@@ -9,11 +9,11 @@ class JadwalHarian extends Model
 {
     use HasFactory;
     protected $table = 'jadwal_harian';
-    protected $fillable = ['master_jadwal_id', 'tanggal'];
+    protected $fillable = ['kode_jadwal', 'tanggal', 'validasi'];
 
     // Relasi ke master jadwal (template-nya)
     public function masterJadwal()
     {
-        return $this->belongsTo(MasterJadwal::class, 'master_jadwal_id', 'id');
+        return $this->belongsTo(MasterJadwal::class, 'kode_jadwal', 'id'); 
     }
 }
