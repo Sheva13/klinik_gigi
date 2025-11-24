@@ -149,9 +149,9 @@
     <a href="/dental-care" class="{{ request()->is('dental-care*') ? 'active' : '' }}">
         <span class="material-symbols-outlined">dentistry</span> Dental Care
     </a>
-    <a href="/jadwal" class="{{ request()->is('jadwal*') ? 'active' : '' }}">
-        <span class="material-symbols-outlined">calendar_month</span> Jadwal Praktek
-    </a>
+    <a href="{{ route('jadwal.index') }}" class="{{ request()->is('jadwal*') ? 'active' : '' }}">
+    <span class="material-symbols-outlined">calendar_month</span> Jadwal Praktek
+</a>
     <a href="{{ route('dokter.index') }}" class="{{ request()->is('dokter*') ? 'active' : '' }}">
         <span class="material-symbols-outlined">health_and_safety</span> Dokter
     </a>

@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\PromoControllerWeb;
 use App\Http\Controllers\DokterControllerWeb;
+use App\Http\Controllers\JadwalController;
 use Illuminate\Support\Facades\Route;
 
 // Route untuk halaman utama (root) langsung ke dashboard
@@ -22,3 +23,8 @@ Route::put('/promo/{id}', [PromoControllerWeb::class, 'update'])->name('promo.up
 
 // --- TAMBAHKAN ROUTE DOKTER DI SINI ---
 Route::resource('dokter', DokterControllerWeb::class);
+
+// Route Jadwal Praktek
+Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal.index');
+Route::post('/jadwal', [JadwalController::class, 'store'])->name('jadwal.store');
+Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
