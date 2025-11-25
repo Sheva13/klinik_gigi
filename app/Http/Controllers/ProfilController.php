@@ -88,5 +88,14 @@ class ProfilController extends Controller
                 $rekam->save();
             }
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diupdate',
+            'data' => [
+                'user' => $user,
+                'alamat' => $request->alamat ?? null,
+            ],
+        ]);
     }
 }
