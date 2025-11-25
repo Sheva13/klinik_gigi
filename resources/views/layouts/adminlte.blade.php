@@ -155,6 +155,9 @@
     <a href="{{ route('dokter.index') }}" class="{{ request()->is('dokter*') ? 'active' : '' }}">
         <span class="material-symbols-outlined">health_and_safety</span> Dokter
     </a>
+    <a href="{{ route('reservasi.admin.index') }}" class="{{ request()->routeIs('reservasi.admin.*') ? 'active' : '' }}">
+        <span class="material-symbols-outlined">event_note</span> Reservasi
+    </a>
 </nav>
         </div>
 
