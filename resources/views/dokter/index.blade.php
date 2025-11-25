@@ -88,23 +88,66 @@
         color: #d1d5db;
         margin-bottom: 0.5rem;
     }
+
+    /* --- Style Baru untuk Search Bar --- */
+    .form-control-dark {
+        background-color: #1A1A1A;
+        border: 1px solid #333;
+        color: #d1d5db;
+        transition: all 0.3s;
+    }
+    .form-control-dark:focus {
+        background-color: #2C2C2C;
+        border-color: #f5c542;
+        color: #fff;
+        box-shadow: 0 0 0 2px rgba(245, 197, 66, 0.2);
+    }
+    .form-control-dark::placeholder {
+        color: #6b7280;
+    }
 </style>
 @endsection
 
 @section('content')
 <div class="container-fluid">
 
-    {{-- Header Section --}}
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
+    {{-- Header Section dengan Search --}}
+    <div class="d-flex flex-wrap justify-content-between align-items-end mb-5 gap-3">
         <div>
             <h1 class="fw-bold text-white mb-1" style="font-size: 2.5rem;">Manajemen Data Dokter</h1>
             <p class="text-secondary mb-0">Kelola data dokter, spesialisasi, dan jadwal praktik.</p>
         </div>
         
-        <a href="{{ route('dokter.create') }}" class="btn btn-gold">
-            <span class="material-symbols-outlined" style="font-size: 20px;">add</span>
-            Tambah Dokter Baru
-        </a>
+        <div class="d-flex gap-2">
+            {{-- Form Pencarian --}}
+            <form action="{{ route('dokter.index') }}" method="GET" class="d-flex gap-2">
+                <div class="input-group">
+                    <input type="text" 
+                           name="search" 
+                           class="form-control form-control-dark" 
+                           placeholder="Cari Nama / STR / SIP..." 
+                           value="{{ request('search') }}"
+                           style="min-width: 250px;">
+                    <button class="btn btn-outline-secondary" type="submit" style="border-color: #333;">
+                        <span class="material-symbols-outlined align-middle" style="font-size: 20px;">search</span>
+                    </button>
+                </div>
+
+                {{-- Tombol Reset --}}
+                @if(request('search'))
+                    <a href="{{ route('dokter.index') }}" 
+                       class="btn btn-outline-danger d-flex align-items-center justify-content-center" 
+                       title="Hapus Pencarian">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+                    </a>
+                @endif
+            </form>
+
+            <a href="{{ route('dokter.create') }}" class="btn btn-gold h-100">
+                <span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+                <span class="d-none d-md-inline">Tambah Dokter</span>
+            </a>
+        </div>
     </div>
 
     {{-- Alert Success --}}
@@ -115,14 +158,16 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
-    {{-- TAMBAHKAN INI: Alert Error --}}
-@if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert"
-         style="background-color: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; color: #dc3545;">
-        <i class="bi bi-exclamation-circle me-2"></i> {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-@endif
+    
+    {{-- Alert Error --}}
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert"
+             style="background-color: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; color: #dc3545;">
+            <i class="bi bi-exclamation-circle me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <h4 class="text-white fw-bold mb-4 border-bottom border-secondary pb-3">Daftar Dokter Terdaftar</h4>
 
     {{-- Grid Dokter --}}
@@ -132,13 +177,12 @@
         <div class="col">
             <div class="card card-dokter p-4 text-center">
                 
-                {{-- Logika Foto Profil (Sesuai Migration 'file_foto') --}}
+                {{-- Foto Profil --}}
                 @if($dokter->file_foto && Storage::disk('public')->exists($dokter->file_foto))
                     <img src="{{ asset('storage/' . $dokter->file_foto) }}" 
                          alt="Foto {{ $dokter->nama }}" 
                          class="dokter-avatar">
                 @else
-                    {{-- Tampilkan Inisial jika tidak ada foto --}}
                     <div class="avatar-placeholder">
                         {{ $dokter->inisial ?? substr($dokter->nama, 0, 1) }}
                     </div>
@@ -146,16 +190,13 @@
                 
                 {{-- Info Utama --}}
                 <div class="mb-3">
-    <h5 class="text-white fw-bold mb-1">{{ $dokter->gelar }} {{ $dokter->nama }}</h5>
-    
-    {{-- BAGIAN INI YANG NYAMBUNG KE TABEL SEBELAH --}}
-    <p class="text-gold small fw-bold mb-2 text-uppercase">
-        {{-- Jika relasi ditemukan, ambil namanya. Jika tidak, tampilkan fallback --}}
-        {{ $dokter->spesialis->nama ?? 'Spesialisasi Tidak Ditemukan' }}
-    </p>
-</div>
+                    <h5 class="text-white fw-bold mb-1">{{ $dokter->gelar }} {{ $dokter->nama }}</h5>
+                    <p class="text-gold small fw-bold mb-2 text-uppercase">
+                        {{ $dokter->spesialis->nama ?? 'Spesialisasi Tidak Ditemukan' }}
+                    </p>
+                </div>
 
-                {{-- Detail Data (Sesuai Migration) --}}
+                {{-- Detail Data --}}
                 <div class="text-start bg-[#222] p-3 rounded mb-4" style="background-color: rgba(255,255,255,0.05);">
                     <div class="row g-2">
                         <div class="col-12">
@@ -182,24 +223,21 @@
 
                 {{-- Action Buttons --}}
                 <div class="d-flex gap-2 mt-auto">
-                    {{-- Edit Button (Pastikan route edit sudah ada) --}}
-                    {{-- Asumsi Anda akan membuat route edit nanti, sementara pakai # --}}
                     <a href="{{ route('dokter.edit', $dokter->id) }}" 
-   class="btn btn-outline-warning w-100 d-flex align-items-center justify-content-center gap-2" 
-   style="border-color: #f5c542; color: #f5c542;">
-    <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
-    Edit
-</a>
+                       class="btn btn-outline-warning w-100 d-flex align-items-center justify-content-center gap-2" 
+                       style="border-color: #f5c542; color: #f5c542;">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                        Edit
+                    </a>
                     
-                    {{-- Delete Button --}}
                     <form action="{{ route('dokter.destroy', $dokter->id) }}" method="POST" class="w-100" onsubmit="return confirm('Yakin ingin menghapus data dokter ini?')">
-    @csrf
-    @method('DELETE')
-    <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" style="border-color: #ef4444; color: #ef4444;">
-        <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
-        Hapus
-    </button>
-</form>
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" style="border-color: #ef4444; color: #ef4444;">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                            Hapus
+                        </button>
+                    </form>
                 </div>
 
             </div>
@@ -209,7 +247,11 @@
             <div class="text-center py-5 text-secondary">
                 <span class="material-symbols-outlined d-block mb-2" style="font-size: 48px;">person_off</span>
                 <p class="mb-0">Belum ada data dokter.</p>
-                <small>Silakan tambahkan data dokter baru.</small>
+                @if(request('search'))
+                    <small>Tidak ditemukan dokter dengan kata kunci "{{ request('search') }}".</small>
+                @else
+                    <small>Silakan tambahkan data dokter baru.</small>
+                @endif
             </div>
         </div>
         @endforelse

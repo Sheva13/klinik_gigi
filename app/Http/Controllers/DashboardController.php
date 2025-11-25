@@ -18,7 +18,7 @@ class DashboardController extends Controller
         $totalPromo = MasterPromo::count();
         
         // Contoh data dummy/real lainnya
-        $reservasiHariIni = 12; // Ganti dengan Reservasi::whereDate('tgl_reservasi', now())->count();
+        $reservasiHariIni = Reservasi::whereDate('tanggal_pesan', now())->count(); // Ganti dengan Reservasi::whereDate('tgl_reservasi', now())->count();
         $homeCare = 5; // Ganti dengan logic Home Care kamu
 
         // 2. Data Grafik: Dokter dengan Jadwal Terbanyak

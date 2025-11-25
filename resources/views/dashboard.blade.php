@@ -199,18 +199,26 @@
                     borderColor: '#f5c542',
                     borderWidth: 1,
                     borderRadius: 4,
-                    barThickness: 'flex', // Bar menyesuaikan lebar
-                    maxBarThickness: 50,  // Tapi tidak terlalu gemuk
+                    barThickness: 'flex',
+                    maxBarThickness: 50,
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // PENTING: Agar ngikutin tinggi container CSS
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
                         labels: { 
                             color: '#fff',
                             font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            // Opsional: Menambahkan kata "Jadwal" di tooltip saat di-hover
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y;
+                            }
                         }
                     }
                 },
@@ -218,7 +226,14 @@
                     y: {
                         beginAtZero: true,
                         grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: '#9ca3af', font: { size: 11 } }
+                        ticks: { 
+                            color: '#9ca3af', 
+                            font: { size: 11 },
+                            // --- BAGIAN INI YANG DIPERBAIKI ---
+                            stepSize: 1,   // Memaksa kelipatan 1 (1, 2, 3, dst)
+                            precision: 0   // Menghilangkan angka desimal (koma)
+                            // ----------------------------------
+                        }
                     },
                     x: {
                         grid: { display: false },

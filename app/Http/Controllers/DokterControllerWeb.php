@@ -10,11 +10,31 @@ use Illuminate\Support\Facades\Storage;
 
 class DokterControllerWeb extends Controller
 {
-    public function index()
-    {
-        $dokters = MasterDokter::with('spesialis')->get();
-        return view('dokter.index', compact('dokters'));
+    // Cari function index() dan GANTI dengan kode berikut:
+
+public function index(Request $request)
+{
+    // 1. Mulai Query Builder
+    $query = MasterDokter::with('spesialis');
+
+    // 2. Cek apakah ada input 'search' dari pengguna
+    if ($request->has('search') && $request->search != '') {
+        $search = $request->search;
+        
+        // Filter berdasarkan Nama, Gelar, STR, atau SIP
+        $query->where(function($q) use ($search) {
+            $q->where('nama', 'like', '%' . $search . '%')
+              ->orWhere('gelar', 'like', '%' . $search . '%')
+              ->orWhere('dokter_str', 'like', '%' . $search . '%')
+              ->orWhere('dokter_sip', 'like', '%' . $search . '%');
+        });
     }
+
+    // 3. Ambil data hasil filter
+    $dokters = $query->get();
+
+    return view('dokter.index', compact('dokters'));
+}
 
     public function create()
 {
