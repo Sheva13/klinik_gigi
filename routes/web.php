@@ -4,6 +4,7 @@ use App\Http\Controllers\PromoControllerWeb;
 use App\Http\Controllers\DokterControllerWeb;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\AdminReservasiController;
 use Illuminate\Support\Facades\Route;
 
 // Route untuk halaman utama (root) langsung ke dashboard
@@ -40,4 +41,20 @@ Route::middleware('auth:admin')->group(function () {
     })->name('admin.dashboard');
 
     Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
+
+// LIST DATA RESERVASI
+Route::get('/admin/reservasi', [AdminReservasiController::class, 'index'])
+    ->name('reservasi.admin.index');
+
+// DETAIL RESERVASI (id atau no_pemeriksaan)
+Route::get('/admin/reservasi/{id}', [AdminReservasiController::class, 'show'])
+    ->name('reservasi.admin.show');
+
+// UPDATE STATUS RESERVASI (approve/cancel/complete/force_approve)
+Route::post('/admin/reservasi/{id}/status', [AdminReservasiController::class, 'updateStatus'])
+    ->name('reservasi.admin.status');
+
+// VERIFIKASI PEMBAYARAN
+Route::post('/admin/reservasi/{id}/verify-payment', [AdminReservasiController::class, 'verifyPayment'])
+    ->name('reservasi.admin.verifyPayment');
 });
