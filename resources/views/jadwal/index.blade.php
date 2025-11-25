@@ -87,12 +87,12 @@
             <h2 class="fw-bold text-white">Manajemen Jadwal Praktik</h2>
             <p class="text-secondary mb-0">Atur jadwal hari dan jam praktik untuk setiap dokter.</p>
         </div>
-        <nav aria-label="breadcrumb">
+        <!-- <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><a href="/" class="text-secondary text-decoration-none">Dashboard</a></li>
                 <li class="breadcrumb-item active text-white" aria-current="page">Jadwal Praktik</li>
             </ol>
-        </nav>
+        </nav> -->
     </div>
 
     <div class="row">
