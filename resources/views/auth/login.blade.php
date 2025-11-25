@@ -124,7 +124,7 @@
                 <p class="text-secondary small">K3 DENTAL CARE SEMARANG</p>
             </div>
 
-            <form action="{{ route('login') }}" method="POST">
+            <form action="{{ route('auth.login') }}" method="POST">
                 @csrf
 
                 <div class="mb-3 text-start">
