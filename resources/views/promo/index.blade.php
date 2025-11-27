@@ -82,12 +82,7 @@
 </a>
             
             {{-- Profil Admin Kecil --}}
-            <div class="d-flex align-items-center gap-2 border-start border-secondary ps-4">
-                <span class="text-secondary small">Admin</span>
-                <img src="{{ asset('assets/images/profile/wais.jpg') }}" 
-                     alt="3K Dental Care Logo" 
-                     style="width:60px;height:60px;object-fit:cover;border-radius:50%;"/>
-            </div>
+            
         </div>
     </div>
 

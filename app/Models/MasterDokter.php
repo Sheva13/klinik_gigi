@@ -14,6 +14,7 @@ class MasterDokter extends Model
         'nama',
         'gelar',
         'spesialisasi',
+        'file_foto',
         'alamat',
         'hp',
         'tipe',

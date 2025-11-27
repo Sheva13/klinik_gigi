@@ -11,6 +11,9 @@ class MasterJadwal extends Model
 
     protected $table = 'master_jadwal';
 
+    // TAMBAHKAN BARIS INI
+    public $timestamps = false;
+
     protected $fillable = [
         'kode_dokter',
         'kode_poli',

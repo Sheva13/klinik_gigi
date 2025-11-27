@@ -85,10 +85,7 @@
             <p class="text-secondary mb-0">Perbarui detail promo yang sudah ada.</p>
         </div>
         
-        <div class="d-flex align-items-center gap-2 text-secondary">
-            <span class="small">Admin</span>
-            <img src="{{ asset('assets/images/profile/wais.jpg') }}" alt="Profile" style="width:40px;height:40px;object-fit:cover;border-radius:50%;"/>
-        </div>
+        
     </div>
 
     {{-- Form Card --}}
