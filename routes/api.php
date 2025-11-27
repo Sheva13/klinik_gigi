@@ -17,6 +17,9 @@ Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+// ROUTE — Jadwal Praktek
+Route::get('/jadwal-praktek', [DokterController::class, 'getJadwalPraktek']);
+
 // Rute ini (GET) tetap publik agar semua orang bisa melihat daftar dokter
 // Endpoint ini sekarang mendukung pencarian: /api/dokter?search=nama
 Route::get('/dokter', [DokterController::class, 'index']);
