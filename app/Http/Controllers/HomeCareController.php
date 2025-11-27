@@ -18,7 +18,7 @@ class HomeCareController extends Controller
     private $clinicLat = -7.0005141; 
     private $clinicLng = 110.4250683;
     private $hargaPerKm = 5000;
-    private $biayaDasar = 100000;
+    private $biayaDasar = 35000;
     private $uangMuka = 25000;
     /**
      * Rumus Haversine (Private Helper)
@@ -94,8 +94,8 @@ class HomeCareController extends Controller
             'keluhan' => 'required|string|max:500',
             'latitude_pasien' => 'required|numeric',
             'longitude_pasien' => 'required|numeric',
-            'alamat_lengkap' => 'required|string', // Tambahkan ini untuk driver
-            'metode_pembayaran' => 'required|in:transfer,qris', // Tambahkan ini
+            'alamat_lengkap' => 'required|string', 
+            'metode_pembayaran' => 'required|in:transfer,qris',
         ]);
 
         if ($validator->fails()) {
@@ -225,7 +225,7 @@ class HomeCareController extends Controller
     public function getTrackingHistory($id)
     {
         $history = HomeCareTracking::where('id_periksa', $id)
-                                   ->orderBy('timestamp', 'desc') // Biasanya desc agar yg terbaru diatas
+                                   ->orderBy('timestamp', 'desc')
                                    ->get();
         
         return response()->json(['data' => $history]);
