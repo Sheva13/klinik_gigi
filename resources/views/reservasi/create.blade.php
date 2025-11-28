@@ -10,7 +10,7 @@
         <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
                 <li class="breadcrumb-item"><a href="#" class="text-gold">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ url('/reservasi') }}" class="text-gold">Reservasi</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('reservasi.admin.index') }}" class="text-gold">Reservasi</a></li>
                 <li class="breadcrumb-item active">Tambah Baru</li>
             </ol>
         </div>
@@ -19,7 +19,7 @@
 
 @section('content')
 
-{{-- CSS Custom yang sama dengan Index biar konsisten --}}
+{{-- CSS Custom Tetap Sama --}}
 <style>
     :root {
         --gold-primary: #D4AF37;
@@ -31,17 +31,16 @@
     
     .text-gold { color: var(--gold-primary) !important; }
     
-    /* Card Styling */
     .custom-dark-card {
         background-color: var(--dark-card);
         border: 1px solid var(--border-color);
+        border-radius: 12px;
         color: #fff;
     }
     .card-header {
         border-bottom: 1px solid var(--border-color);
     }
 
-    /* Form Input Styling */
     .form-control-dark {
         background-color: var(--dark-input);
         border: 1px solid var(--border-color);
@@ -57,13 +56,11 @@
         color: #6c757d;
     }
 
-    /* Select Option Styling */
     select.form-control-dark option {
         background-color: var(--dark-card);
         color: #fff;
     }
 
-    /* Button Styling */
     .btn-gold {
         background-color: var(--gold-primary);
         color: #000;
@@ -94,18 +91,21 @@
                 </div>
                 
                 {{-- Form Mulai --}}
-                <form action="#" method="POST"> 
+                <form id="formManual"> 
                     @csrf
                     <div class="card-body">
                         
                         {{-- Baris 1: Data Pasien --}}
                         <div class="form-group">
                             <label class="text-muted small">Cari Pasien (Nama / No RM)</label>
-                            <select class="form-control form-control-dark select2">
-                                <option selected disabled>-- Pilih Pasien --</option>
-                                <option value="1">RM001 - Budi Santoso</option>
-                                <option value="2">RM002 - Siti Aminah</option>
-                                <option value="3">RM003 - Joko Anwar</option>
+                            {{-- Dropdown Dinamis dari Database --}}
+                            <select name="pasien_id" class="form-control form-control-dark select2" required>
+                                <option selected disabled value="">-- Pilih Pasien --</option>
+                                @foreach($pasiens as $pasien)
+                                    <option value="{{ $pasien->rekam_medis }}">
+                                        {{ $pasien->rekam_medis }} - {{ $pasien->nama }}
+                                    </option>
+                                @endforeach
                             </select>
                             <small class="text-muted mt-1 d-block">
                                 Pasien belum terdaftar? <a href="#" class="text-gold">Tambah Pasien Baru</a>
@@ -117,21 +117,28 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="text-muted small">Poli Tujuan</label>
-                                    <select class="form-control form-control-dark">
-                                        <option selected disabled>-- Pilih Poli --</option>
-                                        <option>Poli Umum</option>
-                                        <option>Poli Gigi</option>
-                                        <option>Poli Anak</option>
+                                    {{-- Dropdown Dinamis Poli --}}
+                                    <select name="poli_id" class="form-control form-control-dark" required>
+                                        <option selected disabled value="">-- Pilih Poli --</option>
+                                        @foreach($polis as $poli)
+                                            <option value="{{ $poli->kode_poli }}">
+                                                {{ $poli->nama_poli }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="text-muted small">Dokter</label>
-                                    <select class="form-control form-control-dark">
-                                        <option selected disabled>-- Pilih Dokter --</option>
-                                        <option>drg. Aprilia Puspita Anda</option>
-                                        <option>dr. Bambang</option>
+                                    {{-- Dropdown Dinamis Dokter --}}
+                                    <select name="dokter_id" class="form-control form-control-dark" required>
+                                        <option selected disabled value="">-- Pilih Dokter --</option>
+                                        @foreach($dokters as $dokter)
+                                            <option value="{{ $dokter->kode_dokter }}">
+                                                {{ $dokter->nama }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                 </div>
                             </div>
@@ -142,13 +149,21 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="text-muted small">Tanggal Reservasi</label>
-                                    <input type="date" class="form-control form-control-dark">
+                                    <input type="date" name="tanggal_pesan" class="form-control form-control-dark" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="text-muted small">Jam Estimasi</label>
-                                    <input type="time" class="form-control form-control-dark">
+                                    <label class="text-muted small">Jadwal Praktek</label>
+                                    {{-- Dropdown Dinamis Jadwal (Pengganti Input Manual) --}}
+                                    <select name="jadwal_id" class="form-control form-control-dark" required>
+                                        <option selected disabled value="">-- Pilih Jadwal --</option>
+                                        @foreach($jadwals as $jadwal)
+                                            <option value="{{ $jadwal->id }}">
+                                                {{ $jadwal->hari }} ({{ $jadwal->jam_mulai }} - {{ $jadwal->jam_selesai }})
+                                            </option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -164,19 +179,16 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="text-muted small">Status Reservasi</label>
-                                    <select class="form-control form-control-dark">
-                                        <option value="menunggu" selected>Menunggu</option>
-                                        <option value="terkonfirmasi">Terkonfirmasi</option>
+                                    <select class="form-control form-control-dark" disabled>
+                                        <option value="waiting" selected>Menunggu (Default)</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="text-muted small">Metode Pembayaran (Opsional)</label>
-                                    <select class="form-control form-control-dark">
-                                        <option value="cash">Tunai / Cash</option>
-                                        <option value="transfer">Transfer Bank</option>
-                                        <option value="bpjs">BPJS</option>
+                                    <select class="form-control form-control-dark" disabled>
+                                        <option value="verified" selected>Langsung Lunas (Default)</option>
                                     </select>
                                 </div>
                             </div>
@@ -185,12 +197,73 @@
                     </div>
                     
                     <div class="card-footer bg-transparent border-top border-secondary">
-                        <button type="submit" class="btn btn-gold px-4 mr-2"><i class="fas fa-save mr-1"></i> Simpan Data</button>
-                        <a href="{{ url('/reservasi') }}" class="btn btn-secondary-dark px-4">Batal</a>
+                        <button type="submit" class="btn btn-gold px-4 mr-2" id="btnSave"><i class="fas fa-save mr-1"></i> Simpan Data</button>
+                        <a href="{{ route('reservasi.admin.index') }}" class="btn btn-secondary-dark px-4">Batal</a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+@stop
+
+@section('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.getElementById('formManual').addEventListener('submit', function(e) {
+        e.preventDefault(); 
+        
+        let formData = new FormData(this);
+        let btnSave = document.getElementById('btnSave');
+        btnSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+        btnSave.disabled = true;
+
+        fetch("{{ route('reservasi.admin.store') }}", { 
+            method: "POST",
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Accept': 'application/json',
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: data.message,
+                    background: '#1e1e2d',
+                    color: '#fff',
+                    confirmButtonColor: '#D4AF37'
+                }).then(() => {
+                    window.location.href = "{{ route('reservasi.admin.index') }}"; 
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal',
+                    text: data.message || 'Terjadi kesalahan validasi',
+                    background: '#1e1e2d',
+                    color: '#fff',
+                    confirmButtonColor: '#D4AF37'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Terjadi kesalahan sistem.',
+                background: '#1e1e2d',
+                color: '#fff'
+            });
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            btnSave.innerHTML = '<i class="fas fa-save mr-1"></i> Simpan Data';
+            btnSave.disabled = false;
+        });
+    });
+</script>
 @stop
