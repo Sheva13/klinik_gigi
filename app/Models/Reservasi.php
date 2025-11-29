@@ -66,4 +66,20 @@ class Reservasi extends Model
         return $this->belongsTo(MasterJadwal::class, 'jadwal_id', 'id');
     }
 
+    public function tindakanPemeriksaan()
+    {
+        return $this->hasMany(TindakanPemeriksaan::class, 'id_periksa', 'id');
+    }
+
+    // Relasi ke biaya tambahan (Uang Muka/DP, Biaya Jarak)
+    public function biayaTambahan()
+    {
+        return $this->hasMany(BiayaTambahan::class, 'id_periksa', 'id');
+    }
+
+    public function tracking()
+    {
+        return $this->hasMany(HomeCareTracking::class, 'id_periksa', 'id');
+    }
+
 }
