@@ -10,12 +10,10 @@ class DokterController extends Controller
 {
     /**
      * Mendapatkan daftar dokter dengan data minimal.
-     * PERUBAHAN 1: Tambahkan (Request $request)
      */
     public function index(Request $request) 
     {
         try {
-
             $query = MasterDokter::with('spesialis');
 
             $query->when($request->input('search'), function ($q, $search) {
@@ -28,17 +26,15 @@ class DokterController extends Controller
             $dokters = $query->get();
 
             $data = $dokters->map(function ($dokter) {
-                
                 $fotoUrl = null;
-                // Ini adalah logika yang benar untuk mengambil URL foto
                 if (!empty($dokter->foto_profil)) {
                     $fotoUrl = asset(Storage::url($dokter->foto_profil));
                 }
 
                 return [
-                    'dokter_id' => $dokter->id, // Menggunakan 'id' (primary key)
-                    'nama_dokter' => $dokter->nama ?? '', 
-                    'spesialisasi' => $dokter->spesialis?->nama ?? '', 
+                    'dokter_id' => $dokter->id,
+                    'nama_dokter' => $dokter->nama ?? '',
+                    'spesialisasi' => $dokter->spesialis?->nama ?? '',
                     'foto_profil' => $fotoUrl,
                 ];
             });
@@ -49,7 +45,6 @@ class DokterController extends Controller
             ], 200, [], JSON_UNESCAPED_SLASHES);
 
         } catch (\Exception $e) {
-            // Jika terjadi error, kirim pesan error 500
             return response()->json([
                 'status' => 'error',
                 'message' => 'Gagal mengambil data dokter: ' . $e->getMessage(),
@@ -57,12 +52,15 @@ class DokterController extends Controller
         }
     }
 
+
+    /**
+     * Detail dokter.
+     */
     public function show($id)
     {
         try {
-            // mengmbil data dokter berdasarkan ID.
-            $dokter = MasterDokter::with(['masterPoli', 'masterJadwal']) 
-                                ->find($id);
+            $dokter = MasterDokter::with(['masterPoli', 'masterJadwal'])
+                        ->find($id);
 
             if (!$dokter) {
                 return response()->json([
@@ -71,23 +69,20 @@ class DokterController extends Controller
                 ], 404);
             }
             
-            // proses foto
             $fotoUrl = null;
             if (!empty($dokter->foto_profil)) { 
                 $fotoUrl = asset(Storage::url($dokter->foto_profil));
             }
 
-            // Susun data respons
             $data = [
                 'id' => $dokter->id, 
                 'nama' => $dokter->nama,
-                'foto' => $fotoUrl, 
-                'spesialisasi' => $dokter->spesialisasi, 
-                'masterPoli' => $dokter->masterPoli,    
-                'masterJadwal' => $dokter->masterJadwal, 
+                'foto' => $fotoUrl,
+                'spesialisasi' => $dokter->spesialisasi,
+                'masterPoli' => $dokter->masterPoli,
+                'masterJadwal' => $dokter->masterJadwal,
             ];
 
-            // Kembalikan data sebagai JSON
             return response()->json([
                 'status' => 'success',
                 'data' => $data,
@@ -101,38 +96,30 @@ class DokterController extends Controller
         }
     }
 
+
     /**
-     * Method untuk meng-upload foto profil (Hanya Admin).
+     * Upload foto profil dokter.
      */
     public function uploadFotoProfil(Request $request, $id)
     {
-        // 1. Validasi request.
         $request->validate([
             'foto' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // 2. Cari dokter berdasarkan ID
         $dokter = MasterDokter::find($id);
         if (!$dokter) {
             return response()->json(['message' => 'Dokter tidak ditemukan'], 404);
         }
 
-        // 3. Cek jika ada file 'foto'
         if ($request->hasFile('foto')) {
-            
-            // 4. Hapus foto lama
             if ($dokter->foto_profil) {
                 Storage::disk('public')->delete($dokter->foto_profil);
             }
 
-            // 5. Simpan file baru
             $path = $request->file('foto')->store('uploads', 'public');
-
-            // 6. Simpan path baru ke database
             $dokter->foto_profil = $path;
             $dokter->save();
             
-            // 7. Buat URL lengkap untuk respons
             $urlLengkap = asset(Storage::url($path));
 
             return response()->json([
@@ -140,9 +127,73 @@ class DokterController extends Controller
                 'path' => $path,
                 'url' => $urlLengkap
             ], 200, [], JSON_UNESCAPED_SLASHES);
-
         }
 
         return response()->json(['message' => 'Tidak ada file yang di-upload'], 400);
+    }
+
+
+    // =========================================
+    // 🔹 KONVERSI ANGKA HARI → NAMA HARI
+    // =========================================
+    private function convertHari($angka)
+    {
+        $hariMap = [
+            1 => 'Senin',
+            2 => 'Selasa',
+            3 => 'Rabu',
+            4 => 'Kamis',
+            5 => 'Jumat',
+            6 => 'Sabtu',
+            7 => 'Minggu',
+        ];
+
+        return $hariMap[$angka] ?? '-';
+    }
+
+
+    /**
+     * Ambil Jadwal Praktek Semua Dokter
+     */
+    public function getJadwalPraktek()
+    {
+        try {
+            $dokters = MasterDokter::with(['masterJadwal', 'masterPoli', 'spesialis'])->get();
+
+            $data = $dokters->map(function ($dokter) {
+
+                $fotoUrl = null;
+                if (!empty($dokter->foto_profil)) {
+                    $fotoUrl = asset(Storage::url($dokter->foto_profil));
+                }
+
+                return [
+                    'dokter_id' => $dokter->id,
+                    'nama_dokter' => $dokter->nama,
+                    'spesialisasi' => $dokter->spesialis?->nama ?? '',
+                    'poli' => $dokter->masterPoli->nama ?? '-',
+                    'foto_profil' => $fotoUrl,
+
+                    'jadwal' => $dokter->masterJadwal->map(function ($j) {
+                        return [
+                            'hari' => $this->convertHari($j->hari),
+                            'jam_mulai' => $j->jam_mulai,
+                            'jam_selesai' => $j->jam_selesai,
+                        ];
+                    })
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengambil jadwal: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
