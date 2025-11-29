@@ -45,18 +45,28 @@ class MpUser extends Authenticatable
         'current_token',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'tanggal_lahir' => 'date',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'tanggal_lahir' => 'date',
+    ];
+    
 
     // Relasi ke rekam medis
     public function rekamMedis()
     {
         return $this->belongsTo(RekamMedis::class, 'rekam_medis_id', 'id');
+    }
+
+    public function reservasi()
+    {
+        return $this->hasManyThrough(
+            Reservasi::class,
+            RekamMedis::class,
+            'id',          // Foreign key di RekamMedis (ke MpUser)
+            'pasien_id',   // Foreign key di Reservasi (ke RekamMedis)
+            'rekam_medis_id', // Lokal key di MpUser
+            'rekam_medis'  // Lokal key di RekamMedis
+        );
     }
 }

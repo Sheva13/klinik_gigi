@@ -5,19 +5,64 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use App\Models\Reservasi;
 use App\Models\RekamMedis;
 use App\Models\MasterDokter;
 use App\Models\MasterJadwal;
 use App\Models\MasterPoli;
+use App\Models\MpUser;
 use Carbon\Carbon;
 use Exception;
 
 class ReservasiController extends Controller
 {
+    // Helper Response
+    protected function successResponse($message, $data = null, $code = 200)
+    {
+        return response()->json([
+            'status'  => 'success',
+            'message' => $message,
+            'data'    => $data
+        ], $code);
+    }
+
+    protected function errorResponse($message, $errors = null, $code = 400)
+    {
+        return response()->json([
+            'status'  => 'error',
+            'message' => $message,
+            'errors'  => $errors
+        ], $code);
+    }
+
     /**
-     * 🔹 Generate No Pemeriksaan unik
-     * Format: RSV-YYYYMMDDXXX
+     * 🔹 Ambil data pasien yang sedang login
+     * (untuk menampilkan nama & no rekam medis di header halaman reservasi)
+     */
+    public function getUserData(Request $request)
+    {
+         $user = Auth::user();
+
+    if (!$user) {
+        return $this->errorResponse('User belum login atau tidak ditemukan', null, 401);
+    }
+
+    $rekamMedis = $user->rekamMedis;
+
+    if (!$rekamMedis) {
+        return $this->errorResponse('Data rekam medis tidak ditemukan', null, 404);
+    }
+
+    return $this->successResponse('Data user berhasil diambil', [
+        'nama_lengkap'    => $rekamMedis->nama ?? $user->nama_pengguna, 
+        'no_rekam_medis'  => $rekamMedis->rekam_medis ?? '-',
+        'user_id'         => $user->user_id,
+        'email'           => $user->email,
+        ]);
+    }
+    /**
+     * 🔹 Generate No Pemeriksaan unik Format: RSV-YYYYMMDDXXX
      */
     private function generateNoPemeriksaan()
     {
@@ -30,126 +75,129 @@ class ReservasiController extends Controller
         return $noPemeriksaan;
     }
 
+
     // ============================================================
     // 🔹 ALUR AWAL RESERVASI (PILIH POLI → DOKTER → JADWAL)
     // ============================================================
 
-    /**
-     * 🔹 Langkah 1: Ambil semua daftar Poli
-     */
+    //🔹 Langkah 1: Ambil semua daftar Poli
     public function getDaftarPoli()
     {
         try {
             $poli = MasterPoli::select('kode_poli', 'nama_poli')->get();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Daftar poli berhasil diambil',
-                'data'    => $poli
-            ], 200);
+            return $this->successResponse('Daftar poli berhasil diambil', $poli);
         } catch (Exception $e) {
             Log::error('Get Daftar Poli Error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengambil data poli'
-            ], 500);
+            return $this->errorResponse('Gagal mengambil data poli', null, 500);
         }
     }
 
-    /**
-     * 🔹 Langkah 2: Ambil daftar Dokter berdasarkan Poli
-     */
+    //🔹 Langkah 2: Filter dokter berdasarkan poli & tanggal reservasi
     public function getDokterByPoli(Request $request)
-    {
-        $request->validate(['kode_poli' => 'required|string|exists:master_poli,kode_poli']);
-        $kodePoli = $request->kode_poli;
+{
+    $request->validate([
+        'kode_poli' => 'nullable|string'
+    ]);
 
-        try {
-            $dokterCodes = MasterJadwal::where('kode_poli', $kodePoli)
-                ->distinct('kode_dokter')
-                ->pluck('kode_dokter');
-
-            $dokter = MasterDokter::whereIn('kode_dokter', $dokterCodes)
-                ->select('kode_dokter', 'nama', 'gelar', 'spesialisasi')
-                ->get();
-
-            if ($dokter->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tidak ada dokter yang tersedia untuk poli ini'
-                ], 404);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Daftar dokter berhasil difilter',
-                'data'    => $dokter
-            ], 200);
-        } catch (Exception $e) {
-            Log::error('Filter Dokter Error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memfilter data dokter'
-            ], 500);
+    try {
+        // Jika pilih semua → tampilkan semua dokter
+        if (empty($request->kode_poli) || strtolower($request->kode_poli) === 'semua') {
+            $dokter = MasterDokter::select('kode_dokter', 'nama', 'gelar', 'kode_poli')->get();
+        } else {
+            $dokter = MasterDokter::where('kode_poli', $request->kode_poli)
+                        ->select('kode_dokter', 'nama', 'gelar', 'kode_poli')
+                        ->get();
         }
+
+        return $this->successResponse('Daftar dokter berhasil diambil', $dokter);
+
+    } catch (Exception $e) {
+        Log::error('Get Dokter Error: '.$e->getMessage());
+        return $this->errorResponse('Gagal mengambil data dokter', null, 500);
     }
-
-    /**
-     * 🔹 Langkah 3: Cek jadwal & sisa kuota dokter pada tanggal dipilih
-     */
+}
+    //🔹 Langkah 3: Cek jadwal & sisa kuota dokter pada tanggal dipilih
     public function getJadwalDenganKuota(Request $request)
-    {
-        $request->validate([
-            'kode_dokter'       => 'required|string|exists:master_dokter,kode_dokter',
-            'tanggal_reservasi' => 'required|date_format:Y-m-d',
-        ]);
+{
+    $request->validate([
+        'kode_dokter'       => 'nullable|string',
+        'kode_poli'         => 'nullable|string',
+        'tanggal_reservasi' => 'required|date_format:Y-m-d',
+    ]);
 
-        $kodeDokter       = $request->kode_dokter;
+    try {
         $tanggalReservasi = $request->tanggal_reservasi;
-        $namaHari         = Carbon::parse($tanggalReservasi)->format('l');
 
-        $jadwalDokter = MasterJadwal::where('kode_dokter', $kodeDokter)
-            ->where('hari', $namaHari)
-            ->get();
+        $hariInggris = Carbon::parse($tanggalReservasi)->format('l');
+        $hariMapping = [
+            'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3,
+            'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7,
+        ];
+        $kodeHari = $hariMapping[$hariInggris];
+
+        // MODE FILTER DOKTER
+        if (!empty($request->kode_dokter) && strtolower($request->kode_dokter) !== "semua") {
+            $jadwalQuery = MasterJadwal::where('kode_dokter', $request->kode_dokter);
+        } else {
+            $jadwalQuery = MasterJadwal::query();
+        }
+
+        // MODE FILTER POLI
+        if (!empty($request->kode_poli) && strtolower($request->kode_poli) !== 'semua') {
+            $kodePoli = $request->kode_poli;
+
+            $jadwalQuery->where(function($q) use ($kodePoli) {
+                $q->where('kode_poli', $kodePoli)
+                  ->orWhereHas('dokter', function ($dq) use ($kodePoli) {
+                      $dq->where('kode_poli', $kodePoli);
+                  });
+            });
+        }
+
+        $jadwalDokter = $jadwalQuery->where('hari', $kodeHari)->get();
 
         if ($jadwalDokter->isEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Dokter tidak praktik pada tanggal tersebut.',
-                'data'    => []
-            ], 200);
+            return $this->errorResponse('Tidak ada jadwal pada hari ini.', null, 404);
         }
 
-        $hasilJadwal = [];
+        $hasil = [];
 
         foreach ($jadwalDokter as $jadwal) {
             $reservasiTerpakai = Reservasi::where('jadwal_id', $jadwal->id)
                 ->where('tanggal_pesan', $tanggalReservasi)
-                ->whereIn('status_pembayaran', ['menunggu_pembayaran', 'menunggu verifikasi', 'terverifikasi'])
+                ->whereIn('status_pembayaran', [
+                    'menunggu_pembayaran',
+                    'menunggu verifikasi',
+                    'terverifikasi'
+                ])
                 ->count();
 
             $sisaKuota = $jadwal->quota - $reservasiTerpakai;
 
             if ($sisaKuota > 0) {
-                $hasilJadwal[] = [
-                    'jadwal_id'      => $jadwal->id,
-                    'kode_poli'      => $jadwal->kode_poli,
-                    'jam_mulai'      => $jadwal->jam_mulai,
-                    'jam_selesai'    => $jadwal->jam_selesai,
-                    'kuota_total'    => $jadwal->quota,
+                $hasil[] = [
+                    'jadwal_id' => $jadwal->id,
+                    'kode_dokter' => $jadwal->kode_dokter,
+                    'nama_dokter' => optional($jadwal->dokter)->nama,
+                    'kode_poli' => $jadwal->kode_poli,
+                    'nama_poli' => optional($jadwal->poli)->nama_poli,
+                    'jam_mulai' => $jadwal->jam_mulai,
+                    'jam_selesai' => $jadwal->jam_selesai,
+                    'kuota_total' => $jadwal->quota,
                     'kuota_terpakai' => $reservasiTerpakai,
-                    'sisa_kuota'     => $sisaKuota,
-                    'nama_poli'      => optional($jadwal->poli)->nama_poli ?? 'N/A',
+                    'sisa_kuota' => $sisaKuota,
+                    'hari' => Carbon::parse($tanggalReservasi)->translatedFormat('l'),
                 ];
             }
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Daftar jadwal tersedia berhasil diambil.',
-            'data'    => $hasilJadwal
-        ], 200);
+        return $this->successResponse('Data jadwal berhasil diambil', $hasil);
+
+    } catch (Exception $e) {
+        Log::error('Get Jadwal Error: '.$e->getMessage());
+        return $this->errorResponse('Gagal mengambil data jadwal', null, 500);
     }
+}
 
     // ============================================================
     // 🔹 PROSES RESERVASI & PEMBAYARAN
@@ -171,21 +219,16 @@ class ReservasiController extends Controller
             ]);
 
             $pasien = RekamMedis::where('rekam_medis', $validated['rekam_medis_id'])->first();
-            if (!$pasien) {
-                return response()->json(['success' => false, 'message' => 'Data pasien tidak ditemukan'], 404);
-            }
+            if (!$pasien) return $this->errorResponse('Data pasien tidak ditemukan', null, 404);
 
             $dokter = MasterDokter::where('kode_dokter', $validated['dokter_id'])->first();
-            if (!$dokter) {
-                return response()->json(['success' => false, 'message' => 'Data dokter tidak ditemukan'], 404);
-            }
-
+            if (!$dokter) return $this->errorResponse('Data dokter tidak ditemukan', null, 404);
+            
             $jadwal = MasterJadwal::find($validated['jadwal_id']);
-            if (!$jadwal) {
-                return response()->json(['success' => false, 'message' => 'Jadwal tidak ditemukan'], 404);
-            }
+            if (!$jadwal) return $this->errorResponse('Jadwal tidak ditemukan', null, 404);
 
             // 🔍 Validasi kuota ulang sebelum simpan
+            $kuotaTotal = (int) ($jadwal->quota ?? 0);
             $reservasiTerpakai = Reservasi::where('jadwal_id', $jadwal->id)
                 ->where('tanggal_pesan', $validated['tanggal_pesan'])
                 ->whereIn('status_pembayaran', ['menunggu_pembayaran', 'menunggu verifikasi', 'terverifikasi'])
@@ -193,10 +236,7 @@ class ReservasiController extends Controller
 
             if ($reservasiTerpakai >= $jadwal->quota) {
                 DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Maaf, kuota untuk jadwal ini sudah penuh.'
-                ], 409);
+                return $this->errorResponse('Maaf, kuota untuk jadwal ini sudah penuh.', null, 409);
             }
 
             $noPemeriksaan = $this->generateNoPemeriksaan();
@@ -222,10 +262,7 @@ class ReservasiController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Reservasi berhasil dibuat. Menunggu pembayaran.',
-                'data'    => [
+            return $this->successResponse('Reservasi berhasil dibuat. Menunggu pembayaran.', [
                     'no_pemeriksaan'    => $reservasi->no_pemeriksaan,
                     'pasien_id'         => $pasien->rekam_medis,
                     'nama_pasien'       => $pasien->nama_lengkap ?? 'N/A',
@@ -236,24 +273,15 @@ class ReservasiController extends Controller
                     'metode_bayar'      => $reservasi->metode_pembayaran,
                     'total_bayar'       => $reservasi->pembayaran_total,
                     'info_pembayaran'   => 'Cek info pembayaran sesuai metode: ' . $validated['metode_pembayaran'],
-                ]
-            ], 201);
+                ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors'  => $e->errors()
-            ], 422);
+            return $this->errorResponse('Validasi gagal', $e->errors(), 422);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Reservasi Error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan server',
-                'error'   => $e->getMessage()
-            ], 500);
+            Log::error('Reservasi Error', ['user' => Auth::id(), 'error' => $e->getMessage()]);
+            return $this->errorResponse('Terjadi kesalahan server', $e->getMessage(), 500); 
         }
     }
 
@@ -263,27 +291,19 @@ class ReservasiController extends Controller
             $reservasi = Reservasi::where('no_pemeriksaan', $no_pemeriksaan)->first();
 
             if (!$reservasi) {
-                return response()->json(['success' => false, 'message' => 'Reservasi tidak ditemukan'], 404);
+                return $this->errorResponse('Reservasi tidak ditemukan', null, 404);
             }
 
             $reservasi->update([
                 'status_pembayaran' => 'terverifikasi',
-                'status_reservasi'  => 'selesai',
+                'status_reservasi'  => 'menunggu_kunjungan',
                 'status'            => 'Aktif',
             ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Status pembayaran berhasil diperbarui menjadi LUNAS',
-                'data'    => $reservasi,
-            ]);
+            return $this->successResponse('Status pembayaran berhasil diperbarui menjadi LUNAS', $reservasi);
         } catch (Exception $e) {
             Log::error('Update Pembayaran Error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal update pembayaran',
-                'error'   => $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Gagal update pembayaran', $e->getMessage(), 500);
         }
     }
 
@@ -295,16 +315,9 @@ class ReservasiController extends Controller
             ->get();
 
         if ($data->isEmpty()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Belum ada riwayat reservasi',
-                'data'    => []
-            ], 200);
+            return $this->successResponse('Belum ada riwayat reservasi', []);
         }
 
-        return response()->json([
-            'success' => true,
-            'data'    => $data
-        ], 200);
+        return $this->successResponse('Riwayat reservasi ditemukan', $data);
     }
 }

@@ -9,46 +9,33 @@ class MasterJadwal extends Model
 {
     use HasFactory;
 
-    // Nama tabel di database
     protected $table = 'master_jadwal';
 
-    // Kolom yang bisa diisi
+    // TAMBAHKAN BARIS INI
+    public $timestamps = false;
+
     protected $fillable = [
-        'id',
         'kode_dokter',
         'kode_poli',
         'hari',
         'jam_mulai',
         'jam_selesai',
-        'alamat',
         'keterangan',
         'quota',
     ];
 
-    /**
-     * Relasi ke tabel MasterDokter
-     * Setiap jadwal dimiliki oleh satu dokter
-     */
     public function dokter()
     {
         return $this->belongsTo(MasterDokter::class, 'kode_dokter', 'kode_dokter');
     }
 
-    /**
-     * Relasi ke tabel MasterPoli
-     * Setiap jadwal termasuk dalam satu poli
-     */
     public function poli()
     {
         return $this->belongsTo(MasterPoli::class, 'kode_poli', 'kode_poli');
     }
 
-    /**
-     * Relasi ke tabel reservasi
-     * Satu dokter bisa memiliki banyak reservasi
-     */
     public function reservasi()
     {
-        return $this->hasMany(Reservasi::class, 'dokter_id', 'kode_dokter');
+        return $this->hasMany(Reservasi::class, 'jadwal_id', 'id');
     }
 }

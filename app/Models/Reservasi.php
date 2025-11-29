@@ -12,10 +12,8 @@ class Reservasi extends Model
 {
     use HasFactory;
 
-    // Nama tabel
     protected $table = 'reservasi';
 
-    // Kolom yang bisa diisi
     protected $fillable = [
         'no_pemeriksaan',
         'pasien_id',
@@ -34,37 +32,54 @@ class Reservasi extends Model
         'bank_transaksi_id',
         'pembayaran_total',
         'jenis_pasien',
+        'tipe_layanan', 
+        'alamat_lengkap', 
+        'latitude', 
+        'longitude', 
+        'biaya_transport', 
+        'metode_pembayaran'
     ];
 
-    /**
-     * 🔹 Relasi ke tabel RekamMedis (pasien)
-     * Setiap reservasi dimiliki oleh satu pasien
-     */
-    public function pasien()
+    public function rekamMedis()
     {
-        // 👉 ubah ke kolom yang benar sesuai struktur tabel kamu
-        // kalau kolom di tabel rekam_medis adalah `rekam_medis`, biarkan begini:
         return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
-
-        // kalau ternyata kolomnya `id`, ubah jadi:
-        // return $this->belongsTo(RekamMedis::class, 'pasien_id', 'id');
     }
 
     /**
-     * 🔹 Relasi ke tabel MasterDokter
-     * Satu reservasi dilakukan dengan satu dokter
+     * Alias relation to maintain compatibility with controllers using 'pasien'
+     * Some code (controllers/routes) eager-load or access 'pasien' relation.
+     * Provide a pasien() method that points to the same RekamMedis relation.
      */
+    public function pasien()
+    {
+        return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
+    }
+
     public function dokter()
     {
         return $this->belongsTo(MasterDokter::class, 'dokter_id', 'kode_dokter');
     }
 
-    /**
-     * 🔹 Relasi ke tabel MasterJadwal
-     * Satu reservasi mengambil jadwal tertentu
-     */
+
     public function jadwal()
     {
         return $this->belongsTo(MasterJadwal::class, 'jadwal_id', 'id');
     }
+
+    public function tindakanPemeriksaan()
+    {
+        return $this->hasMany(TindakanPemeriksaan::class, 'id_periksa', 'id');
+    }
+
+    // Relasi ke biaya tambahan (Uang Muka/DP, Biaya Jarak)
+    public function biayaTambahan()
+    {
+        return $this->hasMany(BiayaTambahan::class, 'id_periksa', 'id');
+    }
+
+    public function tracking()
+    {
+        return $this->hasMany(HomeCareTracking::class, 'id_periksa', 'id');
+    }
+
 }
