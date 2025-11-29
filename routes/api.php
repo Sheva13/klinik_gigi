@@ -53,12 +53,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Router untuk RESERVASI //
     Route::get('/reservasi/user', [ReservasiController::class, 'getUserData']);
     
-    // --- RUTE BARU UNTUK DENTAL HOME CARE ---
+    // --- ROUTE UNTUK DENTAL HOME CARE ---
     Route::get('/homecare/jadwal', [HomeCareController::class, 'getMasterJadwal']);
     Route::post('/homecare/booking', [HomeCareController::class, 'storeBooking']);
     Route::post('/homecare/booking/{id}/konfirmasi-bayar', [HomeCareController::class, 'confirmPayment']);
     Route::get('/homecare/booking/{id}/tracking', [HomeCareController::class, 'getTrackingHistory']);
     Route::post('/homecare/update-status', [HomeCareController::class, 'updateStatus']);
+    Route::post('/homecare/finish-treatment/{id}', [HomeCareController::class, 'finishTreatment']);
+    Route::get('/homecare/invoice/{id}', [HomeCareController::class, 'getInvoice']);
+    Route::post('/homecare/pay-settlement/{id}', [HomeCareController::class, 'paySettlement']);
     
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);

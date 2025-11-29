@@ -14,20 +14,17 @@ use Illuminate\Support\Facades\Validator;
 
 class HomeCareController extends Controller
 {
-    // Konfigurasi Hardcode (Agar aman jika env bermasalah di production)
-    // Idealnya dipindah ke file config
-    private $clinicLat = -6.9961; 
-    private $clinicLng = 110.4191;
+    // Konfigurasi Hardcode (Agar aman jika env bermasalah)
+    private $clinicLat = -7.0005141; 
+    private $clinicLng = 110.4250683;
     private $hargaPerKm = 5000;
-    private $biayaDasar = 100000;
+    private $biayaDasar = 35000;
     private $uangMuka = 25000;
-
     /**
      * Rumus Haversine (Private Helper)
      */
     private function calculateDistanceAndCost($userLat, $userLng)
     {   
-        // Ambil dari env jika ada, jika tidak pakai default private property
         $latKlinik = env('CLINIC_LAT', $this->clinicLat);
         $lngKlinik = env('CLINIC_LNG', $this->clinicLng);
         $tarif = env('HOMECARE_HARGA_PER_KM', $this->hargaPerKm);
@@ -97,18 +94,18 @@ class HomeCareController extends Controller
             'keluhan' => 'required|string|max:500',
             'latitude_pasien' => 'required|numeric',
             'longitude_pasien' => 'required|numeric',
-            'alamat_lengkap' => 'required|string', // Tambahkan ini untuk driver
-            'metode_pembayaran' => 'required|in:transfer,qris', // Tambahkan ini
+            'alamat_lengkap' => 'required|string', 
+            'metode_pembayaran' => 'required|in:transfer,qris',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 400);
         }
 
-        $user = Auth::user(); 
+        $user = Auth::user();
         // Pastikan user login punya data rekam medis (Profile Pasien)
         // Jika Anda menggunakan Sanctum, $user otomatis terisi
-        if (!$user) {
+        if (!$user || !$user->id) {
              return response()->json(['error' => 'Unauthorized'], 401);
         }
 
@@ -125,24 +122,47 @@ class HomeCareController extends Controller
             // A. Kelola Jadwal Harian (Cek ketersediaan atau buat baru)
             $jadwalHarian = JadwalHarian::firstOrCreate(
                 [
-                    'master_jadwal_id' => $request->master_jadwal_id,
+                    'kode_jadwal' => $request->master_jadwal_id,
                     'tanggal' => $request->tanggal,
                 ],
-                ['status' => 'buka'] // Default value jika baru dibuat
+                ['validasi' => 0] // Default value jika baru dibuat (0 = belum validasi)
             );
 
+            // B. Validasi bahwa user memiliki data yang diperlukan
+            if (!$user->id) {
+                throw new \Exception('User tidak memiliki ID yang valid');
+            }
+
+            // Ambil data Master Jadwal untuk mendapatkan dokter_id dan detail jadwal
+            $masterJadwal = MasterJadwal::find($request->master_jadwal_id);
+            if (!$masterJadwal) {
+                throw new \Exception('Master jadwal tidak ditemukan');
+            }
+
             // B. Simpan ke Tabel RESERVASI (Bukan DataPasien)
+            // Gunakan field sesuai dengan struktur tabel reservasi
             $reservasi = Reservasi::create([
-                'id_jadwal' => $jadwalHarian->id, // Relasi ke jadwal
-                'id_pasien' => $user->id, // Atau $user->rekam_medis_id tergantung struktur Anda
+                'no_pemeriksaan' => 'HC-' . time() . '-' . rand(1000, 9999), // Generate booking reference
+                'pasien_id' => $user->id, // Relasi ke pasien (dari auth user)
+                'dokter_id' => $masterJadwal->dokter_id, // Ambil dari master jadwal - INI YANG KITA LUPA SEBELUMNYA!
+                'jadwal_id' => $jadwalHarian->id, // Relasi ke jadwal harian
+                'tanggal_pesan' => $request->tanggal, // Tanggal kunjungan dari request
+                'waktu_pesan' => now()->toTimeString(), // Waktu booking dibuat
+                'jam_mulai' => $masterJadwal->jam_mulai, // Ambil dari master jadwal
+                'jam_selesai' => $masterJadwal->jam_selesai, // Ambil dari master jadwal
                 'tipe_layanan' => 'home_care',
+                'jenis_pasien' => 'Umum', // Default jenis pasien
                 'status' => 0, // 0 = Menunggu Pembayaran DP
+                'status_reservasi' => 'menunggu_pembayaran', // Default status
                 'keluhan' => $request->keluhan,
                 'latitude' => $request->latitude_pasien,
                 'longitude' => $request->longitude_pasien,
                 'alamat_lengkap' => $request->alamat_lengkap,
                 'biaya_transport' => $biayaJarak,
-                'metode_pembayaran' => $request->metode_pembayaran
+                'biaya_reservasi' => env('HOMECARE_BIAYA_DASAR', 100000), // Biaya dasar home care
+                'pembayaran_total' => $biayaJarak + env('HOMECARE_BIAYA_DASAR', 100000), // Total pembayaran
+                'metode_pembayaran' => $request->metode_pembayaran,
+                'status_pembayaran' => 'belum_dibayar', // Default status pembayaran
             ]);
 
             // C. Simpan Rincian Biaya
@@ -205,7 +225,7 @@ class HomeCareController extends Controller
     public function getTrackingHistory($id)
     {
         $history = HomeCareTracking::where('id_periksa', $id)
-                                   ->orderBy('timestamp', 'desc') // Biasanya desc agar yg terbaru diatas
+                                   ->orderBy('timestamp', 'desc')
                                    ->get();
         
         return response()->json(['data' => $history]);
