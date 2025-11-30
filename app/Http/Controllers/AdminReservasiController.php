@@ -14,7 +14,13 @@ use Exception;
 
 class AdminReservasiController extends Controller
 {
-        // Helper JSON Response
+    /**
+     * Helper: Response Sukses JSON
+     *
+     * @param string $msg
+     * @param mixed $data
+     * @return \Illuminate\Http\JsonResponse
+     */
     protected function success($msg, $data = null)
     {
         return response()->json([
@@ -24,6 +30,13 @@ class AdminReservasiController extends Controller
         ]);
     }
 
+    /**
+     * Helper: Response Error JSON
+     *
+     * @param string $msg
+     * @param int $code
+     * @return \Illuminate\Http\JsonResponse
+     */
     protected function error($msg, $code = 400)
     {
         return response()->json([
@@ -32,10 +45,15 @@ class AdminReservasiController extends Controller
         ], $code);
     }
 
-    // List Reservasi (Multi-Filter Ready)
+    /**
+     * Menampilkan daftar Reservasi dengan fitur Multi-Filter.
+     *
+     * @param Request $request
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
-        // 1. Start Query & Load Relasi
+        // 1. Mulai Query & Load Relasi yang dibutuhkan (Eager Loading)
         $query = Reservasi::with([
             'rekamMedis:rekam_medis,nama', 
             'dokter.masterPoli:kode_poli,nama_poli', 
@@ -43,7 +61,7 @@ class AdminReservasiController extends Controller
             'jadwal:id,hari,jam_mulai,jam_selesai'
         ]); 
 
-        // 2. Filter 1: No RM / Nama Pasien
+        // 2. Filter berdasarkan No. RM atau Nama Pasien
         if ($request->no_rm) {
             $query->whereHas('rekamMedis', function ($q) use ($request) {
                 $q->where('rekam_medis', 'LIKE', "%{$request->no_rm}%")
@@ -51,29 +69,29 @@ class AdminReservasiController extends Controller
             });
         }
 
-        // 3. Filter 2: Poli
+        // 3. Filter berdasarkan Poli
         if ($request->poli_id && $request->poli_id !== "semua") {
             $query->whereHas('dokter.masterPoli', function ($q) use ($request) {
                 $q->where('kode_poli', $request->poli_id); 
             });
         }
 
-        // 4. Filter 3: Dokter
+        // 4. Filter berdasarkan Dokter
         if ($request->dokter_id && $request->dokter_id !== "semua") {
             $query->where('dokter_id', $request->dokter_id);
         }
 
-        // 5. Filter 4: Status Pembayaran
+        // 5. Filter berdasarkan Status Pembayaran
         if ($request->status_pembayaran && $request->status_pembayaran !== "semua") {
             $query->where('status_pembayaran', $request->status_pembayaran);
         }
 
-        // 6. Filter 5: Status Reservasi
+        // 6. Filter berdasarkan Status Reservasi
         if ($request->status_reservasi && $request->status_reservasi !== "semua") {
             $query->where('status_reservasi', $request->status_reservasi);
         }
 
-        // Hitung Statistik (Sesuai ENUM DB)
+        // Hitung Statistik (berdasarkan filter yang aktif)
         $statsQuery = clone $query; 
 
         $stats = [
@@ -96,9 +114,14 @@ class AdminReservasiController extends Controller
         return view('reservasi.index', compact('data', 'stats', 'dokters', 'polis'));
     }
 
-    // Halaman Form Create
+    /**
+     * Menampilkan halaman form untuk membuat Reservasi Manual.
+     *
+     * @return \Illuminate\View\View
+     */
     public function create()
     {
+        // Ambil data master untuk dropdown form
         $pasiens = RekamMedis::select('rekam_medis', 'nama')->get();
         $dokters = MasterDokter::select('kode_dokter', 'nama')->get(); 
         $polis   = MasterPoli::select('kode_poli', 'nama_poli')->get();
@@ -107,7 +130,13 @@ class AdminReservasiController extends Controller
         return view('reservasi.create', compact('pasiens', 'dokters', 'polis', 'jadwals')); 
     }
 
-    // Detail Reservasi
+    /**
+     * Menampilkan detail Reservasi.
+     * (Saat ini dialihkan ke form edit sesuai catatan Lixa)
+     *
+     * @param int $id
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
     public function show($id)
     {
         $reservasi = Reservasi::with([
@@ -118,10 +147,15 @@ class AdminReservasiController extends Controller
             return redirect()->route('reservasi.admin.index')->with('error', 'Reservasi tidak ditemukan');
         }
 
-        return view('reservasi.show', compact('reservasi'));
+        // ⚠️ CATATAN LIXA: Menggunakan 'reservasi.edit' untuk sementara (sesuai kode asli)
+        return view('reservasi.edit', compact('reservasi')); 
     }
 
-    // Generate Nomor Pemeriksaan
+    /**
+     * Generate Nomor Pemeriksaan unik berdasarkan tanggal dan random number.
+     *
+     * @return string
+     */
     private function generateNoPemeriksaan()
     {
         $tanggal = Carbon::now()->format('Ymd');
@@ -132,7 +166,13 @@ class AdminReservasiController extends Controller
         return $no;
     }
 
-    // Update Status Pembayaran
+    /**
+     * Update Status Pembayaran Reservasi.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function updatePembayaran(Request $request, $id)
     {
         $request->validate(['status_pembayaran' => 'required']);
@@ -142,12 +182,12 @@ class AdminReservasiController extends Controller
 
         $newStatus = $request->status_pembayaran;
 
-        // Jika status lunas (terverifikasi), generate nomor antrian
+        // Jika status terverifikasi dan belum ada No. Pemeriksaan, generate
         if ($newStatus === 'terverifikasi' && !$reservasi->no_pemeriksaan) {
             $reservasi->no_pemeriksaan = $this->generateNoPemeriksaan();
         }
 
-        // Jika pembayaran gagal/batal, status reservasi ikut batal
+        // Jika pembayaran gagal, status reservasi ikut batal
         if ($newStatus === 'gagal') {
             $reservasi->status_reservasi = 'batal';
         }
@@ -158,7 +198,13 @@ class AdminReservasiController extends Controller
         return $this->success('Status pembayaran diperbarui', $reservasi);
     }
 
-    // Update Status Reservasi
+    /**
+     * Update Status Reservasi (Menunggu, Dalam Proses, Selesai, Batal).
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function updateStatusReservasi(Request $request, $id)
     {
         $request->validate(['status_reservasi' => 'required']);
@@ -168,21 +214,24 @@ class AdminReservasiController extends Controller
 
         $newStatus = $request->status_reservasi;
 
-        // Auto update pembayaran jika status 'dalam_proses'
+        // Auto update pembayaran jika status masuk 'dalam_proses'
         if ($newStatus === 'dalam_proses') {
-            // Jika pembayaran masih menunggu, anggap lunas karena sudah diproses dokter
+            // Asumsi pembayaran lunas/terverifikasi jika sudah diproses dokter
             if ($reservasi->status_pembayaran === 'menunggu_pembayaran' || $reservasi->status_pembayaran === 'menunggu_verifikasi') {
                 $reservasi->status_pembayaran = 'terverifikasi';
             }
+            // Generate No. Pemeriksaan jika belum ada
             if (!$reservasi->no_pemeriksaan) {
                 $reservasi->no_pemeriksaan = $this->generateNoPemeriksaan();
             }
         }
 
+        // Auto update pembayaran jika status 'selesai'
         if ($newStatus === 'selesai') {
             $reservasi->status_pembayaran = 'terverifikasi';
         }
 
+        // Auto update pembayaran jika status 'batal'
         if ($newStatus === 'batal') {
             $reservasi->status_pembayaran = 'gagal';
         }
@@ -193,7 +242,12 @@ class AdminReservasiController extends Controller
         return $this->success('Status reservasi diperbarui', $reservasi);
     }
 
-    // Simpan Reservasi Manual
+    /**
+     * Menyimpan data Reservasi yang dibuat secara manual oleh Admin.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function createManual(Request $request)
     {
         $request->validate([
@@ -211,7 +265,7 @@ class AdminReservasiController extends Controller
                 'dokter_id'         => $request->dokter_id,
                 'jadwal_id'         => $request->jadwal_id,
                 'tanggal_pesan'     => $request->tanggal_pesan,
-                // Default value sesuai DB
+                // Default value untuk reservasi manual
                 'status_pembayaran' => 'terverifikasi', // Admin input manual dianggap lunas
                 'status_reservasi'  => 'menunggu',
                 'no_pemeriksaan'    => $this->generateNoPemeriksaan()
@@ -224,5 +278,64 @@ class AdminReservasiController extends Controller
             DB::rollBack();
             return $this->error('Gagal membuat reservasi: ' . $e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Menampilkan halaman form untuk mengedit Reservasi.
+     *
+     * @param int $id
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function edit($id)
+    {
+        // 1. Ambil data reservasi berdasarkan ID dengan relasi
+        $reservasi = Reservasi::with(['rekamMedis', 'dokter', 'jadwal'])->find($id);
+
+        // 2. Jika tidak ketemu
+        if (!$reservasi) {
+            return redirect()->route('reservasi.admin.index')->with('error', 'Data reservasi tidak ditemukan.');
+        }
+
+        // 3. Ambil data Master untuk dropdown di form edit
+        $dokters = MasterDokter::select('kode_dokter', 'nama')->get();
+        $polis   = MasterPoli::select('kode_poli', 'nama_poli')->get();
+
+        // 4. Tampilkan halaman UI edit
+        return view('reservasi.edit', compact('reservasi', 'dokters', 'polis')); 
+    }
+
+    /**
+     * Menyimpan perubahan data Reservasi (Update).
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function update(Request $request, $id)
+    {
+        // 1. Cari data
+        $reservasi = Reservasi::find($id);
+        if (!$reservasi) {
+            return redirect()->back()->with('error', 'Data tidak ditemukan.');
+        }
+
+        // 2. Update data
+        $reservasi->tanggal_pesan = $request->tanggal_pesan;
+        
+        // Simpan dokter jika ada inputnya
+        if ($request->has('dokter_id')) {
+            $reservasi->dokter_id = $request->dokter_id;
+        }
+        
+        // Simpan alasan jika ada (perlu dipastikan kolom 'alasan' ada di DB)
+        if ($request->has('alasan')) {
+             // $reservasi->alasan = $request->alasan; // Dibiarkan ter-komentar sesuai kode aslimu
+        }
+
+        // Simpan perubahan
+        $reservasi->save();
+
+        // 3. Kembali ke halaman utama dengan pesan sukses
+        return redirect()->route('reservasi.admin.index')->with('success', 'Reservasi berhasil diperbarui!');
     }
 }

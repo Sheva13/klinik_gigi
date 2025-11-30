@@ -39,8 +39,16 @@ Route::middleware('auth:admin')->group(function () {
     // --- MANAJEMEN RESERVASI ---
     Route::prefix('admin/reservasi')->group(function () {
         Route::get('/', [AdminReservasiController::class, 'index'])->name('reservasi.admin.index');
+        
+        // Punya Teman (Create)
         Route::get('/create', [AdminReservasiController::class, 'create'])->name('reservasi.admin.create');
         Route::post('/', [AdminReservasiController::class, 'createManual'])->name('reservasi.admin.store');
+
+        // --- BAGIAN TAMBAHAN (EDIT & UPDATE) ---
+        Route::get('/{id}/edit', [AdminReservasiController::class, 'edit'])->name('reservasi.admin.edit');
+        Route::put('/{id}', [AdminReservasiController::class, 'update'])->name('reservasi.admin.update');
+        // -------------------------------------------
+
         Route::get('/{id}', [AdminReservasiController::class, 'show'])->name('reservasi.admin.show');
         Route::post('/{id}/status', [AdminReservasiController::class, 'updateStatusReservasi'])->name('reservasi.admin.status');
         Route::post('/{id}/verify-payment', [AdminReservasiController::class, 'updatePembayaran'])->name('reservasi.admin.verifyPayment');
