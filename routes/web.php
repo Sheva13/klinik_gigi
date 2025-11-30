@@ -48,6 +48,17 @@ Route::middleware('auth:admin')->group(function () {
         Route::get('/{id}/edit', [AdminReservasiController::class, 'edit'])->name('reservasi.admin.edit');
         Route::put('/{id}', [AdminReservasiController::class, 'update'])->name('reservasi.admin.update');
         // -------------------------------------------
+        
+        // ============================================
+        // === TAMBAHAN UNTUK PAGE 4 (PEMBAYARAN) ===
+        // ============================================
+        // Rute untuk menampilkan detail pembayaran (Page 4)
+        Route::get('/{id}/pembayaran', [AdminReservasiController::class, 'showPayment'])->name('admin.reservasi.pembayaran');
+        
+        // Rute untuk proses 'Tandai sebagai Lunas' dan upload bukti bayar
+        Route::post('/{id}/tandai-lunas', [AdminReservasiController::class, 'tandaiLunas'])->name('reservasi.admin.tandaiLunas');
+        // ============================================
+
 
         Route::get('/{id}', [AdminReservasiController::class, 'show'])->name('reservasi.admin.show');
         Route::post('/{id}/status', [AdminReservasiController::class, 'updateStatusReservasi'])->name('reservasi.admin.status');
