@@ -8,10 +8,10 @@ use App\Models\Reservasi;
 use App\Models\RekamMedis;
 use App\Models\MasterDokter;
 use App\Models\MasterPoli;
-use App\Models\Jadwal;
+use App\Models\JadwalHarian; // <--- FIX: Memastikan Model yang benar terimport
 use Carbon\Carbon;
 use Exception;
-use Illuminate\Support\Facades\Storage; // <-- [1] TAMBAHAN: UNTUK FUNGSI UPLOAD FILE
+use Illuminate\Support\Facades\Storage; 
 
 class AdminReservasiController extends Controller
 {
@@ -55,11 +55,10 @@ class AdminReservasiController extends Controller
     public function index(Request $request)
     {
         // 1. Mulai Query & Load Relasi yang dibutuhkan (Eager Loading)
-        // FIX LIXA: Menyederhanakan Eager Loading agar data Dokter dan Poli dimuat utuh.
         $query = Reservasi::with([
             'rekamMedis:rekam_medis,nama', 
-            'dokter',            // Memuat seluruh data Dokter
-            'dokter.masterPoli', // Memuat data Master Poli melalui Dokter
+            'dokter',            
+            'dokter.masterPoli', 
             'jadwal:id,hari,jam_mulai,jam_selesai'
         ]); 
 
@@ -124,12 +123,13 @@ class AdminReservasiController extends Controller
     public function create()
     {
         // Ambil data master untuk dropdown form
-        $pasiens = RekamMedis::select('rekam_medis', 'nama')->get();
+        $pasiens = RekamMedis::select('id', 'nama', 'rekam_medis')->get(); 
         $dokters = MasterDokter::select('kode_dokter', 'nama')->get(); 
         $polis   = MasterPoli::select('kode_poli', 'nama_poli')->get();
-        $jadwals = Jadwal::all(); 
+        $jadwals = JadwalHarian::all(); // <--- FIX: Menggunakan JadwalHarian::all()
 
-        return view('reservasi.create', compact('pasiens', 'dokters', 'polis', 'jadwals')); 
+        // Memanggil view 'reservasi.reservasi_form'
+        return view('reservasi.reservasi_form', compact('pasiens', 'dokters', 'polis', 'jadwals')); 
     }
 
     /**
@@ -248,37 +248,114 @@ class AdminReservasiController extends Controller
      * Menyimpan data Reservasi yang dibuat secara manual oleh Admin.
      *
      * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function createManual(Request $request)
     {
+        // 1. VALIDASI BARU: Mencakup semua field dari reservasi_form.blade.php
         $request->validate([
-            'pasien_id'     => 'required|exists:rekam_medis,rekam_medis', 
-            'dokter_id'     => 'required|exists:master_dokter,kode_dokter', 
-            'poli_id'       => 'required|exists:master_poli,kode_poli', 
-            'jadwal_id'     => 'required',
-            'tanggal_pesan' => 'required|date'
+            // Data Pasien (Baru atau Lama)
+            'pasien_id_exist'   => 'nullable|exists:rekam_medis,id', 
+            'nama_lengkap'      => 'required_without:pasien_id_exist|string|max:255', 
+            'ttl'               => 'required_without:pasien_id_exist|string|max:255',
+            'alamat'            => 'required_without:pasien_id_exist|string|max:255',
+            'no_hp'             => 'required_without:pasien_id_exist|string|max:15',
+            'jenis_pasien'      => 'required|string', 
+
+            // Detail Janji Temu
+            'poli'              => 'required|exists:master_poli,kode_poli', 
+            'dokter'            => 'required|exists:master_dokter,kode_dokter',
+            'tanggal_janji'     => 'required|date',
+            'waktu_janji'       => 'required|date_format:H:i',
+            'keluhan'           => 'nullable|string',
+            
+            // Informasi Pembayaran
+            'metode_bayar'      => 'required|string|max:50',
+            'status_bayar'      => 'required|string|max:50',
+            'total_biaya'       => 'nullable|numeric',
+
+        ], [
+            'nama_lengkap.required_without' => 'Nama lengkap wajib diisi jika bukan pasien lama.',
+            'ttl.required_without'          => 'Tempat, Tanggal Lahir wajib diisi jika bukan pasien lama.',
+            'alamat.required_without'       => 'Alamat wajib diisi jika bukan pasien lama.',
+            'no_hp.required_without'        => 'Nomor HP wajib diisi jika bukan pasien lama.',
         ]);
 
         DB::beginTransaction();
         try {
+            // 2. LOGIC PENENTUAN PASIEN (BARU vs LAMA)
+            $rekam_medis_id = $request->input('pasien_id_exist');
+            $pasien_nama = $request->input('nama_lengkap') ?? 'Pasien Lama';
+
+            if (!$rekam_medis_id) {
+                // PASIEN BARU: Buat data di tabel RekamMedis
+                $last_rm = RekamMedis::latest('id')->first();
+                $new_rm_num = $last_rm ? (int) substr($last_rm->rekam_medis, 2) + 1 : 1;
+                $rekam_medis_no = 'RM' . str_pad($new_rm_num, 3, '0', STR_PAD_LEFT);
+
+                $pasien = RekamMedis::create([
+                    'rekam_medis'  => $rekam_medis_no,
+                    'nama'         => $request->input('nama_lengkap'),
+                    'tgl_lahir'    => $request->input('ttl'),
+                    'alamat'       => $request->input('alamat'),
+                    'no_hp'        => $request->input('no_hp'),
+                    'jenis_pasien' => $request->input('jenis_pasien'),
+                ]);
+                $rekam_medis_id = $pasien->id; 
+                $pasien_nama = $pasien->nama;
+
+            } else {
+                 // PASIEN LAMA: Ambil nama pasien untuk pesan sukses
+                 $pasien = RekamMedis::find($rekam_medis_id);
+                 if($pasien) {
+                    $pasien_nama = $pasien->nama;
+                 }
+            }
+
+
+            // 3. LOGIC RESERVASI: Simpan data ke tabel Reservasi
+            $tanggal_waktu_pesan = Carbon::parse($request->input('tanggal_janji') . ' ' . $request->input('waktu_janji'));
+            
+            // Cari jadwal_id yang cocok (Poli + Dokter + Hari)
+            $day_of_week = $tanggal_waktu_pesan->dayOfWeekIso; // 1 (Senin) - 7 (Minggu)
+            $jam_mulai = $tanggal_waktu_pesan->format('H:i:s'); 
+            
+            $jadwal = JadwalHarian::where('dokter_id', $request->input('dokter')) // <--- PERBAIKAN: Menggunakan JadwalHarian
+                            ->where('hari', $day_of_week)
+                            ->where('jam_mulai', '<=', $jam_mulai)
+                            ->where('jam_selesai', '>', $jam_mulai)
+                            ->first();
+
             $reservasi = Reservasi::create([
-                'pasien_id'         => $request->pasien_id,
-                'dokter_id'         => $request->dokter_id,
-                'jadwal_id'         => $request->jadwal_id,
-                'tanggal_pesan'     => $request->tanggal_pesan,
-                // Default value untuk reservasi manual
-                'status_pembayaran' => 'terverifikasi', // Admin input manual dianggap lunas
-                'status_reservasi'  => 'menunggu',
-                'no_pemeriksaan'    => $this->generateNoPemeriksaan()
+                // Data Pasien
+                'pasien_id'         => $rekam_medis_id, 
+                
+                // Data Janji Temu
+                'dokter_id'         => $request->input('dokter'), 
+                'jadwal_id'         => $jadwal->id ?? null,
+                'tanggal_pesan'     => $tanggal_waktu_pesan, 
+                'keluhan'           => $request->input('keluhan'),
+
+                // Data Pembayaran
+                'status_pembayaran' => $request->input('status_bayar'), 
+                'metode_pembayaran' => $request->input('metode_bayar'),
+                'jumlah_total'      => $request->input('total_biaya', 0),
+                
+                // Status dan Nomor Otomatis
+                'status_reservasi'  => $request->input('status_reservasi', 'menunggu'),
+                'no_pemeriksaan'    => $this->generateNoPemeriksaan(),
             ]);
 
             DB::commit();
-            return $this->success('Reservasi manual berhasil dibuat', $reservasi);
+            
+            // 4. RESPON: Mengubah return JSON lama ke redirect untuk web
+            return redirect()->route('reservasi.admin.index')
+                             ->with('success', 'Reservasi manual untuk ' . $pasien_nama . ' berhasil dibuat!');
 
         } catch (Exception $e) {
             DB::rollBack();
-            return $this->error('Gagal membuat reservasi: ' . $e->getMessage(), 500);
+            // Mengubah return JSON error ke redirect error
+            return redirect()->back()->with('error', 'Gagal membuat reservasi. Pastikan semua data benar. Error: ' . $e->getMessage())->withInput();
         }
     }
 
