@@ -40,9 +40,12 @@ Route::middleware('auth:admin')->group(function () {
     Route::prefix('admin/reservasi')->group(function () {
         Route::get('/', [AdminReservasiController::class, 'index'])->name('reservasi.admin.index');
         
-        // Punya Teman (Create)
+        // Punya Teman (Create) - Dipakai oleh tombol (+)
         Route::get('/create', [AdminReservasiController::class, 'create'])->name('reservasi.admin.create');
         Route::post('/', [AdminReservasiController::class, 'createManual'])->name('reservasi.admin.store');
+
+        // 💡 [TAMBAHAN BARU LIXA]: Route untuk Pencarian Pasien Lama via AJAX
+        Route::get('/cari-pasien', [AdminReservasiController::class, 'cariPasien'])->name('reservasi.admin.cariPasien');
 
         // --- BAGIAN TAMBAHAN (EDIT & UPDATE) ---
         Route::get('/{id}/edit', [AdminReservasiController::class, 'edit'])->name('reservasi.admin.edit');
@@ -60,6 +63,7 @@ Route::middleware('auth:admin')->group(function () {
         // ============================================
 
 
+        // Route SHOW (Tombol Mata)
         Route::get('/{id}', [AdminReservasiController::class, 'show'])->name('reservasi.admin.show');
         Route::post('/{id}/status', [AdminReservasiController::class, 'updateStatusReservasi'])->name('reservasi.admin.status');
         Route::post('/{id}/verify-payment', [AdminReservasiController::class, 'updatePembayaran'])->name('reservasi.admin.verifyPayment');
