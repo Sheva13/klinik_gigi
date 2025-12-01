@@ -16,6 +16,7 @@ class Reservasi extends Model
 
     protected $fillable = [
         'no_pemeriksaan',
+        'no_antrian',
         'pasien_id',
         'dokter_id',
         'jadwal_id',
@@ -37,7 +38,6 @@ class Reservasi extends Model
         'latitude', 
         'longitude', 
         'biaya_transport', 
-        'metode_pembayaran'
     ];
 
     public function rekamMedis()
@@ -47,8 +47,6 @@ class Reservasi extends Model
 
     /**
      * Alias relation to maintain compatibility with controllers using 'pasien'
-     * Some code (controllers/routes) eager-load or access 'pasien' relation.
-     * Provide a pasien() method that points to the same RekamMedis relation.
      */
     public function pasien()
     {
@@ -59,7 +57,6 @@ class Reservasi extends Model
     {
         return $this->belongsTo(MasterDokter::class, 'dokter_id', 'kode_dokter');
     }
-
 
     public function jadwal()
     {
