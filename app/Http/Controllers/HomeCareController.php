@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BiayaTambahan;
 use App\Models\Reservasi; 
+use App\Models\HomeCareReservasi;
 use App\Models\HomeCareTracking;
 use App\Models\JadwalHarian;
 use App\Models\MasterJadwal;
@@ -136,8 +137,25 @@ class HomeCareController extends Controller
                 throw new \Exception('Master jadwal tidak ditemukan');
             }
 
+            // Cek kuota agar tidak overbook pada jadwal harian (sebelum simpan reservasi)
+            $kuotaMaster = $masterJadwal->quota ?? 0;
+            if ($kuotaMaster > 0) {
+                $kuotaTerpakai = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
+                    ->where('tanggal_pesan', $request->tanggal)
+                    ->whereIn('status_pembayaran', [
+                        'menunggu_pembayaran',
+                        'menunggu_verifikasi',
+                        'terverifikasi'
+                    ])
+                    ->count();
+
+                if ($kuotaTerpakai >= $kuotaMaster) {
+                    throw new \Exception('Kuota pada jadwal ini sudah penuh');
+                }
+            }
+
             // Simpan Reservasi
-            $reservasi = Reservasi::create([
+            $reservasi = HomeCareReservasi::create([
                 'no_pemeriksaan' => 'HC-' . time() . '-' . rand(1000, 9999), 
                 'pasien_id' => $pasienIdUntukDisimpan, 
                 'dokter_id' => $masterJadwal->dokter_id, 
@@ -148,28 +166,33 @@ class HomeCareController extends Controller
                 'jam_selesai' => $masterJadwal->jam_selesai, 
                 'tipe_layanan' => 'home_care',
                 'jenis_pasien' => 'Umum', 
-                'status' => 0, 
-                'status_reservasi' => 'Menunggu', 
+                // Human readable status + internal flags
+                'status' => 'Menunggu Pembayaran', 
+                'status_reservasi' => 'menunggu', 
                 'keluhan' => $request->keluhan,
                 'latitude' => $request->latitude_pasien,
                 'longitude' => $request->longitude_pasien,
                 'alamat_lengkap' => $request->alamat_lengkap,
                 'biaya_transport' => $biayaJarak,
-                'biaya_reservasi' => env('HOMECARE_BIAYA_DASAR', 35000), 
-                'pembayaran_total' => $biayaJarak + env('HOMECARE_BIAYA_DASAR', 35000), 
+                    'biaya_reservasi' => env('HOMECARE_BIAYA_DASAR', 35000), 
+                    'pembayaran_total' => $biayaJarak + env('HOMECARE_BIAYA_DASAR', 35000), 
                 'metode_pembayaran' => $request->metode_pembayaran,
-                'status_pembayaran' => 'Belum', 
+                'status_pembayaran' => 'menunggu_pembayaran', 
             ]);
+
+            // (quota check already done above)
 
             // Simpan Rincian Biaya
             BiayaTambahan::create([
                 'id_periksa' => $reservasi->id, 
+                'homecare_reservasi_id' => $reservasi->id,
                 'komponen' => 'UANG_MUKA',
                 'biaya' => $dpAmount,
             ]);
 
             BiayaTambahan::create([
                 'id_periksa' => $reservasi->id,
+                'homecare_reservasi_id' => $reservasi->id,
                 'komponen' => 'BIAYA_JARAK',
                 'biaya' => $biayaJarak,
             ]);
@@ -180,7 +203,7 @@ class HomeCareController extends Controller
             // timestamp ganti jadi 'waktu'
             HomeCareTracking::create([
                 'id_periksa' => $reservasi->id,
-                'status_tracking' => 'assigned', // Default awal
+                'status_tracking' => 'assigned', // Default awal (enum di DB: assigned, otw, arrived, progress, finished)
                 'keterangan' => 'Booking berhasil dibuat. Menunggu pembayaran.',
                 'waktu' => now()
             ]);
@@ -195,19 +218,25 @@ class HomeCareController extends Controller
     // 4. Konfirmasi Pembayaran
     public function confirmPayment(Request $request, $id)
     {
-        $reservasi = Reservasi::find($id);
+        $reservasi = HomeCareReservasi::find($id);
 
         if (!$reservasi) {
              return response()->json(['error' => 'Booking tidak ditemukan.'], 404);
         }
         
-        $reservasi->status = 1; 
+        // Set payment state to waiting verification (DP received)
+        $reservasi->status_pembayaran = 'menunggu_verifikasi';
+        $reservasi->status_reservasi = 'menunggu_verifikasi';
+        // keep the human-friendly status string
+        $reservasi->status = 'Menunggu Konfirmasi Admin';
         $reservasi->save();
 
-        // Update Tracking (Perbaikan ENUM & Kolom)
+        // Create a tracking entry. Note: tracking enum in DB limits allowed values (assigned, otw, arrived, progress, finished)
+        // We're reusing 'assigned' as a neutral state here while awaiting admin verification. Consider adding a DB enum value
+        // such as 'verification' in the future.
         HomeCareTracking::create([
             'id_periksa' => $reservasi->id,
-            'status_tracking' => 'assigned', // Masih tahap assigned
+            'status_tracking' => 'assigned',
             'keterangan' => 'Pembayaran DP berhasil. Menunggu konfirmasi Admin.',
             'waktu' => now()
         ]);
@@ -227,7 +256,7 @@ class HomeCareController extends Controller
 
     public function getInvoice($id)
     {
-        $reservasi = Reservasi::with(['tindakanPemeriksaan.masterTindakan', 'biayaTambahan'])->find($id);
+        $reservasi = HomeCareReservasi::with(['tindakanPemeriksaan.masterTindakan', 'biayaTambahan'])->find($id);
         if (!$reservasi) return response()->json(['error' => 'Data tidak ditemukan'], 404);
 
         $totalTindakan = $reservasi->tindakanPemeriksaan->sum(function($item) {
@@ -255,9 +284,9 @@ class HomeCareController extends Controller
             }),
             'biaya_transport' => $biayaTransport,
             'subtotal' => $subTotal,
-            'uang_booking' => -$uangMuka, 
+            'uang_booking' => $uangMuka,
             'total_akhir' => max(0, $sisaTagihan), 
-            'status_lunas' => ($reservasi->status_pembayaran == 'Lunas')
+            'status_lunas' => (strtolower($reservasi->status_pembayaran) == 'lunas')
         ];
 
         return response()->json(['data' => $dataInvoice]);
@@ -266,13 +295,14 @@ class HomeCareController extends Controller
     // [BARU] Proses Bayar Pelunasan
     public function paySettlement(Request $request, $id)
     {
-        $reservasi = Reservasi::find($id);
+        $reservasi = HomeCareReservasi::find($id);
         
-        if ($reservasi->status_pembayaran == 'Lunas') { 
+        if (strtolower($reservasi->status_pembayaran) == 'lunas') { 
             return response()->json(['message' => 'Tagihan sudah lunas sebelumnya.']);
         }
 
-        $reservasi->status_pembayaran = 'Lunas'; 
+        // Mark as fully paid and complete the service
+        $reservasi->status_pembayaran = 'lunas'; 
         $reservasi->status = 'Selesai';
         $reservasi->save();
 

@@ -8,7 +8,7 @@ use App\Models\Reservasi;
 use App\Models\RekamMedis;
 use App\Models\MasterDokter;
 use App\Models\MasterPoli;
-use App\Models\Jadwal;
+use App\Models\MasterJadwal;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Storage; // <-- [1] TAMBAHAN: UNTUK FUNGSI UPLOAD FILE
