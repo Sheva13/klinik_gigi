@@ -11,6 +11,7 @@ use App\Models\MasterPoli;
 use App\Models\Jadwal;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Storage; // <-- [1] TAMBAHAN: UNTUK FUNGSI UPLOAD FILE
 
 class AdminReservasiController extends Controller
 {
@@ -54,10 +55,11 @@ class AdminReservasiController extends Controller
     public function index(Request $request)
     {
         // 1. Mulai Query & Load Relasi yang dibutuhkan (Eager Loading)
+        // FIX LIXA: Menyederhanakan Eager Loading agar data Dokter dan Poli dimuat utuh.
         $query = Reservasi::with([
             'rekamMedis:rekam_medis,nama', 
-            'dokter.masterPoli:kode_poli,nama_poli', 
-            'dokter:kode_dokter,nama,kode_poli', 
+            'dokter',            // Memuat seluruh data Dokter
+            'dokter.masterPoli', // Memuat data Master Poli melalui Dokter
             'jadwal:id,hari,jam_mulai,jam_selesai'
         ]); 
 
@@ -335,7 +337,84 @@ class AdminReservasiController extends Controller
         // Simpan perubahan
         $reservasi->save();
 
-        // 3. Kembali ke halaman utama dengan pesan sukses
-        return redirect()->route('reservasi.admin.index')->with('success', 'Reservasi berhasil diperbarui!');
+        // 3. UBAH [2]: Redirect ke halaman Pembayaran (Page 4) setelah sukses update jadwal
+        return redirect()->route('admin.reservasi.pembayaran', ['id' => $reservasi->id])
+                         ->with('success', 'Jadwal Reservasi berhasil diperbarui! Silakan tinjau pembayaran.');
+    }
+
+    // ============================================
+    // === [3] TAMBAHAN METHOD BARU UNTUK PAGE 4 ===
+    // ============================================
+
+    /**
+     * Menampilkan halaman Manajemen Pembayaran (Page 4).
+     * Route: admin.reservasi.pembayaran
+     *
+     * @param int $id
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function showPayment($id)
+    {
+        // Ambil data reservasi dengan relasi yang dibutuhkan
+        $reservasi = Reservasi::with(['rekamMedis', 'jadwal'])->find($id);
+
+        if (!$reservasi) {
+            return redirect()->route('reservasi.admin.index')->with('error', 'Reservasi tidak ditemukan.');
+        }
+
+        // Tampilkan view pembayaran (resources/views/reservasi/pembayaran.blade.php)
+        return view('reservasi.pembayaran', compact('reservasi'));
+    }
+
+    /**
+     * Memproses form update pembayaran dan menandai lunas.
+     * Route: reservasi.admin.tandaiLunas
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function tandaiLunas(Request $request, $id)
+    {
+        // 1. Validasi
+        $request->validate([
+            'bukti_pembayaran' => 'required|file|mimes:jpeg,png,pdf|max:2048', 
+        ]);
+
+        $reservasi = Reservasi::find($id);
+        if (!$reservasi) {
+            return redirect()->back()->with('error', 'Reservasi tidak ditemukan.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // 2. Handle File Upload
+            if ($request->hasFile('bukti_pembayaran')) {
+                // Simpan file ke direktori 'storage/app/public/bukti_bayar'
+                $path = $request->file('bukti_pembayaran')->store('bukti_bayar', 'public');
+                
+                // Simpan nama path dan nama asli file ke database
+                $reservasi->bukti_pembayaran_path = $path; 
+                $reservasi->bukti_pembayaran_file_name = $request->file('bukti_pembayaran')->getClientOriginalName();
+            }
+
+            // 3. Update Status Pembayaran & Reservasi
+            $reservasi->status_pembayaran = 'Lunas'; 
+            
+            // Tambahkan: Jika lunas, status reservasi bisa otomatis dianggap menunggu proses (jika belum)
+            if ($reservasi->status_reservasi === 'menunggu_pembayaran' || $reservasi->status_reservasi === 'menunggu_verifikasi') {
+                 $reservasi->status_reservasi = 'menunggu';
+            }
+            
+            $reservasi->save();
+
+            DB::commit();
+            return redirect()->route('reservasi.admin.index')
+                             ->with('success', 'Pembayaran berhasil ditandai LUNAS! Status reservasi diperbarui.');
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal memproses pembayaran: ' . $e->getMessage());
+        }
     }
 }
