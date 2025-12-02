@@ -4,15 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\RekamMedis;
-use App\Models\MasterDokter;
-use App\Models\MasterJadwal;
 
-class Reservasi extends Model
+class HomeCareReservasi extends Model
 {
     use HasFactory;
 
-    protected $table = 'reservasi';
+    protected $table = 'homecare_reservasi';
 
     protected $fillable = [
         'no_pemeriksaan',
@@ -26,18 +23,16 @@ class Reservasi extends Model
         'jam_selesai',
         'keluhan',
         'biaya_reservasi',
+        'biaya_transport',
+        'pembayaran_total',
+        'metode_pembayaran',
         'status',
         'status_reservasi',
-        'metode_pembayaran',
         'status_pembayaran',
-        'bank_transaksi_id',
-        'pembayaran_total',
         'jenis_pasien',
-        'tipe_layanan', 
-        'alamat_lengkap', 
-        'latitude', 
-        'longitude', 
-        'biaya_transport', 
+        'alamat_lengkap',
+        'latitude',
+        'longitude',
     ];
 
     public function rekamMedis()
@@ -45,9 +40,6 @@ class Reservasi extends Model
         return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
     }
 
-    /**
-     * Alias relation to maintain compatibility with controllers using 'pasien'
-     */
     public function pasien()
     {
         return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
@@ -58,26 +50,24 @@ class Reservasi extends Model
         return $this->belongsTo(MasterDokter::class, 'dokter_id', 'kode_dokter');
     }
 
-    public function jadwal()
+    public function jadwalHarian()
     {
-        return $this->belongsTo(MasterJadwal::class, 'jadwal_id', 'id');
+        return $this->belongsTo(JadwalHarian::class, 'jadwal_id', 'id');
     }
 
     public function tindakanPemeriksaan()
     {
-        // New FK column 'reservasi_id' may be used after migration; support both
-        return $this->hasMany(TindakanPemeriksaan::class, 'reservasi_id', 'id');
+        // After migration this will use 'homecare_reservasi_id'
+        return $this->hasMany(TindakanPemeriksaan::class, 'homecare_reservasi_id', 'id');
     }
 
-    // Relasi ke biaya tambahan (Uang Muka/DP, Biaya Jarak)
     public function biayaTambahan()
     {
-        return $this->hasMany(BiayaTambahan::class, 'reservasi_id', 'id');
+        return $this->hasMany(BiayaTambahan::class, 'homecare_reservasi_id', 'id');
     }
 
     public function tracking()
     {
         return $this->hasMany(HomeCareTracking::class, 'id_periksa', 'id');
     }
-
 }
