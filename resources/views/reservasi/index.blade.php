@@ -2,6 +2,23 @@
 
 @section('title', 'Data Reservasi')
 
+{{-- 1. Tambahkan Material Symbols (Google Fonts) dan custom CSS --}}
+@section('adminlte_css')
+    {{-- Link ke Material Symbols (Google Fonts) --}}
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        /* Pengaturan umum untuk ikon Material Symbols */
+        .material-symbols-outlined {
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 24
+        }
+    </style>
+    @parent
+@stop
+
 @section('content')
 
 <style>
@@ -15,6 +32,44 @@
         --text-muted: #a0a0a0;
     }
 
+    /* 0. ADMINLTE THEME OVERRIDES (Dark Mode) */
+    .dark-mode .main-header,
+    .dark-mode .main-sidebar,
+    .dark-mode .main-footer,
+    .dark-mode .content-wrapper,
+    .dark-mode .card,
+    .dark-mode .modal-content {
+        background-color: var(--bg-dark) !important;
+        border-color: var(--border-color) !important;
+        color: #E0E0E0 !important;
+    }
+
+    .dark-mode .nav-link, 
+    .dark-mode .brand-link,
+    .dark-mode .main-sidebar .nav-sidebar .nav-item .nav-link p,
+    .dark-mode .main-sidebar .nav-sidebar .nav-item .nav-link i.nav-icon {
+        color: #E0E0E0 !important; /* Warna text sidebar */
+    }
+
+    .dark-mode .nav-sidebar .nav-item > .nav-link.active, 
+    .dark-mode .nav-sidebar .nav-item > .nav-link.active:hover {
+        background-color: var(--gold-primary) !important;
+        color: #000 !important;
+        font-weight: 600;
+    }
+
+    .dark-mode .navbar-nav > .nav-item > .nav-link {
+        color: #E0E0E0 !important;
+    }
+
+    .dark-mode .content-wrapper {
+        color: #E0E0E0 !important;
+    }
+    
+    .dark-mode .table {
+        color: #E0E0E0 !important;
+    }
+    
     /* Typography Overrides */
     h1, h2, h3, h4, h5, h6 { color: #fff !important; }
     .text-gold { color: var(--gold-primary) !important; }
@@ -142,6 +197,20 @@
     .table-dark-custom tbody tr:hover td {
         background-color: rgba(255, 255, 255, 0.05) !important;
     }
+    
+    /* PAGINATION Customization */
+    .page-item .page-link {
+        color: #E0E0E0;
+    }
+    .page-item.active .page-link {
+        background-color: var(--gold-primary) !important;
+        border-color: var(--gold-primary) !important;
+        color: #000 !important;
+    }
+    .page-item:not(.active) .page-link:hover {
+        background-color: #252525 !important;
+        border-color: var(--border-color) !important;
+    }
 </style>
 
 <div class="container-fluid px-0">
@@ -158,9 +227,9 @@
                 <small class="text-muted">Administrator</small>
             </div>
             <img src="{{ asset('assets/images/profile/wais.jpg') }}" 
-                 alt="Profile" 
-                 class="rounded-circle border border-secondary" 
-                 style="width: 45px; height: 45px; object-fit: cover;">
+                alt="Profile" 
+                class="rounded-circle border border-secondary" 
+                style="width: 45px; height: 45px; object-fit: cover;">
         </div>
     </div>
 
@@ -315,6 +384,7 @@
                                         @php
                                             $hari = $jadwal->hari;
                                             $namaHari = $hari;
+                                            // Mapping hari jika disimpan sebagai angka
                                             if(is_numeric($hari)) {
                                                 $mapHari = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
                                                 $namaHari = $mapHari[$hari] ?? $hari;
@@ -332,14 +402,14 @@
                                 @php
                                     $resStatus = $item->status_reservasi;
                                     $resColor = match($resStatus) {
-                                        'menunggu'     => 'text-warning',
+                                        'menunggu'      => 'text-warning',
                                         'dalam_proses' => 'text-info',
                                         'selesai'      => 'text-success',
                                         'batal'        => 'text-danger',
                                         default        => 'text-muted'
                                     };
                                     $resLabel = match($resStatus) {
-                                        'menunggu'     => 'Menunggu',
+                                        'menunggu'      => 'Menunggu',
                                         'dalam_proses' => 'Diproses',
                                         'selesai'      => 'Selesai',
                                         'batal'        => 'Batal',
@@ -422,3 +492,22 @@
 
 </div>
 @endsection
+
+{{-- 2. Tambahkan script untuk mengaktifkan Dark Mode AdminLTE --}}
+@section('adminlte_js')
+    @parent
+    <script>
+        $(document).ready(function() {
+            // 1. Paksa mode gelap pada body AdminLTE
+            $('body').addClass('dark-mode');
+
+            // 2. Set Active link di sidebar untuk konsistensi styling Gold
+            // Halaman ini tidak perlu Active Class di AdminLTE karena sudah di render sebagai Content.
+            // Namun, jika ada menu di sidebar yang mengarah ke halaman ini, kita pastikan class 'active' terpasang.
+            // (Hanya diperlukan jika menu sidebar adalah bagian dari layout AdminLTE yang tidak di-handle otomatis)
+            // Contoh sederhana untuk rute reservasi.admin.index:
+            // var currentRoute = '{{ route('reservasi.admin.index') }}';
+            // $('.nav-sidebar a[href="' + currentRoute + '"]').addClass('active');
+        });
+    </script>
+@stop
