@@ -29,4 +29,9 @@ class HomeCareTracking extends Model
     {
         return $this->belongsTo(Reservasi::class, 'id_periksa', 'id');
     }
+
+    public function homeCareReservasi()
+    {
+        return $this->belongsTo(HomeCareReservasi::class, 'id_periksa', 'id');
+    }
 }

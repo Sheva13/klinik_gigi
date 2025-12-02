@@ -9,6 +9,7 @@ use App\Models\RekamMedis;
 use App\Models\MasterDokter;
 use App\Models\MasterPoli;
 use App\Models\JadwalHarian; // <--- FIX: Memastikan Model yang benar terimport
+use App\Models\MasterJadwal;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Storage; 
