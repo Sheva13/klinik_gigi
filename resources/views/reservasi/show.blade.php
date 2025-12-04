@@ -98,6 +98,7 @@
                         </span>
                     </div>
 
+                    {{-- ALERT STATUS --}}
                     <div class="alert 
                         {{ $reservasi->status_pembayaran == 'terverifikasi' ? 'alert-success' : 'alert-warning' }}
                         d-flex align-items-center" role="alert">
@@ -112,14 +113,31 @@
 
                     </div>
 
-                    @if($reservasi->status_pembayaran != 'terverifikasi')
-                        <button 
-                            class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2"
-                            data-bs-toggle="modal"
-                            data-bs-target="#modalKonfirmasiVerifikasi">
-                            <span class="material-symbols-outlined">verified</span>
-                            Verifikasi Pembayaran
+                    {{-- 🔥 FORM UPDATE STATUS PEMBAYARAN (DROPDOWN) --}}
+                    <form action="{{ route('reservasi.admin.verifyPayment', $reservasi->id) }}" method="POST" class="mt-3 mb-3">
+                        @csrf
+                        <div class="mb-2">
+                            <label class="small text-muted">Update Manual Status Bayar</label>
+                            <select name="status_pembayaran" class="form-select bg-dark text-white border-secondary">
+                                <option value="menunggu_pembayaran" {{ $reservasi->status_pembayaran == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar</option>
+                                <option value="menunggu_verifikasi" {{ $reservasi->status_pembayaran == 'menunggu_verifikasi' ? 'selected' : '' }}>Cek Bukti (Menunggu)</option>
+                                <option value="terverifikasi"       {{ $reservasi->status_pembayaran == 'terverifikasi' ? 'selected' : '' }}>Lunas / Terverifikasi</option>
+                                <option value="gagal"               {{ $reservasi->status_pembayaran == 'gagal' ? 'selected' : '' }}>Gagal</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 btn-sm">
+                            Update Pembayaran
                         </button>
+                    </form>
+
+                    @if($reservasi->status_pembayaran != 'terverifikasi')
+                        <hr class="border-secondary my-3">
+                        {{-- Tombol ke Halaman Upload Bukti (Opsional jika mau lihat detail) --}}
+                        <a href="{{ route('admin.reservasi.pembayaran', $reservasi->id) }}" 
+                           class="btn btn-outline-success w-100 d-flex align-items-center justify-content-center gap-2">
+                            <span class="material-symbols-outlined">payments</span>
+                            Lihat Bukti / Proses Detail
+                        </a>
                     @endif
 
                 </div>
@@ -142,7 +160,11 @@
                             <select name="status_reservasi" 
                                     class="form-select bg-dark text-white border-secondary">
                                 <option value="menunggu"  {{ $reservasi->status_reservasi == 'menunggu' ? 'selected' : '' }}>Menunggu</option>
-                                <option value="confirmed" {{ $reservasi->status_reservasi == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                                
+                                {{-- PERBAIKAN: 'confirmed' diganti 'terkonfirmasi' agar sesuai enum jika diperlukan, atau 'dalam_proses' --}}
+                                {{-- Sesuai chat sebelumnya kita pakai 'dalam_proses' sebagai padanan confirmed --}}
+                                <option value="dalam_proses"  {{ $reservasi->status_reservasi == 'dalam_proses' ? 'selected' : '' }}>Dalam Proses / Confirmed</option>
+                                
                                 <option value="selesai"   {{ $reservasi->status_reservasi == 'selesai' ? 'selected' : '' }}>Selesai</option>
                                 <option value="batal"     {{ $reservasi->status_reservasi == 'batal' ? 'selected' : '' }}>Dibatalkan</option>
                             </select>
@@ -181,12 +203,15 @@
                     <div class="mb-3">
                         <label class="small text-secondary">Pilih Dokter</label>
                         <select name="dokter_id" class="form-select bg-dark text-white border-secondary">
-                            @foreach($dokter as $d)
-                                <option value="{{ $d->id }}"
-                                    {{ $reservasi->dokter_id == $d->id ? 'selected' : '' }}>
-                                    {{ $d->nama }}
-                                </option>
-                            @endforeach
+                            {{-- Menggunakan $dokters (jamak) --}}
+                            @if(isset($dokters))
+                                @foreach($dokters as $d)
+                                    <option value="{{ $d->kode_dokter }}"
+                                        {{ $reservasi->dokter_id == $d->kode_dokter ? 'selected' : '' }}>
+                                        {{ $d->nama }}
+                                    </option>
+                                @endforeach
+                            @endif
                         </select>
                     </div>
 
@@ -219,7 +244,7 @@
                     <div class="mb-3">
                         <label class="small text-secondary">Metode Pembayaran</label>
                         <select name="metode_pembayaran" class="form-select bg-dark text-white border-secondary">
-                            <option value="Cash"     {{ $reservasi->metode_pembayaran == 'Cash' ? 'selected' : '' }}>Cash</option>
+                            <option value="Cash"      {{ $reservasi->metode_pembayaran == 'Cash' ? 'selected' : '' }}>Cash</option>
                             <option value="Transfer" {{ $reservasi->metode_pembayaran == 'Transfer' ? 'selected' : '' }}>Transfer</option>
                         </select>
                     </div>
@@ -236,40 +261,4 @@
         </div>
     </div>
 </div>
-
-
-
-<!-- ============================= -->
-<!-- MODAL: KONFIRMASI VERIFIKASI -->
-<!-- ============================= -->
-<div class="modal fade" id="modalKonfirmasiVerifikasi" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background-color: #1A1A1A; border:1px solid #444">
-
-            <form action="{{ route('reservasi.admin.verifyPayment', $reservasi->id) }}" method="POST">
-                @csrf
-
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title text-white">Verifikasi Pembayaran</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body text-white">
-                    <p class="mb-0">
-                        Apakah Anda yakin ingin 
-                        <span class="text-success fw-bold">MEMVERIFIKASI</span> pembayaran ini?
-                    </p>
-                </div>
-
-                <div class="modal-footer border-secondary">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button class="btn btn-success">Ya, Verifikasi</button>
-                </div>
-
-            </form>
-
-        </div>
-    </div>
-</div>
-
 @endsection

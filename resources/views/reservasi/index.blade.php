@@ -29,6 +29,7 @@
         position: relative;
         overflow: hidden;
         transition: transform 0.2s;
+        height: 100%; /* Agar tinggi kartu seragam */
     }
     .stat-card:hover {
         border-color: var(--gold-primary);
@@ -55,6 +56,12 @@
         letter-spacing: 0.5px;
         color: var(--text-muted);
     }
+    
+    /* Warna Khusus Value Stats */
+    .text-warning { color: #ffc107 !important; }
+    .text-info { color: #17a2b8 !important; }
+    .text-success { color: #28a745 !important; }
+    .text-danger { color: #dc3545 !important; }
 
     /* 2. FILTER SECTION */
     .filter-card {
@@ -127,6 +134,7 @@
         font-size: 0.8rem;
         text-transform: uppercase;
         padding: 1rem 1.5rem;
+        white-space: nowrap; /* Agar header tidak turun baris */
     }
     .table-dark-custom tbody td {
         padding: 1rem 1.5rem;
@@ -142,6 +150,18 @@
     .table-dark-custom tbody tr:hover td {
         background-color: rgba(255, 255, 255, 0.05) !important;
     }
+
+    /* Badge Custom */
+    .badge {
+        padding: 0.5em 0.8em;
+        font-weight: 600;
+        border-radius: 6px;
+    }
+    .bg-warning { background-color: rgba(255, 193, 7, 0.2) !important; color: #ffc107 !important; border: 1px solid #ffc107; }
+    .bg-info { background-color: rgba(23, 162, 184, 0.2) !important; color: #17a2b8 !important; border: 1px solid #17a2b8; }
+    .bg-success { background-color: rgba(40, 167, 69, 0.2) !important; color: #28a745 !important; border: 1px solid #28a745; }
+    .bg-danger { background-color: rgba(220, 53, 69, 0.2) !important; color: #dc3545 !important; border: 1px solid #dc3545; }
+    .bg-secondary { background-color: rgba(108, 117, 125, 0.2) !important; color: #adb5bd !important; border: 1px solid #adb5bd; }
 </style>
 
 <div class="container-fluid px-0">
@@ -166,32 +186,49 @@
 
    {{-- 2. INFO CARDS --}}
     <div class="row g-4 mb-4">
-        <div class="col-12 col-md-6 col-xl-3">
+        {{-- Total --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">calendar_month</span>
-                <div class="stat-label">Total Reservasi</div>
+                <div class="stat-label">Total</div>
                 <div class="stat-value text-gold">{{ $stats['total'] }}</div> 
             </div>
         </div>
-        <div class="col-12 col-md-6 col-xl-3">
+
+        {{-- Menunggu --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">hourglass_top</span>
-                <div class="stat-label">Pasien Menunggu</div>
-                <div class="stat-value text-gold">{{ $stats['menunggu'] }}</div>
+                <div class="stat-label">Menunggu</div>
+                <div class="stat-value text-warning">{{ $stats['menunggu'] }}</div>
             </div>
         </div>
-        <div class="col-12 col-md-6 col-xl-3">
+
+        {{-- 🔥 TAMBAHAN: DIPROSES --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">stethoscope</span>
+                <div class="stat-label">Diproses</div>
+                {{-- Mengambil data 'diproses' dari controller (pastikan controller kirim key ini) --}}
+                <div class="stat-value text-info">{{ $stats['diproses'] ?? 0 }}</div> 
+            </div>
+        </div>
+
+        {{-- Selesai --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">check_circle</span>
-                <div class="stat-label">Pasien Selesai</div>
-                <div class="stat-value text-gold">{{ $stats['selesai'] }}</div>
+                <div class="stat-label">Selesai</div>
+                <div class="stat-value text-success">{{ $stats['selesai'] }}</div>
             </div>
         </div>
-        <div class="col-12 col-md-6 col-xl-3">
+
+        {{-- Batal --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">cancel</span>
-                <div class="stat-label">Pasien Batal</div>
-                <div class="stat-value text-gold">{{ $stats['batal'] }}</div>
+                <div class="stat-label">Batal</div>
+                <div class="stat-value text-danger">{{ $stats['batal'] }}</div>
             </div>
         </div>
     </div>
@@ -237,19 +274,19 @@
                     </select>
                 </div>
 
-                {{-- FILTER STATUS RESERVASI (SESUAI DB) --}}
+                {{-- FILTER STATUS RESERVASI --}}
                 <div class="col-md-2">
                     <label class="small text-muted mb-2">Status Reservasi</label>
                     <select name="status_reservasi" class="form-select form-select-dark" onchange="this.form.submit()">
                         <option value="semua" {{ request('status_reservasi') == 'semua' ? 'selected' : '' }}>Semua Status</option>
                         <option value="menunggu" {{ request('status_reservasi') == 'menunggu' ? 'selected' : '' }}>Menunggu</option>
-                        <option value="dalam_proses" {{ request('status_reservasi') == 'dalam_proses' ? 'selected' : '' }}>Dalam Proses</option>
+                        <option value="dalam_proses" {{ request('status_reservasi') == 'dalam_proses' ? 'selected' : '' }}>Diproses</option>
                         <option value="selesai" {{ request('status_reservasi') == 'selesai' ? 'selected' : '' }}>Selesai</option>
                         <option value="batal" {{ request('status_reservasi') == 'batal' ? 'selected' : '' }}>Batal</option>
                     </select>
                 </div>
 
-                {{-- FILTER STATUS PEMBAYARAN (SESUAI DB) --}}
+                {{-- FILTER STATUS PEMBAYARAN --}}
                 <div class="col-md-2">
                     <label class="small text-muted mb-2">Status Pembayaran</label>
                     <select name="status_pembayaran" class="form-select form-select-dark" onchange="this.form.submit()">
@@ -261,6 +298,7 @@
                     </select>
                 </div>
 
+                {{-- TOMBOL TAMBAH --}}
                 <div class="col-md-1 d-grid">
                     <label class="small text-muted mb-2 d-none d-md-block">&nbsp;</label>
                     <a href="{{ route('reservasi.admin.create') }}" class="btn btn-gold" title="Tambah Reservasi">
@@ -332,21 +370,21 @@
                                 @php
                                     $resStatus = $item->status_reservasi;
                                     $resColor = match($resStatus) {
-                                        'menunggu'     => 'text-warning',
-                                        'dalam_proses' => 'text-info',
-                                        'selesai'      => 'text-success',
-                                        'batal'        => 'text-danger',
-                                        default        => 'text-muted'
+                                        'menunggu'      => 'bg-warning text-dark',
+                                        'dalam_proses'  => 'bg-info text-dark',
+                                        'selesai'       => 'bg-success',
+                                        'batal'         => 'bg-danger',
+                                        default         => 'bg-secondary'
                                     };
                                     $resLabel = match($resStatus) {
-                                        'menunggu'     => 'Menunggu',
-                                        'dalam_proses' => 'Diproses',
-                                        'selesai'      => 'Selesai',
-                                        'batal'        => 'Batal',
-                                        default        => $resStatus
+                                        'menunggu'      => 'Menunggu',
+                                        'dalam_proses'  => 'Diproses',
+                                        'selesai'       => 'Selesai',
+                                        'batal'         => 'Batal',
+                                        default         => ucfirst($resStatus)
                                     };
                                 @endphp
-                                <span class="fw-bold {{ $resColor }}">{{ $resLabel }}</span>
+                                <span class="badge {{ $resColor }}">{{ $resLabel }}</span>
                             </td>
 
                             {{-- STATUS PEMBAYARAN (SESUAI DB) --}}
@@ -354,11 +392,11 @@
                                 @php
                                     $payStatus = $item->status_pembayaran;
                                     $payColor = match($payStatus) {
-                                        'terverifikasi'       => 'text-success',
-                                        'menunggu_pembayaran' => 'text-warning',
-                                        'menunggu_verifikasi' => 'text-primary',
-                                        'gagal'               => 'text-danger',
-                                        default               => 'text-muted'
+                                        'terverifikasi'       => 'bg-success',
+                                        'menunggu_pembayaran' => 'bg-secondary',
+                                        'menunggu_verifikasi' => 'bg-warning text-dark',
+                                        'gagal'               => 'bg-danger',
+                                        default               => 'bg-secondary'
                                     };
                                     $payLabel = match($payStatus) {
                                         'terverifikasi'       => 'Lunas',
@@ -368,12 +406,13 @@
                                         default               => $payStatus
                                     };
                                 @endphp
-                                <span class="fw-bold {{ $payColor }}">{{ $payLabel }}</span>
+                                <span class="badge {{ $payColor }}">{{ $payLabel }}</span>
                             </td>
 
                             {{-- AKSI --}}
                             <td class="text-center">
-                                <a href="{{ route('reservasi.admin.show', $item->id) }}" class="btn btn-sm btn-outline-light border-0">
+                                {{-- LINK KE DETAIL --}}
+                                <a href="{{ route('reservasi.admin.show', $item->id) }}" class="btn btn-sm btn-outline-light border-0" title="Lihat Detail">
                                     <span class="material-symbols-outlined text-gold">visibility</span>
                                 </a>
                             </td>
@@ -391,7 +430,7 @@
         </div>
     </div>
     
-    {{-- Pagination --}}
+    {{-- PAGINATION --}}
     <div class="d-flex justify-content-end mt-4">
         <nav>
             @if($data->hasPages())
