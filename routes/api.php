@@ -29,15 +29,15 @@ Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
 Route::get('/promo', [PromoController::class, 'index']);
 Route::post('/auth/request-otp', [AuthController::class, 'requestOtpEmail']);
 Route::post('/auth/verify-otp',  [AuthController::class, 'verifyOtpEmail']);
-
-
+Route::post('/tes-langsung', function () {
+    return response()->json(['message' => 'Route Tes Berhasil!']);
+});
 
 // Route Terproteksi (Wajib Login / Kirim Token)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/password/request-change', [UbahPasswordController::class, 'requestOtpForPasswordChange']);
     Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtpAndChangePassword']);
     Route::post('/homecare/calculate', [HomeCareController::class, 'calculateCost']);
-    Route::post('/homecare/book', [HomeCareController::class, 'store']);
 
     // --- Rute Autentikasi & Pasien ---
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -54,8 +54,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reservasi/user', [ReservasiController::class, 'getUserData']);
     
     // --- ROUTE UNTUK DENTAL HOME CARE ---
+    Route::get('/homecare/jadwal-master', [HomeCareController::class, 'getMasterJadwal']);
     Route::get('/homecare/jadwal', [HomeCareController::class, 'getMasterJadwal']);
-    Route::post('/homecare/booking', [HomeCareController::class, 'storeBooking']);
+    Route::post('/homecare/create-booking', [HomeCareController::class, 'storeBooking']);
     Route::post('/homecare/booking/{id}/konfirmasi-bayar', [HomeCareController::class, 'confirmPayment']);
     Route::get('/homecare/booking/{id}/tracking', [HomeCareController::class, 'getTrackingHistory']);
     Route::post('/homecare/update-status', [HomeCareController::class, 'updateStatus']);

@@ -47,5 +47,10 @@ class RekamMedis extends Model
         return $this->hasMany(Reservasi::class, 'pasien_id', 'rekam_medis');
     }
 
+    public function homeCareReservasi()
+    {
+        return $this->hasMany(HomeCareReservasi::class, 'pasien_id', 'rekam_medis');
+    }   
+
 }
 
