@@ -46,10 +46,6 @@ class MasterDokter extends Model
 
     public function spesialis()
     {
-        
         return $this->belongsTo(MasterSpesialis::class, 'spesialisasi', 'id');
     }
-
-    
-
 }
