@@ -23,7 +23,7 @@
     body { color: #fff; } /* Memastikan body default color putih */
     .text-gold { color: var(--gold-primary) !important; }
     .text-muted { color: var(--text-muted) !important; }
-    
+     
     /* Kelas Kustom untuk Badge Warning */
     .bg-warning-custom { background-color: var(--warning-status) !important; color: #000; } 
 
@@ -85,7 +85,7 @@
     .dropzone-dark:hover {
         border-color: var(--gold-primary) !important;
     }
-    
+     
     /* Style untuk daftar deskripsi (dl) agar rapi */
     .dl-horizontal dt {
         text-align: left;
@@ -126,7 +126,7 @@
             {{-- 1. RINGKASAN RESERVASI --}}
             <div class="mb-5">
                 <h4 class="fw-bold mb-3 text-white">Ringkasan Reservasi</h4>
-                
+                 
                 <div class="row text-white g-3">
                     <div class="col-md-6">
                         <dl class="row">
@@ -171,7 +171,7 @@
                         <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-gold"></i>
                         <p class="text-white fw-bold">Tarik lepas file atau cari</p>
                         <small class="text-muted">Format yang didukung: JPEG PNG PDF</small>
-                        
+                         
                         {{-- DISPLAY FILE YANG SUDAH ADA / PREVIEW --}}
                         <div class="mt-4 text-left px-4">
                             @if($reservasi->bukti_pembayaran_file_name ?? null)
@@ -192,12 +192,13 @@
 
             {{-- FOOTER ACTION BUTTONS --}}
             <div class="d-flex justify-content-end gap-3 pt-4 border-top border-secondary">
-                
-                {{-- Tombol BATAL (Kembali ke Page 3 Edit) --}}
-                <a href="{{ route('reservasi.admin.edit', $reservasi->id) }}" class="btn btn-secondary-dark">
+                 
+                {{-- Tombol BATAL (Kembali ke Page Show/Detail) --}}
+                {{-- 🔥 PERBAIKAN ROUTING: Kembali ke Detail Reservasi, bukan Edit Jadwal --}}
+                <a href="{{ route('reservasi.admin.show', $reservasi->id) }}" class="btn btn-secondary-dark">
                     Batal
                 </a>
-                
+                 
                 {{-- Tombol SELESAI (Submit Form) --}}
                 <button type="submit" class="btn btn-gold">
                     <i class="fas fa-check-circle"></i> Selesai
@@ -212,7 +213,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const fileInput = document.getElementById('bukti_pembayaran_input');
-        
+         
         if (fileInput) {
             fileInput.addEventListener('change', function() {
                 const fileNameDisplay = document.getElementById('file_name_display');
