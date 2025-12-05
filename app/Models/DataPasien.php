@@ -13,7 +13,16 @@ class DataPasien extends Model
     
     protected $fillable = [
         'id_jadwal', 
-        'rekam_medis_id', // Sudah disesuaikan dengan nama kolom di database (varchar)
+        
+        // 🔥 PERBAIKAN LIXA:
+        // Controller kirim 'rekam_medis', jadi di sini harus 'rekam_medis' juga.
+        // Kalau di DB kolomnya 'rekam_medis', pakai ini:
+        'rekam_medis', 
+        
+        // Kalau ternyata di DB kolomnya memang 'rekam_medis_id',
+        // biarkan yang bawah ini aktif, TAPI di Controller baris 266 harus diganti jadi 'rekam_medis_id' => ...
+        // 'rekam_medis_id', 
+
         'no_antri',
         'status',
         'pasien_baru',
@@ -30,6 +39,7 @@ class DataPasien extends Model
         'longitude_pasien', 
     ];
 
+    // ... (method relasi di bawahnya aman, tidak perlu diubah) ...
     public function jadwalHarian()
     {
         return $this->belongsTo(JadwalHarian::class, 'id_jadwal', 'id');
@@ -42,14 +52,11 @@ class DataPasien extends Model
 
     public function pasien()
     {
-        // Menghubungkan kolom 'rekam_medis' (varchar) di tabel ini 
-        // dengan kolom 'rekam_medis' (varchar) di tabel RekamMedis
         return $this->belongsTo(RekamMedis::class, 'rekam_medis', 'rekam_medis');
     }
 
     public function user()
     {
-        // Relasi ke user via nomor rekam medis
         return $this->belongsTo(MpUser::class, 'rekam_medis', 'rekam_medis');
     }
 
