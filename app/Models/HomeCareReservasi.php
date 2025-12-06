@@ -34,6 +34,8 @@ class HomeCareReservasi extends Model
         'latitude',
         'longitude',
         'tipe_layanan',
+        'snap_token',
+        'redirect_url',
     ];
 
     public function rekamMedis()

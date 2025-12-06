@@ -10,12 +10,16 @@ use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SettingController;
-use App\Http\Controllers\UbahPasswordController;    
+use App\Http\Controllers\UbahPasswordController;
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Route Callback Midtrans 
+Route::post('/midtrans/callback', [HomeCareController::class, 'midtransWebhook']);
+Route::post('/homecare/midtrans-webhook', [HomeCareController::class, 'midtransWebhook']);
 
 // ROUTE — Jadwal Praktek
 Route::get('/jadwal-praktek', [DokterController::class, 'getJadwalPraktek']);
@@ -63,7 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/homecare/finish-treatment/{id}', [HomeCareController::class, 'finishTreatment']);
     Route::get('/homecare/invoice/{id}', [HomeCareController::class, 'getInvoice']);
     Route::post('/homecare/pay-settlement/{id}', [HomeCareController::class, 'paySettlement']);
-    
+    Route::get('/homecare/booking/{id}/status', [HomeCareController::class, 'checkPaymentStatus']);
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);
 
