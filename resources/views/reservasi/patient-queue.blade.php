@@ -4,58 +4,60 @@
 
 @section('content')
 
-{{-- 1. STYLE DARI INDEX.BLADE (SUPAYA TEMA SENADA) --}}
 <style>
-    /* --- CONFIG WARNA DARK GOLD (Sama persis dengan index.blade.php) --- */
+    /* --- CONFIG PREMIUM DARK THEME --- */
     :root {
         --gold-primary: #D4AF37;
         --gold-hover: #b89628;
-        --bg-dark: #121212;
-        --card-bg: #1A1A1A;
+        --bg-body: #121212;     
+        --bg-card: #1E1E1E;     
+        --bg-input: #252525;
         --border-color: #333333;
-        --text-muted: #a0a0a0;
-        --input-bg: #121212;
+        --text-white: #ffffff;
+        --text-muted: #b0b0b0; /* Text muted dibikin lebih terang */
     }
 
-    /* Typography Overrides */
-    h1, h2, h3, h4, h5, h6 { color: #fff !important; }
-    .text-gold { color: var(--gold-primary) !important; }
-    .text-muted { color: var(--text-muted) !important; }
+    /* Override Body Background & Global Text */
+    body, .content-wrapper {
+        background-color: var(--bg-body) !important;
+        color: var(--text-white) !important;
+    }
     
-    /* CARD STYLE (Menggunakan variabel yang sama dengan Index) */
+    /* Paksa semua Heading jadi Putih */
+    h1, h2, h3, h4, h5, h6 { color: #ffffff !important; }
+
+    /* CARD STYLE */
     .bg-card { 
-        background-color: var(--card-bg) !important; 
+        background-color: var(--bg-card) !important; 
         border: 1px solid var(--border-color);
-        border-radius: 12px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         padding: 1.5rem;
         margin-bottom: 1.5rem;
     }
 
-    /* INPUT FIELDS (Agar Senada dengan Index) */
+    /* INPUT FIELDS */
     .input-group-text-dark {
-        background-color: var(--input-bg);
+        background-color: var(--bg-input);
         border: 1px solid var(--border-color);
         border-right: none;
         color: var(--text-muted);
     }
     .form-control-dark, .form-select-dark {
-        background-color: var(--input-bg);
+        background-color: var(--bg-input);
         border: 1px solid var(--border-color);
-        color: #E0E0E0; /* Warna teks input disamakan */
+        color: #fff !important; /* Paksa text input putih */
         border-radius: 8px;
-        padding: 0.6rem 1rem;
+        padding: 0.7rem 1rem;
     }
     .form-control-dark:focus, .form-select-dark:focus {
+        background-color: var(--bg-input);
         border-color: var(--gold-primary);
-        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
-        background-color: var(--input-bg);
-        color: #fff;
+        color: #fff !important;
+        box-shadow: none;
     }
-    /* Fix border radius kalau ada input group */
-    .input-group > .form-control-dark {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-    }
+    /* Placeholder color fix */
+    .form-control-dark::placeholder { color: #666; }
 
     /* BUTTONS */
     .btn-gold {
@@ -64,325 +66,318 @@
         font-weight: 700;
         border: none;
         border-radius: 8px;
-        padding: 0.75rem 1rem; /* Sedikit lebih lebar */
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        width: 100%; /* Full width agar sesuai desain kiri */
+        padding: 0.8rem 1rem;
+        width: 100%;
+        transition: all 0.3s;
     }
-    .btn-gold:hover { background-color: var(--gold-hover); color: #000; }
+    .btn-gold:hover { 
+        background-color: var(--gold-hover); 
+        transform: translateY(-2px);
+    }
 
-    /* STATUS BADGES (Badge Pill Shape - Sesuai Gambar) */
-    .status-badge {
+    /* --- RINGKASAN BOX (FIX FONT WARNA) --- */
+    .summary-box {
+        background-color: #2b2b2b; 
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid #444;
+        position: relative;
+        overflow: hidden;
+        color: #ffffff !important; /* PAKSA TEXT PUTIH */
+    }
+    /* Pastikan elemen text di dalam box berwarna terang */
+    .summary-box .summary-label {
+        font-size: 0.85rem;
+        color: #cccccc !important; /* Abu terang */
+        margin-bottom: 5px;
+        display: block;
+    }
+    .summary-box h2 {
+        color: #ffffff !important; /* Angka Putih */
+        font-weight: 800;
+        margin-bottom: 0;
+    }
+    
+    /* Garis indikator warna di kiri */
+    .box-warning { border-left: 5px solid #ffc107; }
+    .box-info { border-left: 5px solid #0dcaf0; }
+    .box-success { border-left: 5px solid #198754; }
+
+    /* TABEL STYLE (PREMIUM DARK) */
+    .table-responsive {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+    }
+    .table-dark-custom {
+        width: 100%;
+        background-color: var(--bg-card);
+        color: var(--text-white);
+        margin-bottom: 0;
+    }
+    .table-dark-custom thead th {
+        background-color: #252525;
+        color: var(--text-muted);
         font-size: 0.75rem;
-        padding: .35em .8em;
-        border-radius: 50px; /* Pill Shape */
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 1.2rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 600;
+    }
+    .table-dark-custom tbody td {
+        background-color: var(--bg-card);
+        border-bottom: 1px solid #2a2a2a;
+        padding: 1.2rem 1rem;
+        vertical-align: middle;
+        color: #eeeeee !important; /* Paksa text tabel putih/terang */
+    }
+    .table-dark-custom tbody tr:hover td {
+        background-color: #252525; /* Hover effect */
+    }
+    
+    /* TYPOGRAPHY IN TABLE */
+    .queue-number {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--gold-primary);
+        font-family: 'Courier New', monospace;
+    }
+    .patient-name { font-weight: 600; font-size: 0.95rem; display: block; color: #fff !important; }
+    .rm-number { font-size: 0.75rem; color: #aaa; background: #333; padding: 2px 6px; border-radius: 4px; }
+    
+    .poli-badge {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: rgba(212, 175, 55, 0.1); 
+        color: var(--gold-primary);
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        margin-bottom: 4px;
+        display: inline-block;
+    }
+    .dokter-name { font-size: 0.9rem; color: #ddd; }
+
+    /* STATUS PILLS */
+    .status-pill {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
         font-weight: 600;
         display: inline-flex;
         align-items: center;
         gap: 6px;
     }
-    /* Dot Indicator (Titik kecil di dalam badge) */
-    .dot { height: 6px; width: 6px; border-radius: 50%; display: inline-block; }
-
-    .status-menunggu { background-color: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3); }
-    .dot-menunggu { background-color: #ffc107; }
-
-    .status-diproses { background-color: rgba(23, 162, 184, 0.15); color: #17a2b8; border: 1px solid rgba(23, 162, 184, 0.3); }
-    .dot-diproses { background-color: #17a2b8; }
-
-    .status-selesai { background-color: rgba(40, 167, 69, 0.15); color: #28a745; border: 1px solid rgba(40, 167, 69, 0.3); }
-    .dot-selesai { background-color: #28a745; }
-
-    .status-batal { background-color: rgba(220, 53, 69, 0.15); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.3); }
-    .dot-batal { background-color: #dc3545; }
-
-    /* RINGKASAN BOX (Kotak Kecil di Kiri Bawah) */
-    .summary-box {
-        background-color: #252525;
-        border-radius: 12px;
-        padding: 15px 20px;
-        margin-bottom: 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-left: 4px solid transparent; /* Garis warna di kiri */
-    }
-    .box-warning { border-color: #ffc107; }
-    .box-info { border-color: #17a2b8; }
-    .box-success { border-color: #28a745; }
-
-    /* TABEL HEADER & ROW */
-    .table-responsive { border-radius: 12px; overflow: hidden; }
-    .table-header th {
-        background-color: #252525 !important; /* Header tabel lebih gelap sedikit */
-        color: var(--text-muted);
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-color);
-    }
-    .queue-row td {
-        padding: 1.2rem 1rem;
-        vertical-align: middle;
-        border-bottom: 1px solid var(--border-color);
-        color: #E0E0E0;
-        background-color: var(--card-bg);
-    }
-    .queue-row:hover td {
-        background-color: rgba(255, 255, 255, 0.03);
-    }
-    .no-antrian-text {
-        font-size: 1.1rem;
-        font-weight: 800;
-        color: var(--gold-primary);
-        letter-spacing: 0.5px;
-    }
+    .pill-menunggu { background: rgba(255, 193, 7, 0.1); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.2); }
+    .pill-proses { background: rgba(13, 202, 240, 0.1); color: #0dcaf0; border: 1px solid rgba(13, 202, 240, 0.2); }
+    .pill-selesai { background: rgba(25, 135, 84, 0.1); color: #198754; border: 1px solid rgba(25, 135, 84, 0.2); }
+    .pill-batal { background: rgba(220, 53, 69, 0.1); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.2); }
+    
+    .dot { width: 6px; height: 6px; border-radius: 50%; }
 </style>
 
 <div class="container-fluid px-0">
 
-    {{-- HEADER HALAMAN --}}
+    {{-- HEADER PAGE --}}
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
-            <h1 class="fw-bold mb-1" style="font-size: 1.8rem;">Manajemen <span class="text-gold">Antrian Pasien</span></h1>
-            {{-- Tanggal Hari Ini Dinamis --}}
-            <p class="text-muted mb-0">{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</p>
+            <h1 class="fw-bold mb-1" style="font-size: 1.8rem; color: #fff !important;">Manajemen <span style="color: var(--gold-primary);">Antrian</span></h1>
+            <p style="color: #aaa;">{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</p>
         </div>
-
         <div class="d-flex align-items-center gap-3">
-            <div class="text-end d-none d-md-block">
-                {{-- Nama Admin Dinamis --}}
+             <div class="text-end d-none d-md-block">
                 <div class="fw-bold text-white">{{ Auth::guard('admin')->user()->nama ?? 'Admin' }}</div>
-                <small class="text-muted">Administrator</small>
+                <small style="color: #aaa;">Administrator</small>
             </div>
-            <img src="{{ asset('assets/images/profile/wais.jpg') }}"
-                alt="Profile"
-                class="rounded-circle border border-secondary"
-                style="width: 45px; height: 45px; object-fit: cover;">
+            <img src="{{ asset('assets/images/profile/wais.jpg') }}" class="rounded-circle border border-secondary" style="width: 45px; height: 45px; object-fit: cover;">
         </div>
     </div>
 
     <div class="row g-4">
         
-        {{-- KOLOM KIRI: FORM INPUT & RINGKASAN --}}
+        {{-- === KOLOM KIRI: FORM & RINGKASAN === --}}
         <div class="col-lg-4">
-
-            {{-- CARD 1: BUAT NOMOR ANTRIAN --}}
+            
+            {{-- CARD 1: FORM BUAT NOMOR ANTRIAN --}}
             <div class="bg-card mb-4">
-                <h4 class="fw-bold mb-3 text-white" style="font-size: 1.25rem;">Buat Nomor Antrian</h4>
-
-                {{-- Form ini akan mengarahkan ke halaman Create Manual --}}
+                <h5 class="fw-bold text-white mb-4">
+                    <span class="material-symbols-outlined align-middle me-2 text-gold">confirmation_number</span>
+                    Buat Nomor Antrian
+                </h5>
+                
                 <form action="{{ route('reservasi.admin.create') }}" method="GET">
-                    
                     <div class="mb-3">
-                        <label class="text-muted small mb-2">Nama atau ID Pasien</label>
+                        <label class="small mb-2" style="color: #aaa;">Cari Pasien</label>
                         <div class="input-group">
                             <span class="input-group-text input-group-text-dark">
                                 <span class="material-symbols-outlined fs-6">search</span>
                             </span>
-                            {{-- Input ini cuma pancingan, nanti dioper ke halaman create --}}
-                            <input type="text" class="form-control form-control-dark" 
-                                   placeholder="Cari Pasien..." readonly 
-                                   style="border-left:none; cursor: pointer;"
-                                   onclick="this.closest('form').submit();">
+                            <input type="text" class="form-control form-control-dark" placeholder="Ketik nama atau ID..." readonly style="cursor: pointer;" onclick="this.closest('form').submit();">
                         </div>
                     </div>
-
                     <div class="mb-4">
-                        <label class="text-muted small mb-2">Dokter atau Departemen</label>
-                        {{-- Disabled karena pilih di halaman selanjutnya --}}
+                         <label class="small mb-2" style="color: #aaa;">Dokter Tujuan</label>
                         <select class="form-select form-select-dark" disabled>
-                            <option>Pilih di halaman selanjutnya...</option>
+                            <option>Pilih di langkah selanjutnya...</option>
                         </select>
                     </div>
-
                     <button type="submit" class="btn btn-gold">
-                        <span class="material-symbols-outlined fs-5">add</span>
-                        Buat & Tambah ke Antrian
+                        <span class="material-symbols-outlined fs-5 align-middle">add_circle</span> Buat Antrian Baru
                     </button>
                 </form>
             </div>
 
-            {{-- CARD 2: RINGKASAN ANTRIAN (Data Dinamis dari Controller) --}}
+            {{-- CARD 2: RINGKASAN HARI INI (FIX FONT COLOR) --}}
             <div class="bg-card">
-                <h4 class="fw-bold mb-4 text-white" style="font-size: 1.25rem;">Ringkasan Antrian</h4>
+                <h5 class="fw-bold text-white mb-4">Ringkasan Antrian</h5>
 
-                {{-- Menunggu --}}
+                {{-- Box Menunggu --}}
                 <div class="summary-box box-warning">
                     <div>
-                        <div class="text-muted small mb-1">Menunggu</div>
-                        <h2 class="fw-bold text-white mb-0">{{ $stats['menunggu'] }}</h2>
+                        <span class="summary-label">Menunggu</span>
+                        <h2 class="fw-bold mb-0">{{ $stats['menunggu'] ?? 0 }}</h2>
                     </div>
-                    {{-- Icon Jam Pasir --}}
-                    <span class="material-symbols-outlined text-warning fs-2">hourglass_top</span>
+                    <span class="material-symbols-outlined text-warning fs-1 opacity-50">hourglass_top</span>
                 </div>
 
-                {{-- Sedang Diperiksa --}}
+                {{-- Box Sedang Diperiksa --}}
                 <div class="summary-box box-info">
                     <div>
-                        <div class="text-muted small mb-1">Sedang Diperiksa</div>
-                        <h2 class="fw-bold text-white mb-0">{{ $stats['diproses'] }}</h2>
+                        <span class="summary-label">Sedang Diperiksa</span>
+                        <h2 class="fw-bold mb-0">{{ $stats['diproses'] ?? 0 }}</h2>
                     </div>
-                    {{-- Icon Stetoskop --}}
-                    <span class="material-symbols-outlined text-info fs-2">stethoscope</span>
+                    <span class="material-symbols-outlined text-info fs-1 opacity-50">medical_services</span>
                 </div>
 
-                {{-- Selesai --}}
+                {{-- Box Selesai --}}
                 <div class="summary-box box-success">
                     <div>
-                        <div class="text-muted small mb-1">Selesai</div>
-                        <h2 class="fw-bold text-white mb-0">{{ $stats['selesai'] }}</h2>
+                        <span class="summary-label">Selesai</span>
+                        <h2 class="fw-bold mb-0">{{ $stats['selesai'] ?? 0 }}</h2>
                     </div>
-                    {{-- Icon Centang --}}
-                    <span class="material-symbols-outlined text-success fs-2">check_circle</span>
+                    <span class="material-symbols-outlined text-success fs-1 opacity-50">check_circle</span>
                 </div>
             </div>
-
         </div>
 
-        {{-- KOLOM KANAN: DAFTAR ANTRIAN (TABEL) --}}
+        {{-- === KOLOM KANAN: TABEL DAFTAR ANTRIAN === --}}
         <div class="col-lg-8">
-            <div class="bg-card h-100" style="padding: 0; overflow: hidden;"> {{-- Padding 0 biar header tabel full --}}
+            <div class="bg-card h-100 p-0 overflow-hidden">
                 
-                <div class="p-4 pb-2 d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <h4 class="fw-bold mb-0 text-white" style="font-size: 1.5rem;">Daftar Antrian Hari Ini</h4>
-                    
-                    {{-- Filter Search --}}
+                {{-- Toolbar Tabel --}}
+                <div class="p-4 border-bottom border-secondary d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <h5 class="fw-bold text-white mb-0">Daftar Antrian Hari Ini</h5>
                     <form action="{{ route('reservasi.admin.antrian') }}" method="GET">
-                        <div class="input-group w-auto" style="min-width: 250px;">
-                            <span class="input-group-text input-group-text-dark">
+                        <div class="input-group" style="width: 250px;">
+                            <span class="input-group-text input-group-text-dark bg-transparent">
                                 <span class="material-symbols-outlined fs-6">search</span>
                             </span>
-                            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama / no antrian..." class="form-control form-control-dark" style="border-left:none;">
+                            <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-dark bg-transparent" placeholder="Cari nama / no antrian..." style="border-left: none;">
                         </div>
                     </form>
                 </div>
 
-                <div class="table-responsive mt-3">
-                    <table class="table table-borderless mb-0">
+                {{-- TABEL HITAM --}}
+                <div class="table-responsive">
+                    <table class="table table-dark-custom mb-0">
                         <thead>
-                            <tr class="table-header">
-                                <th class="ps-4" width="15%">NO ANTRIAN</th>
-                                <th width="25%">NAMA PASIEN</th>
-                                <th width="20%">DOKTER</th>
-                                <th width="15%">WAKTU</th>
-                                <th width="15%" class="text-center">STATUS</th>
-                                <th width="10%" class="text-end pe-4">AKSI</th>
+                            <tr>
+                                <th class="ps-4">NO ANTRIAN</th>
+                                <th>NAMA PASIEN</th>
+                                <th>POLI & DOKTER</th>
+                                <th>JADWAL</th>
+                                <th class="text-center pe-4">STATUS</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($antrian as $item)
-                                <tr class="queue-row">
-                                    {{-- No Antrian --}}
+                                <tr>
+                                    {{-- 1. NO ANTRIAN --}}
                                     <td class="ps-4">
-                                        <div class="no-antrian-text">{{ $item->no_antrian ?? '-' }}</div>
+                                        <div class="queue-number">{{ $item->no_antrian ?? '-' }}</div>
                                     </td>
-                                    
-                                    {{-- Nama Pasien --}}
+
+                                    {{-- 2. NAMA PASIEN --}}
                                     <td>
-                                        <div class="fw-bold text-white">{{ $item->rekamMedis->nama ?? 'Tanpa Nama' }}</div>
-                                        <div class="small text-muted" style="font-size: 0.8rem;">{{ $item->rekamMedis->rekam_medis ?? '-' }}</div>
+                                        <div class="d-flex align-items-center">
+                                            {{-- Initials Avatar --}}
+                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-3 text-white fw-bold" style="width: 35px; height: 35px; font-size: 0.8rem;">
+                                                {{ substr($item->rekamMedis->nama ?? 'U', 0, 1) }}
+                                            </div>
+                                            <div>
+                                                <span class="patient-name">{{ $item->rekamMedis->nama ?? 'Tanpa Nama' }}</span>
+                                                <span class="rm-number">RM: {{ $item->rekamMedis->rekam_medis ?? '-' }}</span>
+                                            </div>
+                                        </div>
                                     </td>
-                                    
-                                    {{-- Dokter --}}
-                                    <td class="text-muted small">
-                                        {{ $item->dokter->nama ?? '-' }}
+
+                                    {{-- 3. POLI & DOKTER (Digabung biar rapi) --}}
+                                    <td>
+                                        <div>
+                                            {{-- Logic sederhana untuk Poli --}}
+                                            <span class="poli-badge">
+                                                {{ $item->jadwal->poli->nama_poli ?? ($item->dokter->poli->nama_poli ?? 'Poli Gigi') }}
+                                            </span>
+                                            <div class="dokter-name">{{ $item->dokter->nama ?? '-' }}</div>
+                                        </div>
                                     </td>
-                                    
-                                    {{-- Waktu --}}
-                                    <td class="text-muted small">
-                                        {{ \Carbon\Carbon::parse($item->created_at)->format('h.i A') }}
+
+                                    {{-- 4. JADWAL --}}
+                                    <td>
+                                        <div class="text-white fw-bold">{{ \Carbon\Carbon::parse($item->created_at)->format('H:i') }} <span style="color: #888; font-size: 0.8rem; font-weight: normal;">WIB</span></div>
+                                        <small style="color: #888; font-size: 0.75rem;">Estimasi</small>
                                     </td>
-                                    
-                                    {{-- Status Badge --}}
-                                    <td class="text-center">
+
+                                    {{-- 5. STATUS (Tanpa Aksi Dropdown) --}}
+                                    <td class="text-center pe-4">
                                         @php
                                             $s = $item->status_reservasi;
-                                            $badgeClass = match($s) {
-                                                'menunggu'     => 'status-menunggu',
-                                                'dalam_proses' => 'status-diproses',
-                                                'selesai'      => 'status-selesai',
-                                                'batal'        => 'status-batal',
-                                                default        => 'status-menunggu'
+                                            $class = match($s) {
+                                                'menunggu' => 'pill-menunggu',
+                                                'dalam_proses' => 'pill-proses',
+                                                'selesai' => 'pill-selesai',
+                                                'batal' => 'pill-batal',
+                                                default => 'pill-menunggu'
                                             };
-                                            $dotClass = match($s) {
-                                                'menunggu'     => 'dot-menunggu',
-                                                'dalam_proses' => 'dot-diproses',
-                                                'selesai'      => 'dot-selesai',
-                                                'batal'        => 'dot-batal',
-                                                default        => 'dot-menunggu'
+                                            $dotColor = match($s) {
+                                                'menunggu' => '#ffc107',
+                                                'dalam_proses' => '#0dcaf0',
+                                                'selesai' => '#198754',
+                                                'batal' => '#dc3545',
+                                                default => '#ffc107'
                                             };
-                                            $label = match($s) { 
-                                                'dalam_proses' => 'Diperiksa', 
-                                                default => ucfirst($s) 
+                                            $label = match($s) {
+                                                'dalam_proses' => 'Diperiksa',
+                                                default => ucfirst($s)
                                             };
                                         @endphp
-                                        <span class="status-badge {{ $badgeClass }}">
-                                            <span class="dot {{ $dotClass }}"></span> {{ $label }}
+                                        <span class="status-pill {{ $class }}">
+                                            <span class="dot" style="background-color: {{ $dotColor }}"></span>
+                                            {{ $label }}
                                         </span>
-                                    </td>
-
-                                    {{-- Aksi Dropdown --}}
-                                    <td class="text-end pe-4">
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" style="text-decoration: none;">
-                                                <span class="material-symbols-outlined">more_vert</span>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-dark border-secondary shadow" style="background-color: #252525;">
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ route('reservasi.admin.show', $item->id) }}">
-                                                        <span class="material-symbols-outlined fs-6 align-middle me-2 text-gold">visibility</span> Detail
-                                                    </a>
-                                                </li>
-                                                
-                                                {{-- Aksi Cepat: Panggil --}}
-                                                @if($item->status_reservasi == 'menunggu')
-                                                <li>
-                                                    <form action="{{ route('reservasi.admin.status', $item->id) }}" method="POST">
-                                                        @csrf
-                                                        <input type="hidden" name="status_reservasi" value="dalam_proses">
-                                                        <button type="submit" class="dropdown-item text-info">
-                                                            <span class="material-symbols-outlined fs-6 align-middle me-2">campaign</span> Panggil Masuk
-                                                        </button>
-                                                    </form>
-                                                </li>
-                                                @endif
-
-                                                {{-- Aksi Cepat: Selesai --}}
-                                                @if($item->status_reservasi == 'dalam_proses')
-                                                <li>
-                                                    <form action="{{ route('reservasi.admin.status', $item->id) }}" method="POST">
-                                                        @csrf
-                                                        <input type="hidden" name="status_reservasi" value="selesai">
-                                                        <button type="submit" class="dropdown-item text-success">
-                                                            <span class="material-symbols-outlined fs-6 align-middle me-2">check_circle</span> Selesai Periksa
-                                                        </button>
-                                                    </form>
-                                                </li>
-                                                @endif
-                                            </ul>
-                                        </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-5 text-muted">
-                                        <span class="material-symbols-outlined fs-1 opacity-25 d-block mb-3">groups_3</span>
-                                        <p class="mb-0">Belum ada antrian aktif hari ini.</p>
+                                    <td colspan="5" class="text-center py-5">
+                                        <span class="material-symbols-outlined fs-1 opacity-25 d-block mb-3" style="color: #888;">folder_off</span>
+                                        <p class="mb-0" style="color: #888;">Belum ada antrian pasien hari ini.</p>
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
+                {{-- End Table --}}
 
             </div>
         </div>
-
     </div>
 </div>
-
 @endsection
