@@ -184,7 +184,6 @@ class HomeCareService extends BaseReservationService
         return $results;
     }
 
-    // --- MODIFIKASI UTAMA DI SINI ---
     public function createReservation(array $data)
     {
         if (!isset($data['rekam_medis_id'])) {
@@ -355,9 +354,6 @@ class HomeCareService extends BaseReservationService
             ];
         });
     }
-
-    // ... Method confirmPayment, getPaymentHistory, getInvoice, processSettlement, cancelReservation TETAP SAMA ...
-    // (Silakan copy paste dari kode Anda yang lama karena tidak ada perubahan logika bisnis di sana)
 
     public function confirmPayment($reservationId)
     {
