@@ -35,7 +35,8 @@ Route::post('/auth/verify-otp',  [AuthController::class, 'verifyOtpEmail']);
 // Route Terproteksi (Wajib Login / Kirim Token)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/password/request-change', [UbahPasswordController::class, 'requestOtpForPasswordChange']);
-    Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtpAndChangePassword']);
+    Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtp']);
+    Route::post('/password/reset', [UbahPasswordController::class, 'resetPassword']);
     Route::post('/homecare/calculate', [HomeCareController::class, 'calculateCost']);
     Route::post('/homecare/book', [HomeCareController::class, 'store']);
 
