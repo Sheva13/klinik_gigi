@@ -107,12 +107,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/homecare/finish-treatment/{id}', [HomeCareController::class, 'finishTreatment']);
     Route::get('/homecare/invoice/{id}', [HomeCareController::class, 'getInvoice']);
     Route::post('/homecare/pay-settlement/{id}', [HomeCareController::class, 'paySettlement']);
-<<<<<<< HEAD
     Route::get('/homecare/booking/{id}/status', [HomeCareController::class, 'checkPaymentStatus']);
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);
-=======
->>>>>>> salma
 
     // --- UPLOAD FOTO DOKTER ---
     Route::post('/dokter/upload-foto/{id}', [DokterController::class, 'uploadFotoProfil']);
