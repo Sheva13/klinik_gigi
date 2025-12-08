@@ -59,6 +59,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- PROFIL & PASIEN ---
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);
+    Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtp']);
+    Route::post('/password/reset', [UbahPasswordController::class, 'resetPassword']);
+    Route::post('/homecare/calculate', [HomeCareController::class, 'calculateCost']);
+
+    // --- Rute Autentikasi & Pasien ---
+    Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/pasien', [PasienController::class, 'index']);
     Route::get('/pasien/me', [PasienController::class, 'me']);
     Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
