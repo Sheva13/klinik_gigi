@@ -34,8 +34,8 @@
         background-color: var(--card-bg);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     }
-    
-    /* JUDUL SECTION (Subjudul Putih dan Garis Samar) */
+     
+    /* JUDUL SECTION */
     .section-title {
         font-size: 1.25rem;
         font-weight: 800;
@@ -82,11 +82,10 @@
         position: relative;
     }
     .input-group-append {
-        z-index: 10; /* Pastikan ikon di atas input */
+        z-index: 10; 
     }
 
     .input-group-append .input-group-text-custom {
-        /* FIX: Menyatukan styling border dengan input */
         background-color: var(--input-bg) !important;
         border: 1px solid var(--border-color) !important;
         border-radius: 0 8px 8px 0 !important;
@@ -96,12 +95,11 @@
         align-items: center;
         cursor: pointer;
     }
-    
-    /* FIX: Ganti border saat input group focus */
+     
     .input-group:focus-within .input-group-text-custom {
         border-color: var(--gold-primary) !important;
     }
-    
+     
     /* INPUT GROUP for Search Pasien */
     .search-pasien-group {
         display: flex;
@@ -125,7 +123,7 @@
     .search-pasien-group button:hover {
         background-color: var(--gold-hover);
     }
-    
+     
     /* ACTION FOOTER (Sticky) */
     .action-footer {
         position: sticky;
@@ -138,7 +136,7 @@
         margin-right: -15px;
     }
 
-    /* Tombol Gold/Emas (Konfirmasi) */
+    /* Buttons */
     .btn-gold {
         background-color: var(--gold-primary);
         color: #000;
@@ -151,10 +149,8 @@
         align-items: center;
         gap: 8px;
     }
-
     .btn-gold:hover { background-color: var(--gold-hover); color: #000; }
 
-    /* Tombol Secondary (Batal) */
     .btn-secondary-dark {
         background-color: transparent;
         border: 1px solid var(--border-color);
@@ -184,59 +180,50 @@
     </div>
     {{-- END HEADER --}}
 
-    
     <form action="{{ route('reservasi.admin.store') }}" method="POST" id="formReservasiBaru">
         @csrf 
-        
+         
         {{-- Input tersembunyi untuk ID Pasien Lama --}}
         <input type="hidden" id="pasien_id_exist" name="pasien_id_exist" value="">
 
         {{-- === BAGIAN 1: DATA PASIEN === --}}
         <div class="form-group-section">
             <h4 class="section-title"><i class="fas fa-address-card"></i> Data Pasien</h4>
-            
-            {{-- FITUR PENCARIAN PASIEN LAMA (Hanya RM) --}}
+             
+            {{-- FITUR PENCARIAN PASIEN LAMA --}}
             <div class="form-group">
-                <label for="search_pasien" class="text-white">Cari Pasien Lama (No RM)</label>
+                <label for="search_pasien" class="text-white">Cari Pasien Lama (No RM / Nama)</label>
                 <div class="search-pasien-group">
-                    <input type="text" class="form-control" id="search_pasien" placeholder="Masukkan Nomor Rekam Medis (RM)...">
+                    <input type="text" class="form-control" id="search_pasien" placeholder="Masukkan Nomor Rekam Medis (RM) atau Nama...">
                     <button type="button" id="btn_search_pasien">
                         <i class="fas fa-search"></i>
                     </button>
                 </div>
                 <small id="pasien_status" class="text-muted mt-2 d-block">&nbsp;</small> 
             </div>
-            
-            {{-- Form Pasien Baru / Lama (diisi otomatis) --}}
+             
             <div id="data_pasien_form">
                 <div class="row">
-                    {{-- Nama Lengkap (Col 6) --}}
                     <div class="form-group col-md-6">
                         <label for="nama_lengkap" class="text-white">Nama Lengkap</label>
                         <input type="text" class="form-control" id="nama_lengkap" name="nama_lengkap" required>
                     </div>
-                    
-                    {{-- Tempat, Tanggal Lahir (Col 6) --}}
                     <div class="form-group col-md-6">
                         <label for="ttl" class="text-white">Tempat, Tanggal Lahir</label>
                         <input type="text" class="form-control" id="ttl" name="ttl" placeholder="Contoh: Jakarta, 01/01/2000" required>
                     </div>
                 </div>
-                
-                {{-- Alamat (Col 12) --}}
+                 
                 <div class="form-group">
                     <label for="alamat" class="text-white">Alamat</label>
                     <textarea class="form-control" id="alamat" name="alamat" rows="2" required></textarea>
                 </div>
-                
+                 
                 <div class="row">
-                    {{-- No. HP (Col 6) --}}
                     <div class="form-group col-md-6">
                         <label for="no_hp" class="text-white">No. HP</label>
                         <input type="tel" class="form-control" id="no_hp" name="no_hp" required>
                     </div>
-                    
-                    {{-- Jenis Pasien (Col 6) --}}
                     <div class="form-group col-md-6">
                         <label for="jenis_pasien" class="text-white">Jenis Pasien</label>
                         <select class="form-control custom-select" id="jenis_pasien" name="jenis_pasien" required>
@@ -254,6 +241,7 @@
             <div class="row">
                 <div class="form-group col-md-6">
                     <label for="poli" class="text-white">Poli</label>
+                    {{-- 🔥 FIX 1: Ganti name="poli_id" jadi name="poli" --}}
                     <select class="form-control custom-select" id="poli" name="poli" required>
                         <option value="" class="text-muted">Pilih Poli</option>
                         @if(isset($polis))
@@ -265,9 +253,9 @@
                 </div>
                 <div class="form-group col-md-6">
                     <label for="dokter" class="text-white">Dokter</label>
+                    {{-- 🔥 FIX 2: Ganti name="dokter_id" jadi name="dokter" --}}
                     <select class="form-control custom-select" id="dokter" name="dokter" required>
                         <option value="" class="text-muted">Pilih Dokter</option>
-                        {{-- Opsi dokter akan diisi ulang via AJAX berdasarkan Poli --}}
                         @if(isset($dokters))
                             @foreach($dokters as $dokter)
                                 <option value="{{ $dokter->kode_dokter }}">{{ $dokter->nama }}</option>
@@ -279,7 +267,6 @@
             <div class="row">
                 <div class="form-group col-md-6">
                     <label for="tanggal_janji" class="text-white">Tanggal Janji Temu</label>
-                    {{-- Menggunakan Input Group untuk ikon kalender (Pilih Kalender) --}}
                     <div class="input-group" id="flatpickr-tanggal">
                         <input type="text" class="form-control date-picker" id="tanggal_janji" name="tanggal_janji" placeholder="Pilih Tanggal..." required data-input>
                         <div class="input-group-append">
@@ -291,7 +278,6 @@
                 </div>
                 <div class="form-group col-md-6">
                     <label for="waktu_janji" class="text-white">Waktu Janji Temu</label>
-                    {{-- FIX: Input Waktu diubah menjadi text input biasa (ketik manual) --}}
                     <input type="text" class="form-control" id="waktu_janji" name="waktu_janji" placeholder="Masukkan Waktu (HH:MM)" required>
                 </div>
             </div>
@@ -324,21 +310,14 @@
                 </div>
                 <div class="form-group col-md-4">
                     <label for="total_biaya" class="text-white">Total Biaya</label>
-                    {{-- FIX: Input type diganti text dan placeholder diperjelas --}}
                     <input type="text" class="form-control" id="total_biaya" name="total_biaya" placeholder="Masukkan Jumlah Biaya (Contoh: 500000)">
                 </div>
             </div>
-        </div> {{-- END Section: Informasi Pembayaran --}}
+        </div> 
 
-        <!-- FOOTER ACTION BUTTONS (Sticky) -->
+        <!-- FOOTER -->
         <div class="action-footer d-flex justify-content-end gap-3">
-            
-            {{-- Tombol BATAL --}}
-            <a href="{{ route('reservasi.admin.index') }}" class="btn btn-secondary-dark">
-                Batal
-            </a>
-            
-            {{-- Tombol KONFIRMASI --}}
+            <a href="{{ route('reservasi.admin.index') }}" class="btn btn-secondary-dark">Batal</a>
             <button type="submit" class="btn btn-gold">
                 <i class="fas fa-check-circle"></i> Konfirmasi & Buat Reservasi
             </button>
@@ -351,31 +330,18 @@
 
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 1. Inisialisasi Flatpickr untuk Tanggal Janji Temu (Date Picker)
+        // 1. Flatpickr
         flatpickr(".date-picker", {
             dateFormat: "Y-m-d",
-            minDate: "today", // Hanya bisa memilih tanggal hari ini atau ke depan
-            locale: "id", // Jika ingin menggunakan bahasa Indonesia (perlu import locale)
-            wrap: true // Penting agar Flatpickr mengenali input group append sebagai trigger
+            minDate: "today", 
+            locale: "id", 
+            wrap: true 
         });
-
-        // 2. Inisialisasi Flatpickr untuk Waktu Janji Temu (Time Picker) - DIHAPUS, sekarang hanya input text
-        // Tidak perlu inisialisasi Flatpickr untuk input waktu
-
-        // --- LOGIC AJAX PASIEN LAMA DAN FILTER DOKTER AKAN DITAMBAH DI SINI ---
-        
-        // 3. Logic Filter Dokter berdasarkan Poli (Contoh Sederhana)
-        const selectPoli = document.getElementById('poli');
-        const selectDokter = document.getElementById('dokter');
-
-        // Contoh Logic Sederhana (Hanya untuk demonstrasi, ganti dengan AJAX di langkah berikutnya)
-        selectPoli.addEventListener('change', function() {
-            // Nanti akan ada panggilan AJAX ke route /admin/reservasi/cari-dokter
-        });
-        
-        // 4. Logic Pencarian Pasien Lama (AJAX)
+         
+        // 2. Logic Pencarian Pasien Lama (AJAX)
         const btnSearch = document.getElementById('btn_search_pasien');
         const searchInput = document.getElementById('search_pasien');
         const pasienIdExistInput = document.getElementById('pasien_id_exist');
@@ -395,7 +361,6 @@
                 field.required = !isReadOnly;
             });
             pasienIdExistInput.value = '';
-            // FIX: Menghapus pesan 'Pasien Baru akan dibuat otomatis.' dari status bar saat reset
             pasienStatus.innerHTML = isReadOnly 
                 ? 'Data Pasien Lama ditemukan. Form dikunci.'
                 : '&nbsp;'; 
@@ -405,9 +370,9 @@
 
         btnSearch.addEventListener('click', function() {
             const query = searchInput.value.trim();
-            // FIX: Menggunakan batasan 5 karakter karena mencari No RM (biasanya lebih panjang)
-            if (query.length < 5) {
-                pasienStatus.textContent = 'Masukkan minimal 5 karakter No RM untuk mencari.';
+            // FIX: Minimal 3 karakter untuk pencarian
+            if (query.length < 3) {
+                pasienStatus.textContent = 'Masukkan minimal 3 karakter untuk mencari.';
                 pasienStatus.classList.add('text-warning');
                 resetPasienFields(false);
                 return;
@@ -415,13 +380,14 @@
 
             pasienStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari...';
 
-            // PANGGIL AJAX KE ROUTE BARU: reservasi.admin.cariPasien
-            fetch("{{ route('reservasi.admin.cariPasien') }}?query=" + query)
+            // 🔥 FIX 3: AJAX parameter jadi '?q=' sesuai Controller
+            fetch("{{ route('reservasi.admin.cariPasien') }}?q=" + query)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.status === 'success' && data.data) {
-                        const pasien = data.data;
-                        
+                    // Controller return array [ {...}, {...} ]
+                    if (Array.isArray(data) && data.length > 0) {
+                        const pasien = data[0]; // Ambil data pertama
+                         
                         // Isi data pasien
                         document.getElementById('nama_lengkap').value = pasien.nama || '';
                         document.getElementById('ttl').value = pasien.tgl_lahir || ''; 
@@ -431,13 +397,13 @@
 
                         // Set ID Pasien Lama
                         pasienIdExistInput.value = pasien.id; 
-                        
-                        // FIX: Mengunci field setelah data ditemukan
+                         
+                        // Kunci field
                         resetPasienFields(true);
                         pasienStatus.innerHTML = `Pasien Ditemukan: <span class="text-gold">${pasien.rekam_medis} - ${pasien.nama}</span>. Form dikunci.`;
 
                     } else {
-                        // Pasien tidak ditemukan, aktifkan mode Pasien Baru
+                        // Pasien tidak ditemukan
                         resetPasienFields(false);
                         pasienStatus.textContent = 'Pasien Lama tidak ditemukan. Silakan isi data pasien baru.';
                         pasienStatus.classList.remove('text-muted');
@@ -451,14 +417,70 @@
                     resetPasienFields(false);
                 });
         });
-        
-        // FIX: Tambahkan event listener untuk mengaktifkan kembali form jika user mengosongkan search
+         
         searchInput.addEventListener('input', function() {
             if (this.value.trim().length === 0 && pasienIdExistInput.value !== '') {
-                // Jika input dikosongkan setelah pasien ditemukan, reset form
                 resetPasienFields(false);
             }
         });
+
+        // --- SUBMIT FORM ---
+        document.getElementById('formReservasiBaru').addEventListener('submit', function(e) {
+            e.preventDefault(); 
+             
+            let formData = new FormData(this);
+            let btnSave = this.querySelector('button[type="submit"]');
+            let originalText = btnSave.innerHTML;
+            btnSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+            btnSave.disabled = true;
+
+            fetch("{{ route('reservasi.admin.store') }}", { 
+                method: "POST",
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                    'Accept': 'application/json',
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: data.message,
+                        background: '#1e1e2d',
+                        color: '#fff',
+                        confirmButtonColor: '#D4AF37'
+                    }).then(() => {
+                        window.location.href = "{{ route('reservasi.admin.index') }}"; 
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: data.message || 'Terjadi kesalahan validasi',
+                        background: '#1e1e2d',
+                        color: '#fff',
+                        confirmButtonColor: '#D4AF37'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Terjadi kesalahan sistem.',
+                    background: '#1e1e2d',
+                    color: '#fff'
+                });
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                btnSave.innerHTML = originalText;
+                btnSave.disabled = false;
+            });
+        });
     });
 </script>
-@sto
+@stop
