@@ -65,13 +65,14 @@ class Reservasi extends Model
 
     public function tindakanPemeriksaan()
     {
-        return $this->hasMany(TindakanPemeriksaan::class, 'id_periksa', 'id');
+        // New FK column 'reservasi_id' may be used after migration; support both
+        return $this->hasMany(TindakanPemeriksaan::class, 'reservasi_id', 'id');
     }
 
     // Relasi ke biaya tambahan (Uang Muka/DP, Biaya Jarak)
     public function biayaTambahan()
     {
-        return $this->hasMany(BiayaTambahan::class, 'id_periksa', 'id');
+        return $this->hasMany(BiayaTambahan::class, 'reservasi_id', 'id');
     }
 
     public function tracking()

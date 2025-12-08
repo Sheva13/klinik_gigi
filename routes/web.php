@@ -39,8 +39,31 @@ Route::middleware('auth:admin')->group(function () {
     // --- MANAJEMEN RESERVASI ---
     Route::prefix('admin/reservasi')->group(function () {
         Route::get('/', [AdminReservasiController::class, 'index'])->name('reservasi.admin.index');
+        
+        // Punya Teman (Create) - Dipakai oleh tombol (+)
         Route::get('/create', [AdminReservasiController::class, 'create'])->name('reservasi.admin.create');
         Route::post('/', [AdminReservasiController::class, 'createManual'])->name('reservasi.admin.store');
+
+        // 💡 [TAMBAHAN BARU LIXA]: Route untuk Pencarian Pasien Lama via AJAX
+        Route::get('/cari-pasien', [AdminReservasiController::class, 'cariPasien'])->name('reservasi.admin.cariPasien');
+
+        // --- BAGIAN TAMBAHAN (EDIT & UPDATE) ---
+        Route::get('/{id}/edit', [AdminReservasiController::class, 'edit'])->name('reservasi.admin.edit');
+        Route::put('/{id}', [AdminReservasiController::class, 'update'])->name('reservasi.admin.update');
+        // -------------------------------------------
+        
+        // ============================================
+        // === TAMBAHAN UNTUK PAGE 4 (PEMBAYARAN) ===
+        // ============================================
+        // Rute untuk menampilkan detail pembayaran (Page 4)
+        Route::get('/{id}/pembayaran', [AdminReservasiController::class, 'showPayment'])->name('admin.reservasi.pembayaran');
+        
+        // Rute untuk proses 'Tandai sebagai Lunas' dan upload bukti bayar
+        Route::post('/{id}/tandai-lunas', [AdminReservasiController::class, 'tandaiLunas'])->name('reservasi.admin.tandaiLunas');
+        // ============================================
+
+
+        // Route SHOW (Tombol Mata)
         Route::get('/{id}', [AdminReservasiController::class, 'show'])->name('reservasi.admin.show');
         Route::post('/{id}/status', [AdminReservasiController::class, 'updateStatusReservasi'])->name('reservasi.admin.status');
         Route::post('/{id}/verify-payment', [AdminReservasiController::class, 'updatePembayaran'])->name('reservasi.admin.verifyPayment');
