@@ -11,6 +11,7 @@ use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UbahPasswordController;
+use App\Http\Controllers\MidtransWebhookController;
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
@@ -18,8 +19,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 // Route Callback Midtrans 
-Route::post('/midtrans/callback', [HomeCareController::class, 'midtransWebhook']);
-Route::post('/homecare/midtrans-webhook', [HomeCareController::class, 'midtransWebhook']);
+Route::post('payment/midtrans-callback', [MidtransWebhookController::class, 'handle']);
 
 // ROUTE — Jadwal Praktek
 Route::get('/jadwal-praktek', [DokterController::class, 'getJadwalPraktek']);

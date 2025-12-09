@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\HomeCareService;
+use App\Models\HomeCareReservasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -64,11 +65,12 @@ class HomeCareController extends Controller
         ]);
 
         try {
-            Log::info("🔵 storeBooking called with data:", $request->all());
+            Log::info("🔵 storeBooking HomeCare called", $request->all());
             
+            //  mengembalikan snap_token dan redirect_url
             $result = $this->reservationService->createReservation($request->all());
 
-            Log::info("✅ Booking created successfully", ['result' => $result]);
+            Log::info("✅ Booking HomeCare created successfully", ['id' => $result['reservation']->id]);
 
             return response()->json([
                 'message'      => 'Booking berhasil disimpan.',
@@ -78,17 +80,9 @@ class HomeCareController extends Controller
 
         } catch (\Exception $e) {
             Log::error("❌ storeBooking Error: " . $e->getMessage());
-            Log::error("Error Code: " . $e->getCode());
-            Log::error("Stack Trace: " . $e->getTraceAsString());
             
-            // 1. Ambil kode error
-            $statusCode = $e->getCode();
-
-            // 2. Pastikan tipe datanya INTEGER (Angka), bukan String
-            $statusCode = (int) $statusCode;
-
-            // 3. Validasi range HTTP Code (harus antara 100 - 599)
-            // Jika kodenya 0 (default Exception) atau aneh, ubah jadi 400 (Bad Request)
+            // Validasi HTTP Status Code agar tidak Error 500 karena code 0
+            $statusCode = (int) $e->getCode();
             if ($statusCode < 100 || $statusCode > 599) {
                 $statusCode = 400; 
             }
@@ -97,18 +91,31 @@ class HomeCareController extends Controller
         }
     }
 
-    // ... Method lain (confirmPayment, getTrackingHistory, dll) TETAP SAMA ...
-    // ... Silakan copy-paste method sisanya dari file asli Anda jika diperlukan ...
-    
-    public function confirmPayment(Request $request, $id)
+    // --- Method untuk cek status pembayaran secara manual (Polling Frontend) ---
+    public function checkPaymentStatus($id)
     {
         try {
-            $reservasi = $this->reservationService->confirmPayment($id);
-            return response()->json(['message' => 'Pembayaran berhasil.', 'data' => $reservasi]);
+            $reservasi = HomeCareReservasi::find($id);
+
+            if (!$reservasi) {
+                return response()->json(['message' => 'Data tidak ditemukan'], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'id' => $reservasi->id,
+                    'no_pemeriksaan' => $reservasi->no_pemeriksaan,
+                    'status_pembayaran' => $reservasi->status_pembayaran, // lunas, menunggu_pembayaran, gagal
+                    'status_reservasi' => $reservasi->status_reservasi
+                ]
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], $e->getCode() ?: 400);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    // --- WRAPPER METHODS (Meneruskan ke Service) ---
 
     public function getTrackingHistory($id)
     {
@@ -126,7 +133,7 @@ class HomeCareController extends Controller
             $result = $this->reservationService->getInvoice($id);
             return response()->json($result);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], $e->getCode() ?: 400);
+            return response()->json(['error' => $e->getMessage()], 400);
         }
     }
 
@@ -136,7 +143,7 @@ class HomeCareController extends Controller
             $result = $this->reservationService->processSettlement($id);
             return response()->json($result);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], $e->getCode() ?: 400);
+            return response()->json(['error' => $e->getMessage()], 400);
         }
     }
 
@@ -146,42 +153,18 @@ class HomeCareController extends Controller
             $this->reservationService->cancelReservation($id);
             return response()->json(['message' => 'Reservasi berhasil dibatalkan.']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], $e->getCode() ?: 400);
+            return response()->json(['error' => $e->getMessage()], 400);
         }
     }
 
-    public function midtransWebhook(Request $request)
+    // Deprecated: Konfirmasi manual (opsional, jika user transfer manual non-midtrans)
+    public function confirmPayment(Request $request, $id)
     {
         try {
-            // Midtrans mengirim data via POST body
-            $this->reservationService->handleMidtransCallback($request->all());
-            return response()->json(['status' => 'success']);
+            $reservasi = $this->reservationService->confirmPayment($id);
+            return response()->json(['message' => 'Pembayaran berhasil dikonfirmasi.', 'data' => $reservasi]);
         } catch (\Exception $e) {
-            // Log error agar bisa didebug jika midtrans gagal lapor
-            Log::error('Midtrans Webhook Error: ' . $e->getMessage());
-            return response()->json(['message' => $e->getMessage()], 400);
-        }
-    }
-
-    public function checkPaymentStatus($id)
-    {
-        try {
-            $reservasi = \App\Models\HomeCareReservasi::find($id);
-
-            if (!$reservasi) {
-                return response()->json(['message' => 'Data tidak ditemukan'], 404);
-            }
-
-            return response()->json([
-                'status' => 'success',
-                'data' => [
-                    'id' => $reservasi->id,
-                    'status_pembayaran' => $reservasi->status_pembayaran, // 'lunas', 'menunggu_pembayaran', dll
-                    'status_reservasi' => $reservasi->status_reservasi
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => $e->getMessage()], 400);
         }
     }
 }
