@@ -31,7 +31,15 @@ Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+<<<<<<<<< Temporary merge branch 1
 // Informasi Umum (Dokter & Jadwal Umum)
+=========
+// Route Callback Midtrans 
+Route::post('/midtrans/callback', [HomeCareController::class, 'midtransWebhook']);
+Route::post('/homecare/midtrans-webhook', [HomeCareController::class, 'midtransWebhook']);
+
+// ROUTE — Jadwal Praktek
+>>>>>>>>> Temporary merge branch 2
 Route::get('/jadwal-praktek', [DokterController::class, 'getJadwalPraktek']);
 Route::get('/dokter', [DokterController::class, 'index']);
 Route::get('/dokter/{id}', [DokterController::class, 'show']);
@@ -54,6 +62,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- PROFIL & PASIEN ---
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);
+    Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtp']);
+    Route::post('/password/reset', [UbahPasswordController::class, 'resetPassword']);
+    Route::post('/homecare/calculate', [HomeCareController::class, 'calculateCost']);
+
+    // --- Rute Autentikasi & Pasien ---
+    Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/pasien', [PasienController::class, 'index']);
     Route::get('/pasien/me', [PasienController::class, 'me']);
     Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
@@ -102,6 +116,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/homecare/finish-treatment/{id}', [HomeCareController::class, 'finishTreatment']);
     Route::get('/homecare/invoice/{id}', [HomeCareController::class, 'getInvoice']);
     Route::post('/homecare/pay-settlement/{id}', [HomeCareController::class, 'paySettlement']);
+<<<<<<<<< Temporary merge branch 1
+=========
+    Route::get('/homecare/booking/{id}/status', [HomeCareController::class, 'checkPaymentStatus']);
+    Route::get('/profil', [ProfilController::class, 'show']);
+    Route::post('/profil/update', [ProfilController::class, 'update']);
+>>>>>>>>> Temporary merge branch 2
 
     // --- UPLOAD FOTO DOKTER ---
     Route::post('/dokter/upload-foto/{id}', [DokterController::class, 'uploadFotoProfil']);
