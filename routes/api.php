@@ -8,6 +8,7 @@ use App\Http\Controllers\HomeCareController;
 use App\Http\Controllers\ReservasiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
+use App\Http\Controllers\PointController;
 
 // Route Publik (Bebas / Guest)
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
@@ -36,6 +37,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Mengambil data user (tabel users) berdasarkan token
     Route::get('/pasien/me', [PasienController::class, 'me']); 
+
+    // Point Reward Routes
+    Route::get('/points/current', [PointController::class, 'getCurrentPoints']);
+    Route::get('/points/history', [PointController::class, 'getPointHistory']);
+    Route::post('/rewards/redeem', [PointController::class, 'redeemReward']);
     
     // Jika butuh rute untuk admin mengambil SEMUA pasien:
     // Route::get('/pasien/all', [PasienController::class, 'getPasien']);
