@@ -10,7 +10,8 @@ use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SettingController;
-use App\Http\Controllers\UbahPasswordController;    
+use App\Http\Controllers\UbahPasswordController;
+use App\Http\Controllers\MidtransWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,8 +36,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // Informasi Umum (Dokter & Jadwal Umum)
 =========
 // Route Callback Midtrans 
-Route::post('/midtrans/callback', [HomeCareController::class, 'midtransWebhook']);
-Route::post('/homecare/midtrans-webhook', [HomeCareController::class, 'midtransWebhook']);
+Route::post('payment/midtrans-callback', [MidtransWebhookController::class, 'handle']);
 
 // ROUTE — Jadwal Praktek
 >>>>>>>>> Temporary merge branch 2
