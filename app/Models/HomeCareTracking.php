@@ -12,11 +12,26 @@ class HomeCareTracking extends Model
     protected $table = 'home_care_tracking';
     public $timestamps = false; 
     
-    protected $fillable = ['id_periksa', 'status_tracking', 'timestamp'];
+    protected $fillable = [
+        'id_periksa', 
+        'status_tracking', 
+        'keterangan', 
+        'waktu'
+    ];
 
     // Relasi kembali ke data kunjungan/booking
     public function dataPasien()
     {
         return $this->belongsTo(DataPasien::class, 'id_periksa', 'id');
+    }
+
+    public function reservasi()
+    {
+        return $this->belongsTo(Reservasi::class, 'id_periksa', 'id');
+    }
+
+    public function homeCareReservasi()
+    {
+        return $this->belongsTo(HomeCareReservasi::class, 'id_periksa', 'id');
     }
 }
