@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\HomeCareService;
 use App\Models\HomeCareReservasi;
+use App\Models\MasterPromo;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -62,6 +64,9 @@ class HomeCareController extends Controller
             'longitude_pasien' => 'required|numeric',
             'alamat_lengkap' => 'required|string',
             'metode_pembayaran' => 'required|in:transfer,qris,midtrans',
+            'jenis_keluhan' => 'required|string',
+            'jenis_keluhan_lainnya' => 'nullable|string',
+            'promo_id' => 'nullable|exists:master_promo,id',
         ]);
 
         try {
@@ -167,7 +172,40 @@ class HomeCareController extends Controller
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }
-    // --- FITUR BARU: ENDPOINTS ---
+
+
+    // --- FITUR BARU: API POIN & PROMO ---
+
+    public function getPromos(Request $request)
+    {
+        $type = $request->query('type', 'booking'); // booking | settlement
+
+        $query = MasterPromo::query()
+            ->where('tanggal_mulai', '<=', now())
+            ->where('tanggal_selesai', '>=', now());
+
+        if ($type == 'settlement') {
+            // Pelunasan hanya boleh potongan_total
+            $query->where('tipe', 'potongan_total');
+        }
+        // Booking boleh semua (inclusive free_transport)
+
+        $promos = $query->get();
+        return response()->json(['data' => $promos]);
+    }
+
+    public function getUserPoints(Request $request)
+    {
+        $userId = $request->query('user_id'); // Or via Auth::id() if authenticated
+        // Fallback checks
+        if (!$userId)
+            return response()->json(['poin' => 0]);
+
+        $user = User::find($userId);
+        return response()->json(['poin' => $user ? $user->poin : 0]);
+    }
+
+    // --- FITUR BARU: ENDPOINTS EXISTING ---
 
     public function updateStatus(Request $request)
     {
@@ -191,10 +229,13 @@ class HomeCareController extends Controller
 
     public function createSettlement(Request $request)
     {
-        $request->validate(['id' => 'required|exists:homecare_reservasi,id']);
+        $request->validate([
+            'id' => 'required|exists:homecare_reservasi,id',
+            'promo_id' => 'nullable|exists:master_promo,id'
+        ]);
 
         try {
-            $result = $this->reservationService->createSettlementTransaction($request->id);
+            $result = $this->reservationService->createSettlementTransaction($request->id, $request->promo_id);
             return response()->json(['message' => 'Link pelunasan generated', 'data' => $result]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);

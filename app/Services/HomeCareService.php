@@ -7,7 +7,9 @@ use App\Models\HomeCareReservasi;
 use App\Models\HomeCareTracking;
 use App\Models\JadwalHarian;
 use App\Models\MasterJadwal;
+use App\Models\MasterPromo;
 use App\Models\RekamMedis;
+use App\Models\User;
 use App\Services\Payment\MidtransService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -154,7 +156,40 @@ class HomeCareService extends BaseReservationService
         if (!$masterJadwal || !$masterJadwal->kode_dokter)
             throw new \Exception('Master jadwal tidak valid', 422);
 
-        return DB::transaction(function () use ($data, $pasien, $userId, $biayaJarak, $dpAmount, $masterJadwal) {
+        // --- PROMO LOGIC START ---
+        $promo = null;
+        $discountAmount = 0;
+        $pointsToDeduct = 0;
+
+        if (isset($data['promo_id'])) {
+            $promo = MasterPromo::find($data['promo_id']);
+            if (!$promo)
+                throw new \Exception('Promo tidak ditemukan', 404);
+
+            // Validasi Poin User
+            $user = User::find($userId);
+            if (!$user || $user->poin < $promo->harga_poin) {
+                throw new \Exception('Poin tidak mencukupi untuk promo ini', 400);
+            }
+
+            // Hitung Potongan
+            if ($promo->tipe == 'free_transport') {
+                $discountAmount = $biayaJarak;
+            } elseif ($promo->tipe == 'potongan_total') {
+                $discountAmount = $promo->nilai_potongan;
+            }
+
+            $pointsToDeduct = $promo->harga_poin;
+        }
+        // --- PROMO LOGIC END ---
+
+        return DB::transaction(function () use ($data, $pasien, $userId, $biayaJarak, $dpAmount, $masterJadwal, $promo, $discountAmount, $pointsToDeduct) {
+
+            // Deduct Points if used
+            if ($pointsToDeduct > 0) {
+                $user = User::find($userId);
+                $user->decrement('poin', $pointsToDeduct);
+            }
 
             // 1. Setup Jadwal & Validasi Kuota
             $jadwalHarian = JadwalHarian::firstOrCreate(
@@ -174,7 +209,8 @@ class HomeCareService extends BaseReservationService
             }
 
             $biayaLayanan = env('HOMECARE_BIAYA_DASAR', 35000);
-            $totalBayar = $biayaJarak + $biayaLayanan;
+            $grossTotal = $biayaJarak + $biayaLayanan;
+            $totalBayar = max(0, $grossTotal - $discountAmount); // Ensure not negative
             $orderId = $this->generateReservationNumber('HC-');
 
             // 2. Simpan Data Reservasi
@@ -192,7 +228,9 @@ class HomeCareService extends BaseReservationService
                 'jenis_pasien' => 'Umum',
                 'status' => 'Menunggu Pembayaran',
                 'status_reservasi' => 'menunggu',
-                'keluhan' => $data['keluhan'],
+                'keluhan' => $data['keluhan'], // Detail keluhan
+                'jenis_keluhan' => $data['jenis_keluhan'] ?? null,
+                'jenis_keluhan_lainnya' => ($data['jenis_keluhan'] ?? '') === 'Lainnya' ? ($data['jenis_keluhan_lainnya'] ?? null) : null,
                 'latitude' => $data['latitude_pasien'],
                 'longitude' => $data['longitude_pasien'],
                 'alamat_lengkap' => $data['alamat_lengkap'],
@@ -201,6 +239,8 @@ class HomeCareService extends BaseReservationService
                 'pembayaran_total' => $totalBayar,
                 'metode_pembayaran' => $data['metode_pembayaran'],
                 'status_pembayaran' => 'menunggu_pembayaran',
+                'promo_id' => $promo ? $promo->id : null,
+                'potongan_promo' => $discountAmount,
             ]);
 
             BiayaTambahan::create([
@@ -220,10 +260,34 @@ class HomeCareService extends BaseReservationService
             ]);
 
             // 3. INTEGRASI MIDTRANS (MENGGUNAKAN SERVICE)
+            $itemDetails = [
+                [
+                    'id' => 'HOMECARE-SVC',
+                    'price' => $biayaLayanan,
+                    'quantity' => 1,
+                    'name' => 'Biaya Layanan HomeCare'
+                ],
+                [
+                    'id' => 'TRANSPORT',
+                    'price' => $biayaJarak,
+                    'quantity' => 1,
+                    'name' => 'Biaya Transportasi'
+                ]
+            ];
+
+            if ($discountAmount > 0) {
+                $itemDetails[] = [
+                    'id' => 'PROMO-DISC',
+                    'price' => -$discountAmount,
+                    'quantity' => 1,
+                    'name' => 'Potongan Promo (' . ($promo->judul_promo ?? 'Discount') . ')'
+                ];
+            }
+
             $params = [
                 'transaction_details' => [
                     'order_id' => $orderId,
-                    'gross_amount' => $totalBayar,
+                    'gross_amount' => $totalBayar, // Already discounted
                 ],
                 'customer_details' => [
                     'first_name' => $pasien->nama,
@@ -232,20 +296,7 @@ class HomeCareService extends BaseReservationService
                         'address' => $data['alamat_lengkap'],
                     ]
                 ],
-                'item_details' => [
-                    [
-                        'id' => 'HOMECARE-SVC',
-                        'price' => $biayaLayanan,
-                        'quantity' => 1,
-                        'name' => 'Biaya Layanan HomeCare'
-                    ],
-                    [
-                        'id' => 'TRANSPORT',
-                        'price' => $biayaJarak,
-                        'quantity' => 1,
-                        'name' => 'Biaya Transportasi'
-                    ]
-                ]
+                'item_details' => $itemDetails
             ];
 
             // Code Jauh Lebih Bersih!
@@ -339,6 +390,15 @@ class HomeCareService extends BaseReservationService
 
         $reservasi->markAsPaid(); // Method dari Model
 
+        // DAPATKAN POIN SETELAH PELUNASAN
+        $pasienId = $reservasi->pasien_id ?? ($reservasi->rekamMedis->user_id ?? null);
+        if ($pasienId) {
+            $user = User::find($pasienId);
+            if ($user) {
+                $user->increment('poin', 10);
+            }
+        }
+
         HomeCareTracking::create([
             'id_periksa' => $reservasi->id,
             'status_tracking' => 'finished',
@@ -403,7 +463,7 @@ class HomeCareService extends BaseReservationService
     }
 
     // --- FITUR BARU: GENERATE LINK PELUNASAN (MIDTRANS) ---
-    public function createSettlementTransaction($id)
+    public function createSettlementTransaction($id, $promoId = null)
     {
         $reservasi = HomeCareReservasi::find($id);
         if (!$reservasi)
@@ -414,6 +474,54 @@ class HomeCareService extends BaseReservationService
         }
 
         $amount = $reservasi->total_biaya_tindakan;
+
+        // Apply Promo Logic for Settlement
+        $promo = null;
+        $discountAmount = 0;
+
+        if ($promoId) {
+            $promo = MasterPromo::find($promoId);
+            if (!$promo)
+                throw new \Exception('Promo tidak ditemukan', 404);
+
+            if ($promo->tipe == 'free_transport') {
+                throw new \Exception('Promo Free Transport tidak bisa digunakan untuk pelunasan.', 400);
+            }
+
+            // Check Points
+            $pasienId = $reservasi->pasien_id;
+            $user = User::find($pasienId);
+            if (!$user || $user->poin < $promo->harga_poin) {
+                throw new \Exception('Poin tidak mencukupi.', 400);
+            }
+
+            if ($promo->tipe == 'potongan_total') {
+                $discountAmount = $promo->nilai_potongan;
+            }
+
+            // Deduct Points NOW (or should we wait? Usually deduct when link is generated to prevent double use, can refund if failed/cancelled - sticking to simple deduction now)
+            $user->decrement('poin', $promo->harga_poin);
+
+            // Update Reservasi with used promo for settlement tracking (separate columns? or overwrite? User didn't specify separate promo columns for setttlement. I'll overwrite or assume `promo_id` is generic. 
+            // Better: Since schema is shared, maybe I shouldn't overwrite if one was used in booking. 
+            // BUT: "Promo ... potongan Harga total untuk di Pembayaran Booking dan Pembayaran Pelunasan". 
+            // Assuming simplified single usage per stage or overwrite. I'll overwrite for now, but store applied amount.)
+            $reservasi->promo_id = $promo->id;
+            $reservasi->potongan_promo += $discountAmount; // Accumulate? Or just track settlement discount differently? 
+            // To be safe and simple: I will deduct from the $amount passing to midtrans.
+        }
+
+        $finalAmount = max(0, $amount - $discountAmount);
+
+        if ($finalAmount <= 0) {
+            // Zero payment handling (Auto Lunas?)
+            // User didn't ask for this specifically, but logic requires amount > 0 for midtrans.
+            // If 0, mark as Paid immediately?
+            $this->processSettlement($id); // Auto finish
+            return ['message' => 'Tagihan lunas dengan promo (Rp 0).', 'order_id' => 'N/A', 'snap_token' => null];
+        }
+
+        // Generate Order ID Khusus Pelunasan (PL-)
         if ($amount <= 0) {
             throw new \Exception('Tidak ada tagihan pelunasan (Total biaya tindakan 0).', 400);
         }
@@ -423,24 +531,35 @@ class HomeCareService extends BaseReservationService
         // Agar nanti di webhook kita bisa strip "PL-" dan dapat no_pemeriksaan aslinya
         $settlementOrderId = 'PL-' . $reservasi->no_pemeriksaan . '-' . time(); // Tambah time agar unik jika generate ulang
 
+        $itemDetails = [
+            [
+                'id' => 'PELUNASAN-HC',
+                'price' => $amount,
+                'quantity' => 1,
+                'name' => 'Pelunasan Tindakan HomeCare'
+            ]
+        ];
+
+        if ($discountAmount > 0) {
+            $itemDetails[] = [
+                'id' => 'PROMO-PELUNASAN',
+                'price' => -$discountAmount,
+                'quantity' => 1,
+                'name' => 'Potongan Promo'
+            ];
+        }
+
         $params = [
             'transaction_details' => [
                 'order_id' => $settlementOrderId,
-                'gross_amount' => $amount,
+                'gross_amount' => $finalAmount,
             ],
             'customer_details' => [
                 'first_name' => $reservasi->pasien->nama ?? 'Pasien',
                 'email' => $reservasi->pasien->email ?? 'noreply@klinik.com',
                 'phone' => $reservasi->pasien->no_hp ?? '',
             ],
-            'item_details' => [
-                [
-                    'id' => 'PELUNASAN-HC',
-                    'price' => $amount,
-                    'quantity' => 1,
-                    'name' => 'Pelunasan Tindakan HomeCare'
-                ]
-            ]
+            'item_details' => $itemDetails
         ];
 
         try {

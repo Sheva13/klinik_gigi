@@ -23,6 +23,8 @@ class HomeCareReservasi extends Model
         'jam_mulai',
         'jam_selesai',
         'keluhan',
+        'jenis_keluhan',
+        'jenis_keluhan_lainnya',
         'biaya_reservasi',
         'biaya_transport',
         'pembayaran_total',
@@ -39,7 +41,10 @@ class HomeCareReservasi extends Model
         'redirect_url',
         'status_pelunasan',
         'snap_token_pelunasan',
+
         'total_biaya_tindakan',
+        'promo_id',
+        'potongan_promo',
     ];
 
     public function rekamMedis()
@@ -81,6 +86,11 @@ class HomeCareReservasi extends Model
     public function tracking()
     {
         return $this->hasMany(HomeCareTracking::class, 'id_periksa', 'id');
+    }
+
+    public function promo()
+    {
+        return $this->belongsTo(MasterPromo::class, 'promo_id', 'id');
     }
 
     // Trait methods implemented (migrated from consolidated HomeCareService)
