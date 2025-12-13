@@ -4,9 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\RekamMedis;
-use App\Models\MasterDokter;
-use App\Models\MasterJadwal;
 
 class Reservasi extends Model
 {
@@ -14,11 +11,15 @@ class Reservasi extends Model
 
     protected $table = 'reservasi';
 
+    // Tidak perlu "public $timestamps = false;" 
+    // karena di gambar tabel RESERVASI ada created_at & updated_at. Aman!
+
     protected $fillable = [
         'no_pemeriksaan',
-        'pasien_id',
-        'dokter_id',
-        'jadwal_id',
+        'no_antrian',
+        'pasien_id',      // Relasi string ke rekam_medis
+        'dokter_id',      // Relasi string ke kode_dokter
+        'jadwal_id',      // Relasi integer ke id jadwal
         'tanggal_pesan',
         'waktu_pesan',
         'jam_mulai',
@@ -32,12 +33,17 @@ class Reservasi extends Model
         'bank_transaksi_id',
         'pembayaran_total',
         'jenis_pasien',
-        'tipe_layanan', 
-        'alamat_lengkap', 
-        'latitude', 
-        'longitude', 
-        'biaya_transport', 
-        'metode_pembayaran'
+        
+        // --- ⚠️ AREA BERBAHAYA (HOME CARE) ⚠️ ---
+        // Kolom di bawah ini SEMENTARA dimatikan karena BELUM ADA di Database (Gambar 4)
+        // Jika dipaksa, akan error "Column not found".
+        // Uncomment (hapus //) jika sudah update database.
+        
+        // 'tipe_layanan', 
+        // 'alamat_lengkap', 
+        // 'latitude', 
+        // 'longitude', 
+        // 'biaya_transport', 
     ];
 
     public function rekamMedis()
@@ -45,11 +51,7 @@ class Reservasi extends Model
         return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
     }
 
-    /**
-     * Alias relation to maintain compatibility with controllers using 'pasien'
-     * Some code (controllers/routes) eager-load or access 'pasien' relation.
-     * Provide a pasien() method that points to the same RekamMedis relation.
-     */
+    // Alias untuk memudahkan panggil $reservasi->pasien
     public function pasien()
     {
         return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
@@ -60,7 +62,6 @@ class Reservasi extends Model
         return $this->belongsTo(MasterDokter::class, 'dokter_id', 'kode_dokter');
     }
 
-
     public function jadwal()
     {
         return $this->belongsTo(MasterJadwal::class, 'jadwal_id', 'id');
@@ -68,18 +69,16 @@ class Reservasi extends Model
 
     public function tindakanPemeriksaan()
     {
-        return $this->hasMany(TindakanPemeriksaan::class, 'id_periksa', 'id');
+        return $this->hasMany(TindakanPemeriksaan::class, 'reservasi_id', 'id');
     }
 
-    // Relasi ke biaya tambahan (Uang Muka/DP, Biaya Jarak)
     public function biayaTambahan()
     {
-        return $this->hasMany(BiayaTambahan::class, 'id_periksa', 'id');
+        return $this->hasMany(BiayaTambahan::class, 'reservasi_id', 'id');
     }
 
     public function tracking()
     {
         return $this->hasMany(HomeCareTracking::class, 'id_periksa', 'id');
     }
-
 }

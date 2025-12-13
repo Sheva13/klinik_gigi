@@ -93,6 +93,7 @@
              font-weight: 500;
              margin: 0 -15px;
              width: calc(100% + 30px);
+             cursor: pointer; /* Tambahan pointer biar berasa tombol */
         }
         .sidebar-footer a:hover {
             background-color: rgba(245, 197, 66, 0.1); 
@@ -123,39 +124,46 @@
 
             <nav class="d-flex flex-column gap-2"> 
 
-    {{-- Dashboard → FIX: arahkan ke reservasi --}}
-    <a href="{{ route('reservasi.admin.index') }}" 
-       class="{{ request()->routeIs('reservasi.admin.*') ? 'active' : '' }}">
-        <span class="material-symbols-outlined">dashboard</span> Dashboard
-    </a>
-    
-    {{-- Promo --}}
-    <a href="{{ route('promo.index') }}" 
-       class="{{ request()->is('promo*') ? 'active' : '' }}">
-        <span class="material-symbols-outlined">bookmark_manager</span> Promo
-    </a>
+                {{-- FIX: Arahkan ke admin.dashboard sesuai web.php --}}
+                <a href="{{ route('admin.dashboard') }}" 
+                   class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">dashboard</span> Dashboard
+                </a>
+                
+                {{-- Promo --}}
+                <a href="{{ route('promo.index') }}" 
+                   class="{{ request()->is('promo*') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">bookmark_manager</span> Promo
+                </a>
 
-    <a href="/dental-care" class="{{ request()->is('dental-care*') ? 'active' : '' }}">
-        <span class="material-symbols-outlined">dentistry</span> Dental Care
-    </a>
+                {{-- Dental Care (Pastikan Route ini ada atau biarkan link manual) --}}
+                <a href="/dental-care" class="{{ request()->is('dental-care*') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">dentistry</span> Dental Care
+                </a>
 
-    <a href="{{ route('jadwal.index') }}" class="{{ request()->is('jadwal*') ? 'active' : '' }}">
-        <span class="material-symbols-outlined">calendar_month</span> Jadwal Praktek
-    </a>
+                <a href="{{ route('jadwal.index') }}" class="{{ request()->is('jadwal*') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">calendar_month</span> Jadwal Praktek
+                </a>
 
-    <a href="{{ route('dokter.index') }}" class="{{ request()->is('dokter*') ? 'active' : '' }}">
-        <span class="material-symbols-outlined">health_and_safety</span> Dokter
-    </a>
+                <a href="{{ route('dokter.index') }}" class="{{ request()->is('dokter*') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">health_and_safety</span> Dokter
+                </a>
 
-    <a href="{{ route('reservasi.admin.index') }}" class="{{ request()->routeIs('reservasi.admin.*') ? 'active' : '' }}">
-        <span class="material-symbols-outlined">event_note</span> Reservasi
-    </a>
+                <a href="{{ route('reservasi.admin.index') }}" class="{{ request()->routeIs('reservasi.admin.*') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">event_note</span> Reservasi
+                </a>
 
-</nav>
+            </nav>
         </div>
 
         <div class="sidebar-footer">
-            <a href="/logout">
+            {{-- FIX LOGOUT: Harus pakai Form POST karena di web.php methodnya POST --}}
+            <form id="logout-form" action="{{ route('admin.logout') }}" method="POST" style="display: none;">
+                @csrf
+            </form>
+            
+            {{-- Tombol Trigger Logout --}}
+            <a onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                 <span class="material-symbols-outlined">logout</span> Logout
             </a>
         </div>

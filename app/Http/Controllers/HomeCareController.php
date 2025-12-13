@@ -2,54 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BiayaTambahan;
-use App\Models\Reservasi; // GANTI DataPasien JADI Reservasi
-use App\Models\HomeCareTracking;
-use App\Models\JadwalHarian;
-use App\Models\MasterJadwal;
+use App\Services\HomeCareService;
+use App\Models\HomeCareReservasi;
+use App\Models\MasterPromo;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class HomeCareController extends Controller
 {
-    // Konfigurasi Hardcode (Agar aman jika env bermasalah)
-    private $clinicLat = -7.0005141; 
-    private $clinicLng = 110.4250683;
-    private $hargaPerKm = 5000;
-    private $biayaDasar = 35000;
-    private $uangMuka = 25000;
-    /**
-     * Rumus Haversine (Private Helper)
-     */
-    private function calculateDistanceAndCost($userLat, $userLng)
-    {   
-        $latKlinik = env('CLINIC_LAT', $this->clinicLat);
-        $lngKlinik = env('CLINIC_LNG', $this->clinicLng);
-        $tarif = env('HOMECARE_HARGA_PER_KM', $this->hargaPerKm);
+    private $reservationService;
 
-        $earthRadius = 6371; // km
-        $dLat = deg2rad($latKlinik - $userLat);
-        $dLon = deg2rad($lngKlinik - $userLng);
-
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-             cos(deg2rad($userLat)) * cos(deg2rad($latKlinik)) *
-             sin($dLon / 2) * sin($dLon / 2);
-
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        $distance = $earthRadius * $c;
-
-        // Pembulatan jarak ke atas (misal 2.1 km jadi 3 km)
-        $biayaJarak = ceil($distance) * $tarif;
-
-        return [
-            'jarakDalamKm' => $distance,
-            'biayaJarak' => (int) $biayaJarak
-        ];
+    public function __construct(HomeCareService $reservationService)
+    {
+        $this->reservationService = $reservationService;
     }
 
-    // 1. API untuk Cek Ongkir (Dipanggil saat Input Lokasi di Flutter)
     public function calculateCost(Request $request)
     {
         $request->validate([
@@ -57,178 +25,221 @@ class HomeCareController extends Controller
             'longitude' => 'required|numeric',
         ]);
 
-        $calculation = $this->calculateDistanceAndCost(
-            $request->latitude,
-            $request->longitude
-        );
-        
-        $biayaLayanan = env('HOMECARE_BIAYA_DASAR', $this->biayaDasar); 
-
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'jarak_km' => round($calculation['jarakDalamKm'], 2),
-                'biaya_transport' => $calculation['biayaJarak'],
-                'biaya_layanan' => $biayaLayanan,
-                'estimasi_total' => $calculation['biayaJarak'] + $biayaLayanan
-            ]
-        ]);
+        try {
+            $result = $this->reservationService->calculateCost(
+                $request->latitude,
+                $request->longitude
+            );
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
     }
 
-    // 2. API Get Jadwal (Untuk Halaman Pilih Jadwal)
-    public function getMasterJadwal()
+    public function getMasterJadwal(Request $request)
     {
-        $jadwal = MasterJadwal::with(['dokter.spesialis', 'poli'])
-                    ->where('quota', '>', 0)
-                    ->get();
+        try {
+            $tanggal = $request->query('tanggal'); // optional YYYY-MM-DD
 
-        return response()->json(['data' => $jadwal]);
+            if ($tanggal) {
+                $jadwal = $this->reservationService->getAvailableSchedulesForDate($tanggal);
+            } else {
+                $jadwal = $this->reservationService->getAvailableSchedules();
+            }
+
+            return response()->json(['data' => $jadwal]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
     }
 
-    // 3. API Booking (Inti Transaksi)
     public function storeBooking(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $request->validate([
+            'rekam_medis_id' => 'required|exists:rekam_medis,id',
             'master_jadwal_id' => 'required|exists:master_jadwal,id',
             'tanggal' => 'required|date_format:Y-m-d',
             'keluhan' => 'required|string|max:500',
             'latitude_pasien' => 'required|numeric',
             'longitude_pasien' => 'required|numeric',
-            'alamat_lengkap' => 'required|string', 
-            'metode_pembayaran' => 'required|in:transfer,qris',
+            'alamat_lengkap' => 'required|string',
+            'metode_pembayaran' => 'required|in:transfer,qris,midtrans',
+            'jenis_keluhan' => 'required|string',
+            'jenis_keluhan_lainnya' => 'nullable|string',
+            'promo_id' => 'nullable|exists:master_promo,id',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
+        try {
+            Log::info("🔵 storeBooking HomeCare called", $request->all());
 
-        $user = Auth::user();
-        // Pastikan user login punya data rekam medis (Profile Pasien)
-        // Jika Anda menggunakan Sanctum, $user otomatis terisi
-        if (!$user || !$user->id) {
-             return response()->json(['error' => 'Unauthorized'], 401);
-        }
+            //  mengembalikan snap_token dan redirect_url
+            $result = $this->reservationService->createReservation($request->all());
 
-        // 1. Hitung ulang biaya di server (Security: Jangan percaya input harga dari Frontend)
-        $calculation = $this->calculateDistanceAndCost(
-            $request->latitude_pasien,
-            $request->longitude_pasien
-        );
-        $biayaJarak = $calculation['biayaJarak'];
-        $dpAmount = env('HOMECARE_UANG_MUKA', $this->uangMuka);
-
-        return DB::transaction(function () use ($request, $user, $dpAmount, $biayaJarak) {
-            
-            // A. Kelola Jadwal Harian (Cek ketersediaan atau buat baru)
-            $jadwalHarian = JadwalHarian::firstOrCreate(
-                [
-                    'kode_jadwal' => $request->master_jadwal_id,
-                    'tanggal' => $request->tanggal,
-                ],
-                ['validasi' => 0] // Default value jika baru dibuat (0 = belum validasi)
-            );
-
-            // B. Validasi bahwa user memiliki data yang diperlukan
-            if (!$user->id) {
-                throw new \Exception('User tidak memiliki ID yang valid');
-            }
-
-            // Ambil data Master Jadwal untuk mendapatkan dokter_id dan detail jadwal
-            $masterJadwal = MasterJadwal::find($request->master_jadwal_id);
-            if (!$masterJadwal) {
-                throw new \Exception('Master jadwal tidak ditemukan');
-            }
-
-            // B. Simpan ke Tabel RESERVASI (Bukan DataPasien)
-            // Gunakan field sesuai dengan struktur tabel reservasi
-            $reservasi = Reservasi::create([
-                'no_pemeriksaan' => 'HC-' . time() . '-' . rand(1000, 9999), // Generate booking reference
-                'pasien_id' => $user->id, // Relasi ke pasien (dari auth user)
-                'dokter_id' => $masterJadwal->dokter_id, // Ambil dari master jadwal - INI YANG KITA LUPA SEBELUMNYA!
-                'jadwal_id' => $jadwalHarian->id, // Relasi ke jadwal harian
-                'tanggal_pesan' => $request->tanggal, // Tanggal kunjungan dari request
-                'waktu_pesan' => now()->toTimeString(), // Waktu booking dibuat
-                'jam_mulai' => $masterJadwal->jam_mulai, // Ambil dari master jadwal
-                'jam_selesai' => $masterJadwal->jam_selesai, // Ambil dari master jadwal
-                'tipe_layanan' => 'home_care',
-                'jenis_pasien' => 'Umum', // Default jenis pasien
-                'status' => 0, // 0 = Menunggu Pembayaran DP
-                'status_reservasi' => 'menunggu_pembayaran', // Default status
-                'keluhan' => $request->keluhan,
-                'latitude' => $request->latitude_pasien,
-                'longitude' => $request->longitude_pasien,
-                'alamat_lengkap' => $request->alamat_lengkap,
-                'biaya_transport' => $biayaJarak,
-                'biaya_reservasi' => env('HOMECARE_BIAYA_DASAR', 100000), // Biaya dasar home care
-                'pembayaran_total' => $biayaJarak + env('HOMECARE_BIAYA_DASAR', 100000), // Total pembayaran
-                'metode_pembayaran' => $request->metode_pembayaran,
-                'status_pembayaran' => 'belum_dibayar', // Default status pembayaran
-            ]);
-
-            // C. Simpan Rincian Biaya
-            BiayaTambahan::create([
-                'id_periksa' => $reservasi->id, // Relasi ke reservasi
-                'komponen' => 'UANG_MUKA',
-                'biaya' => $dpAmount,
-            ]);
-
-            BiayaTambahan::create([
-                'id_periksa' => $reservasi->id,
-                'komponen' => 'BIAYA_JARAK',
-                'biaya' => $biayaJarak,
-            ]);
-
-            // D. Mulai Tracking
-            HomeCareTracking::create([
-                'id_periksa' => $reservasi->id,
-                'status_tracking' => 'Booking dibuat. Menunggu pembayaran DP.',
-                'timestamp' => now()
-            ]);
+            Log::info("✅ Booking HomeCare created successfully", ['id' => $result['reservation']->id]);
 
             return response()->json([
-                'message' => 'Booking berhasil. Silakan lakukan pembayaran DP.',
-                'data' => $reservasi->load(['jadwalHarian.masterJadwal.dokter'])
+                'message' => 'Booking berhasil disimpan.',
+                'data' => $result['reservation'],
+                'payment_info' => $result['payment_info']
             ], 201);
-        });
+
+        } catch (\Exception $e) {
+            Log::error("❌ storeBooking Error: " . $e->getMessage());
+
+            // Validasi HTTP Status Code agar tidak Error 500 karena code 0
+            $statusCode = (int) $e->getCode();
+            if ($statusCode < 100 || $statusCode > 599) {
+                $statusCode = 400;
+            }
+
+            return response()->json(['error' => $e->getMessage()], $statusCode);
+        }
     }
 
-    // 4. Konfirmasi Pembayaran
-    public function confirmPayment(Request $request, $id)
+    // --- Method untuk cek status pembayaran secara manual (Polling Frontend) ---
+    public function checkPaymentStatus($id)
     {
-        // Cari di Reservasi, bukan DataPasien
-        $reservasi = Reservasi::find($id);
+        try {
+            $reservasi = HomeCareReservasi::find($id);
 
-        if (!$reservasi) {
-             return response()->json(['error' => 'Booking tidak ditemukan.'], 404);
+            if (!$reservasi) {
+                return response()->json(['message' => 'Data tidak ditemukan'], 404);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'id' => $reservasi->id,
+                    'no_pemeriksaan' => $reservasi->no_pemeriksaan,
+                    'status_pembayaran' => $reservasi->status_pembayaran, // lunas, menunggu_pembayaran, gagal
+                    'status_reservasi' => $reservasi->status_reservasi
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        // Validasi Pemilik (Opsional, tergantung kebutuhan)
-        if (Auth::id() != $reservasi->id_pasien) {
-             return response()->json(['error' => 'Akses ditolak.'], 403);
-        }
-
-        // Ubah Status
-        $reservasi->status = 1; // 1 = DP Lunas / Menunggu Konfirmasi Admin
-        $reservasi->save();
-
-        // Log Tracking
-        HomeCareTracking::create([
-            'id_periksa' => $reservasi->id,
-            'status_tracking' => 'Pembayaran DP berhasil. Menunggu konfirmasi Admin.',
-            'timestamp' => now()
-        ]);
-
-        return response()->json(['message' => 'Pembayaran berhasil.', 'data' => $reservasi]);
     }
 
-    // 5. History Tracking
+    // --- WRAPPER METHODS (Meneruskan ke Service) ---
+
     public function getTrackingHistory($id)
     {
-        $history = HomeCareTracking::where('id_periksa', $id)
-                                   ->orderBy('timestamp', 'desc')
-                                   ->get();
-        
-        return response()->json(['data' => $history]);
+        try {
+            $result = $this->reservationService->getPaymentHistory($id);
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    public function getInvoice($id)
+    {
+        try {
+            $result = $this->reservationService->getInvoice($id);
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    public function paySettlement(Request $request, $id)
+    {
+        try {
+            $result = $this->reservationService->processSettlement($id);
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    public function cancelReservation($id)
+    {
+        try {
+            $this->reservationService->cancelReservation($id);
+            return response()->json(['message' => 'Reservasi berhasil dibatalkan.']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    // Deprecated: Konfirmasi manual (opsional, jika user transfer manual non-midtrans)
+    public function confirmPayment(Request $request, $id)
+    {
+        try {
+            $reservasi = $this->reservationService->confirmPayment($id);
+            return response()->json(['message' => 'Pembayaran berhasil dikonfirmasi.', 'data' => $reservasi]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+
+    // --- FITUR BARU: API POIN & PROMO ---
+
+    public function getPromos(Request $request)
+    {
+        $type = $request->query('type', 'booking'); // booking | settlement
+
+        $query = MasterPromo::query()
+            ->where('tanggal_mulai', '<=', now())
+            ->where('tanggal_selesai', '>=', now());
+
+        if ($type == 'settlement') {
+            // Pelunasan hanya boleh potongan_total
+            $query->where('tipe', 'potongan_total');
+        }
+        // Booking boleh semua (inclusive free_transport)
+
+        $promos = $query->get();
+        return response()->json(['data' => $promos]);
+    }
+
+    public function getUserPoints(Request $request)
+    {
+        $userId = $request->query('user_id'); // Or via Auth::id() if authenticated
+        // Fallback checks
+        if (!$userId)
+            return response()->json(['poin' => 0]);
+
+        $user = User::find($userId);
+        return response()->json(['poin' => $user ? $user->poin : 0]);
+    }
+
+    // --- FITUR BARU: ENDPOINTS EXISTING ---
+
+    public function updateStatus(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:homecare_reservasi,id',
+            'status' => 'required|string',
+            'total_biaya_tindakan' => 'numeric|min:0'
+        ]);
+
+        try {
+            $result = $this->reservationService->updateStatusPemeriksaan(
+                $request->id,
+                $request->status,
+                $request->total_biaya_tindakan ?? 0
+            );
+            return response()->json(['message' => 'Status berhasil diperbarui', 'data' => $result]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    public function createSettlement(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:homecare_reservasi,id',
+            'promo_id' => 'nullable|exists:master_promo,id'
+        ]);
+
+        try {
+            $result = $this->reservationService->createSettlementTransaction($request->id, $request->promo_id);
+            return response()->json(['message' => 'Link pelunasan generated', 'data' => $result]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
     }
     public function getInvoice($id)
 {
