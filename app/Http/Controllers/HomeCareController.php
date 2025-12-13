@@ -230,4 +230,50 @@ class HomeCareController extends Controller
         
         return response()->json(['data' => $history]);
     }
+    public function getInvoice($id)
+{
+    $reservasi = Reservasi::with(['tindakanPemeriksaan.masterTindakan', 'biayaTambahan', 'pasien'])->find($id);
+    if (!$reservasi) return response()->json(['error' => 'Data tidak ditemukan'], 404);
+
+    // 1. Hitung Total Tindakan (Scaling + Tambal + dll)
+    $totalTindakan = $reservasi->tindakanPemeriksaan->sum(function($item) {
+        // Ambil harga dari tabel history jika ada, kalau null ambil dari master (fallback)
+        return $item->biaya ?? $item->masterTindakan->biaya_tindakan;
+    });
+
+    // 2. Ambil Biaya Transport & Layanan (Disimpan di reservasi atau biaya tambahan)
+    // Asumsi: biaya_transport sudah tersimpan di kolom reservasi saat booking
+    $biayaTransport = $reservasi->biaya_transport; 
+
+    // 3. Hitung Subtotal
+    $subTotal = $totalTindakan + $biayaTransport;
+
+    // 4. Cek Uang Muka (DP) yang sudah dibayar
+    $uangMuka = $reservasi->biayaTambahan
+                ->where('komponen', 'UANG_MUKA') // Sesuaikan string ini dengan saat storeBooking
+                ->sum('biaya');
+
+    // 5. Total Akhir yang harus dilunasi
+    $sisaTagihan = $subTotal - $uangMuka;
+
+    // Struktur Data untuk UI Flutter (Sesuai Desain "Rincian Tagihan")
+    $dataInvoice = [
+        'nama_pasien' => $reservasi->pasien->nama ?? 'Pasien',
+        'no_invoice' => '#INV-' . $reservasi->no_pemeriksaan,
+        'tanggal' => $reservasi->tanggal_pesan,
+        'rincian_perawatan' => $reservasi->tindakanPemeriksaan->map(function($t) {
+            return [
+                'nama' => $t->masterTindakan->tindakan ?? 'Tindakan Medis',
+                'harga' => $t->biaya ?? $t->masterTindakan->biaya_tindakan
+            ];
+        }),
+        'biaya_transport' => $biayaTransport,
+        'subtotal' => $subTotal,
+        'uang_booking' => -$uangMuka, // Minus untuk tampilan UI
+        'total_akhir' => max(0, $sisaTagihan), // Tidak boleh minus
+        'status_lunas' => ($reservasi->status_pembayaran == 'lunas')
+    ];
+
+    return response()->json(['data' => $dataInvoice]);
+}
 }
