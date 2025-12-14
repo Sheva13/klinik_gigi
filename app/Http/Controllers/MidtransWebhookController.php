@@ -63,12 +63,10 @@ class MidtransWebhookController extends Controller
             $tipeTransaksi = 'KLINIK';
         } elseif (Str::startsWith($orderId, 'PL-')) {
             // --- LOGIC PELUNASAN HOME CARE ---
-            // Format: PL-{HC-XXXX...}-{TIMESTAMP}
-            // Kita cari string yang diawali HC- di tengah
-            preg_match('/(HC-\d+-HC-\d+|HC-\d+)/', $orderId, $matches);
-            $noPemeriksaanAsli = $matches[0] ?? null;
-
-            if ($noPemeriksaanAsli) {
+            // Format: PL-{NO_PEMERIKSAAN_ASLI}-{TIMESTAMP}
+            // Parse menggunakan Regex yang lebih robust untuk mengambil Original ID di tengah
+            if (preg_match('/^PL-(.+)-(\d+)$/', $orderId, $matches)) {
+                $noPemeriksaanAsli = $matches[1]; // Mengambil grup 1 (Original ID)
                 $transaksi = HomeCareReservasi::where('no_pemeriksaan', $noPemeriksaanAsli)->first();
                 $tipeTransaksi = 'HOME_CARE_PELUNASAN';
             }
@@ -84,26 +82,60 @@ class MidtransWebhookController extends Controller
         $transactionStatus = $payload['transaction_status'];
 
         DB::transaction(function () use ($transaksi, $transactionStatus, $tipeTransaksi) {
-            $statusAwal = $transaksi->status_pembayaran;
+            $statusAwal = ($tipeTransaksi === 'HOME_CARE')
+                ? $transaksi->status_booking
+                : $transaksi->status_pembayaran;
+
             $keteranganLog = '';
 
             // --- A. Logic Status Pembayaran ---
             if ($transactionStatus == 'capture' || $transactionStatus == 'settlement') {
                 // PEMBAYARAN BERHASIL
+                $user = \App\Models\User::find($transaksi->pasien_id);
+                $poinDidapat = 0;
 
                 if ($tipeTransaksi === 'HOME_CARE_PELUNASAN') {
                     $transaksi->status_pelunasan = 'lunas';
                     $transaksi->status = 'Selesai';
                     $keteranganLog = 'Pelunasan tagihan berhasil via Midtrans.';
+
+                    // Poin dari Total Pelunasan
+                    $amountPaid = $payload['gross_amount'] ?? 0;
+                    $poinDidapat = floor($amountPaid / 10000); // 1 Poin per 10k
+
                 } else {
                     // Booking Awal (Klinik / HomeCare DP)
-                    $transaksi->status_pembayaran = 'lunas';
-
                     if ($tipeTransaksi === 'HOME_CARE') {
+                        $transaksi->status_booking = 'lunas';
                         $transaksi->status = 'Menunggu Dokter';
                         $transaksi->status_reservasi = 'menunggu';
+                    } else {
+                        // KLINIK
+                        $transaksi->status_pembayaran = 'lunas';
                     }
+
                     $keteranganLog = 'Pembayaran booking lunas via Midtrans.';
+
+                    // Poin dari Booking (DP)
+                    $amountPaid = $payload['gross_amount'] ?? 0;
+                    $poinDidapat = floor($amountPaid / 10000);
+                }
+
+                // Tambah Poin User
+                Log::info("🔍 [DEBUG POINT] Transaction ID: {$transaksi->no_pemeriksaan}, Pasien ID: {$transaksi->pasien_id}");
+
+                if ($transaksi->pasien_id && $poinDidapat > 0) {
+                    $affected = DB::table('users')
+                        ->where('user_id', $transaksi->pasien_id)
+                        ->increment('poin', $poinDidapat);
+
+                    if ($affected) {
+                        Log::info("🎁 [SUCCESS] User {$transaksi->pasien_id} mendapat {$poinDidapat} via DB Query.");
+                    } else {
+                        Log::info("❌ [ERROR] Failed to increment via DB Query. User ID not found: {$transaksi->pasien_id}");
+                    }
+                } else {
+                    Log::info("⚠️ [WARNING] No User ID or 0 Points.");
                 }
 
             } else if ($transactionStatus == 'expire' || $transactionStatus == 'cancel' || $transactionStatus == 'deny') {
@@ -112,9 +144,16 @@ class MidtransWebhookController extends Controller
                     $transaksi->status_pelunasan = 'gagal';
                     $keteranganLog = 'Pelunasan gagal/kadaluarsa.';
                 } else {
-                    $transaksi->status_pembayaran = 'gagal';
-                    $transaksi->status_reservasi = 'dibatalkan';
-                    $transaksi->status = 'Dibatalkan';
+                    if ($tipeTransaksi === 'HOME_CARE') {
+                        $transaksi->status_booking = 'gagal';
+                        $transaksi->status_reservasi = 'dibatalkan';
+                        $transaksi->status = 'Dibatalkan';
+                    } else {
+                        // KLINIK
+                        $transaksi->status_pembayaran = 'gagal';
+                        $transaksi->status_reservasi = 'dibatalkan';
+                        $transaksi->status = 'Dibatalkan';
+                    }
                     $keteranganLog = 'Pembayaran booking gagal/kadaluarsa.';
                 }
 
@@ -123,7 +162,11 @@ class MidtransWebhookController extends Controller
                 if ($tipeTransaksi === 'HOME_CARE_PELUNASAN') {
                     $keteranganLog = 'Menunggu pelunasan.';
                 } else {
-                    $transaksi->status_pembayaran = 'menunggu_pembayaran';
+                    if ($tipeTransaksi === 'HOME_CARE') {
+                        $transaksi->status_booking = 'belum_lunas';
+                    } else {
+                        $transaksi->status_pembayaran = 'menunggu_pembayaran';
+                    }
                     $keteranganLog = 'Menunggu pembayaran booking.';
                 }
             }
@@ -131,7 +174,8 @@ class MidtransWebhookController extends Controller
             // --- B. Simpan Perubahan jika ada update ---
             if ($transaksi->isDirty()) {
                 $transaksi->save();
-                Log::info("✅ Status {$tipeTransaksi} {$transaksi->no_pemeriksaan} diupdate menjadi: " . $transaksi->status_pembayaran);
+                $newStatus = ($tipeTransaksi === 'HOME_CARE') ? $transaksi->status_booking : $transaksi->status_pembayaran;
+                Log::info("✅ Status {$tipeTransaksi} {$transaksi->no_pemeriksaan} diupdate menjadi: " . $newStatus);
 
                 // --- C. Khusus Home Care: Catat Tracking ---
                 // Kita hanya mencatat tracking jika tipe-nya HomeCare (karena Klinik tidak punya tabel tracking ini)

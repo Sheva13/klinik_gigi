@@ -23,11 +23,11 @@ class MasterPromo extends Model
         'gambar_banner',
         'tanggal_mulai',
         'tanggal_selesai',
+        'tipe',
+        'harga_poin',
+        'nilai_potongan',
+        'limit_per_user',
     ];
 
-    /**
-     * Kita nonaktifkan timestamps (created_at, updated_at) 
-     * karena tidak ada di tabel SQL Anda.
-     */
-    public $timestamps = false;
+    public $timestamps = true;
 }
