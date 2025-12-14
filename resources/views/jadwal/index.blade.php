@@ -114,16 +114,16 @@
                             <div class="card bg-transparent dokter-card p-3 rounded-3 {{ ($selectedDokter && $selectedDokter->kode_dokter == $dokter->kode_dokter) ? 'active' : '' }}">
                                 <div class="d-flex align-items-center gap-3">
                                     
-                                    @if($dokter->file_foto && file_exists(public_path('storage/'.$dokter->file_foto)))
-                                        <img src="{{ asset('storage/'.$dokter->file_foto) }}" 
-                                             class="rounded-circle object-fit-cover" 
-                                             style="width: 50px; height: 50px;" 
-                                             alt="{{ $dokter->nama }}">
+                                    @if($dokter->file_foto && Storage::disk('public')->exists($dokter->file_foto))
+                                      <img src="{{ asset('storage/'.$dokter->file_foto) }}" 
+                                         class="rounded-circle object-fit-cover" 
+                                           style="width: 50px; height: 50px;">
                                     @else
-                                        <div class="avatar-initial avatar-sm">
-                                            {{ $dokter->inisial ? $dokter->inisial : substr($dokter->nama, 0, 1) }}
-                                        </div>
+                                     <img src="{{ asset('assets/images/dr_april.png') }}" 
+                                            class="rounded-circle object-fit-cover" 
+                                                 style="width: 50px; height: 50px;">
                                     @endif
+
                                     
                                     <div class="flex-grow-1">
                                         <h6 class="mb-0 text-white fw-bold">{{ $dokter->nama }}</h6>
@@ -151,14 +151,18 @@
                         <div class="d-flex justify-content-between align-items-start border-bottom border-secondary pb-4 mb-4">
                             <div class="d-flex align-items-center gap-4">
                                 
-                                @if($selectedDokter->file_foto && file_exists(public_path('storage/'.$selectedDokter->file_foto)))
+                                @php
+                                use Illuminate\Support\Facades\Storage;
+                                @endphp
+
+                                @if($selectedDokter->file_foto && Storage::disk('public')->exists($selectedDokter->file_foto))
                                     <img src="{{ asset('storage/'.$selectedDokter->file_foto) }}" 
-                                         class="rounded-circle object-fit-cover border border-secondary" 
-                                         style="width: 70px; height: 70px;">
+                                        class="rounded-circle object-fit-cover border border-secondary" 
+                                        style="width: 70px; height: 70px;">
                                 @else
-                                    <div class="avatar-initial avatar-lg border border-secondary">
-                                        {{ $selectedDokter->inisial ? $selectedDokter->inisial : substr($selectedDokter->nama, 0, 1) }}
-                                    </div>
+                                    <img src="{{ asset('assets/images/dr_april.png') }}" 
+                                        class="rounded-circle object-fit-cover border border-secondary" 
+                                        style="width: 70px; height: 70px;">
                                 @endif
 
                                 <div>
