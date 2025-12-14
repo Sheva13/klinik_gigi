@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Payment\MidtransService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 
 // Interface tetap sama
@@ -43,21 +44,50 @@ abstract class BaseReservationService implements ReservationServiceInterface
         $lngKlinik = env('CLINIC_LNG', $this->clinicLng);
         $tarif = env('HOMECARE_HARGA_PER_KM', $this->hargaPerKm);
 
-        $earthRadius = 6371;
-        $dLat = deg2rad($latKlinik - $userLat);
-        $dLon = deg2rad($lngKlinik - $userLng);
+        $distance = 0;
+        $usedMethod = 'haversine'; // Default fallback
 
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-            cos(deg2rad($userLat)) * cos(deg2rad($latKlinik)) *
-            sin($dLon / 2) * sin($dLon / 2);
+        // 1. COBA MENGGUNAKAN OSRM (OPEN SOURCE ROUTING MACHINE) - GRATIS & REAL ROAD ROUTE
+        try {
+            // URL OSRM Demo (Sangat disarankan memakai instance sendiri untuk production, tapi demo server cukup untuk testing)
+            // Format: /{lon1},{lat1};{lon2},{lat2}
+            $url = "http://router.project-osrm.org/route/v1/driving/$lngKlinik,$latKlinik;$userLng,$userLat?overview=false";
 
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        $distance = $earthRadius * $c;
-        $biayaJarak = ceil($distance) * $tarif;
+            $response = Http::timeout(3)->get($url); // Timeout pendek agar tidak blocking lama
+
+            if ($response->successful()) {
+                $json = $response->json();
+                if (isset($json['routes'][0]['distance'])) {
+                    $distanceMeters = $json['routes'][0]['distance'];
+                    $distance = $distanceMeters / 1000; // Konversi ke KM
+                    $usedMethod = 'osrm_road';
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("Gagal mengambil rute OSRM, fallback ke Haversine: " . $e->getMessage());
+        }
+
+        // 2. FALLBACK: HAVERSINE FORMULA (JIKA OSRM GAGAL / 0)
+        if ($distance <= 0) {
+            $earthRadius = 6371;
+            $dLat = deg2rad($latKlinik - $userLat);
+            $dLon = deg2rad($lngKlinik - $userLng);
+
+            $a = sin($dLat / 2) * sin($dLat / 2) +
+                cos(deg2rad($userLat)) * cos(deg2rad($latKlinik)) *
+                sin($dLon / 2) * sin($dLon / 2);
+
+            $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+            $distance = $earthRadius * $c;
+        }
+
+        // Dikali 2 untuk Biaya PP (Pulang Pergi)
+        $biayaJarak = (ceil($distance) * $tarif) * 2;
 
         return [
             'jarakDalamKm' => $distance,
-            'biayaJarak' => (int) $biayaJarak
+            'biayaJarak' => (int) $biayaJarak,
+            'metode_hitung' => $usedMethod
         ];
     }
 
@@ -113,7 +143,27 @@ class HomeCareService extends BaseReservationService
         }
         $masters = $query->get();
         $results = [];
+        $now = Carbon::now('Asia/Jakarta');
+        $isToday = $tanggal && Carbon::parse($tanggal)->isSameDay($now);
+
         foreach ($masters as $m) {
+            // Filter: Hide past schedules if today
+            if ($isToday) {
+                // Asumsi jam_selesai format 'H:i:s' atau 'H:i'
+                // Kita create Carbon DateTime hari ini dengan jam tersebut
+                try {
+                    // Pakai string comparison simpel untuk 'H:i:s' biasanya aman, tapi Carbon lebih robust
+                    // $m->jam_selesai -> '12:00:00'
+                    $endTime = Carbon::parse($tanggal . ' ' . $m->jam_selesai, 'Asia/Jakarta');
+
+                    if ($endTime->lessThan($now)) {
+                        continue; // Skip jadwal yang sudah lewat
+                    }
+                } catch (\Exception $e) {
+                    // ignore parsing error, proceed
+                }
+            }
+
             $jadwalHarian = null;
             $kuotaTerpakai = 0;
             if ($tanggal) {
@@ -122,7 +172,7 @@ class HomeCareService extends BaseReservationService
                 if ($jadwalHarian) {
                     $kuotaTerpakai = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
                         ->where('tanggal_pesan', $tanggal)
-                        ->whereIn('status_pembayaran', ['menunggu_pembayaran', 'menunggu_verifikasi', 'terverifikasi'])
+                        ->whereIn('status_booking', ['belum_lunas', 'lunas'])
                         ->count();
                 }
             }
@@ -147,7 +197,20 @@ class HomeCareService extends BaseReservationService
         if (!$pasien)
             throw new \Exception('Data pasien tidak ditemukan.', 404);
 
-        $userId = $pasien->user_id ?? $pasien->id;
+        // Fix: Cari User berdasarkan rekam_medis_id (karena relasinya User -> RekamMedis)
+        $userObject = User::where('rekam_medis_id', $pasien->id)->first();
+        if (!$userObject) {
+            // Fallback: Coba cari pakai ID jika kebetulan sama (untuk legacy data)
+            $userObject = User::find($pasien->id);
+        }
+
+        if (!$userObject) {
+            // Jika user benar-benar tidak ketemu, kita tidak bisa validasi poin
+            // Namun untuk booking tamu (kalau ada fitur itu), mungkin bisa lanjut.
+            // Tapi di sini kita assume wajib user.
+            throw new \Exception('Akun pengguna tidak ditemukan untuk pasien ini.', 404);
+        }
+        $userId = $userObject->user_id;
         $calculation = $this->calculateDistanceAndCost($data['latitude_pasien'], $data['longitude_pasien']);
         $biayaJarak = $calculation['biayaJarak'];
         $dpAmount = env('HOMECARE_UANG_MUKA', $this->uangMuka);
@@ -170,6 +233,16 @@ class HomeCareService extends BaseReservationService
             $user = User::find($userId);
             if (!$user || $user->poin < $promo->harga_poin) {
                 throw new \Exception('Poin tidak mencukupi untuk promo ini', 400);
+            }
+
+            // Validasi Limit Pemakaian
+            if ($promo->limit_per_user) {
+                $usageCount = HomeCareReservasi::where('pasien_id', $userId)
+                    ->where('promo_id', $promo->id)
+                    ->count();
+                if ($usageCount >= $promo->limit_per_user) {
+                    throw new \Exception("Promo sudah digunakan maksimum {$promo->limit_per_user} kali.", 400);
+                }
             }
 
             // Hitung Potongan
@@ -201,7 +274,7 @@ class HomeCareService extends BaseReservationService
             if ($kuotaMaster > 0) {
                 $kuotaTerpakai = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
                     ->where('tanggal_pesan', $data['tanggal'])
-                    ->whereIn('status_pembayaran', ['menunggu_pembayaran', 'menunggu_verifikasi', 'terverifikasi'])
+                    ->whereIn('status_booking', ['belum_lunas', 'lunas'])
                     ->count();
 
                 if ($kuotaTerpakai >= $kuotaMaster)
@@ -238,7 +311,7 @@ class HomeCareService extends BaseReservationService
                 'biaya_reservasi' => $biayaLayanan,
                 'pembayaran_total' => $totalBayar,
                 'metode_pembayaran' => $data['metode_pembayaran'],
-                'status_pembayaran' => 'menunggu_pembayaran',
+                'status_booking' => 'belum_lunas',
                 'promo_id' => $promo ? $promo->id : null,
                 'potongan_promo' => $discountAmount,
             ]);
@@ -495,6 +568,17 @@ class HomeCareService extends BaseReservationService
                 throw new \Exception('Poin tidak mencukupi.', 400);
             }
 
+            // Validasi Limit Pemakaian (Exclude current reservation to allow update)
+            if ($promo->limit_per_user) {
+                $usageCount = HomeCareReservasi::where('pasien_id', $pasienId)
+                    ->where('promo_id', $promo->id)
+                    ->where('id', '!=', $reservasi->id)
+                    ->count();
+                if ($usageCount >= $promo->limit_per_user) {
+                    throw new \Exception("Promo sudah digunakan maksimum {$promo->limit_per_user} kali (User lain/Transaksi lain).", 400);
+                }
+            }
+
             if ($promo->tipe == 'potongan_total') {
                 $discountAmount = $promo->nilai_potongan;
             }
@@ -529,7 +613,8 @@ class HomeCareService extends BaseReservationService
         // Generate Order ID Khusus Pelunasan (PL-)
         // Format: PL-{NO_PEMERIKSAAN_ASLI} -> PL-HC-12345...
         // Agar nanti di webhook kita bisa strip "PL-" dan dapat no_pemeriksaan aslinya
-        $settlementOrderId = 'PL-' . $reservasi->no_pemeriksaan . '-' . time(); // Tambah time agar unik jika generate ulang
+        // Deteministic ID for Localhost Checking:
+        $settlementOrderId = 'PL-' . $reservasi->no_pemeriksaan;
 
         $itemDetails = [
             [
@@ -555,9 +640,9 @@ class HomeCareService extends BaseReservationService
                 'gross_amount' => $finalAmount,
             ],
             'customer_details' => [
-                'first_name' => $reservasi->pasien->nama ?? 'Pasien',
-                'email' => $reservasi->pasien->email ?? 'noreply@klinik.com',
-                'phone' => $reservasi->pasien->no_hp ?? '',
+                'first_name' => $reservasi->pasien->user->nama_pengguna ?? $reservasi->pasien->nama ?? 'Pasien',
+                'email' => $reservasi->pasien->user->email ?? 'noreply@klinik.com',
+                'phone' => $reservasi->pasien->user->no_hp ?? $reservasi->pasien->hp ?? '',
             ],
             'item_details' => $itemDetails
         ];

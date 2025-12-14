@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Route;
 | 1. PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () { return redirect()->route('auth.login'); })->name('home');
+Route::get('/', function () {
+    return redirect()->route('auth.login'); })->name('home');
 Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('auth.login');
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('login');
 
@@ -34,13 +35,13 @@ Route::middleware('auth:admin')->group(function () {
         Route::get('/create', [AdminReservasiController::class, 'create'])->name('reservasi.admin.create');
         Route::post('/', [AdminReservasiController::class, 'createManual'])->name('reservasi.admin.store');
         Route::get('/cari-pasien', [AdminReservasiController::class, 'cariPasien'])->name('reservasi.admin.cariPasien');
-        
+
         // 🔥 ROUTE BARU: ANTRIAN (Patient Queue)
         Route::get('/antrian', [AdminReservasiController::class, 'antrianIndex'])->name('reservasi.admin.antrian');
 
         Route::get('/{id}/edit', [AdminReservasiController::class, 'edit'])->name('reservasi.admin.edit');
         Route::put('/{id}', [AdminReservasiController::class, 'update'])->name('reservasi.admin.update');
-        
+
         Route::get('/{id}/pembayaran', [AdminReservasiController::class, 'showPayment'])->name('admin.reservasi.pembayaran');
         Route::post('/{id}/tandai-lunas', [AdminReservasiController::class, 'tandaiLunas'])->name('reservasi.admin.tandaiLunas');
 
@@ -50,7 +51,7 @@ Route::middleware('auth:admin')->group(function () {
     });
 
     // Routes Lainnya (Promo, Dokter, Jadwal) - Tetap Sama
-    Route::get('/promo', [PromoControllerWeb::class, 'index'])->name('promo.index'); 
+    Route::get('/promo', [PromoControllerWeb::class, 'index'])->name('promo.index');
     Route::get('/promo/create', [PromoControllerWeb::class, 'create'])->name('promo.create');
     Route::post('/promo', [PromoControllerWeb::class, 'store'])->name('promo.store');
     Route::get('/promo/{id}/edit', [PromoControllerWeb::class, 'edit'])->name('promo.edit');

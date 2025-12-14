@@ -26,6 +26,7 @@ class MasterPromo extends Model
         'tipe',
         'harga_poin',
         'nilai_potongan',
+        'limit_per_user',
     ];
 
     public $timestamps = true;
