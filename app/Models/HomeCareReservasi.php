@@ -15,6 +15,7 @@ class HomeCareReservasi extends Model
         'no_pemeriksaan',
         'no_antrian',
         'pasien_id',
+        'rekam_medis_id',
         'dokter_id',
         'jadwal_id',
         'tanggal_pesan',
@@ -34,11 +35,13 @@ class HomeCareReservasi extends Model
         'latitude',
         'longitude',
         'tipe_layanan',
+        'snap_token',
+        'redirect_url',
     ];
 
     public function rekamMedis()
     {
-        return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
+        return $this->belongsTo(RekamMedis::class, 'rekam_medis_id', 'id');
     }
 
     public function pasien()
@@ -145,7 +148,8 @@ class HomeCareReservasi extends Model
     public function markAsPaid(): void
     {
         $this->status_pembayaran = 'lunas';
-        $this->status_reservasi = 'selesai';
+        $this->status = 'Menunggu Dokter'; 
+        $this->status_reservasi = 'menunggu'; 
         $this->save();
     }
 }

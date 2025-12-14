@@ -7,41 +7,13 @@ use App\Models\HomeCareReservasi;
 use App\Models\HomeCareTracking;
 use App\Models\JadwalHarian;
 use App\Models\MasterJadwal;
-use App\Models\RekamMedis; // Tambahkan Model RekamMedis
+use App\Models\RekamMedis;
+use App\Services\Payment\MidtransService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
-/**
- * Service HomeCare yang dimodifikasi untuk menerima rekam_medis_id langsung
- * (Mengikuti pola ReservasiController agar lebih fleksibel)
- */
-trait HomeCareServiceTrait
-{
-    // ... Trait method (isPaid, isPendingPayment, dll) TETAP SAMA ...
-    public function isPaid(): bool { return strtolower($this->status_pembayaran) === 'lunas'; }
-    public function isPendingPayment(): bool { return strtolower($this->status_pembayaran) === 'menunggu_pembayaran'; }
-    public function isAwaitingVerification(): bool { return strtolower($this->status_pembayaran) === 'menunggu_verifikasi'; }
-    public function isVerified(): bool { return strtolower($this->status_pembayaran) === 'terverifikasi'; }
-    public function getTotal(): float { return (float) $this->pembayaran_total; }
-    public function getServiceCost(): float { return (float) ($this->biaya_reservasi ?? 0); }
-    public function getRemainingPayment(): float { 
-        $paid = $this->biayaTambahan()->where('komponen', 'UANG_MUKA')->sum('biaya');
-        return max(0, $this->pembayaran_total - $paid);
-    }
-    public function getDownPayment(): float {
-        return (float) ($this->biayaTambahan()->where('komponen', 'UANG_MUKA')->sum('biaya') ?? 0);
-    }
-    public function isCancellable(): bool {
-        return !$this->isPaid() && !in_array(strtolower($this->status_reservasi), ['selesai', 'dibatalkan']);
-    }
-    public function cancel(): void {
-        $this->status_reservasi = 'dibatalkan';
-        $this->status = 'Dibatalkan';
-        $this->save();
-    }
-}
-
+// Interface tetap sama
 interface ReservationServiceInterface
 {
     public function calculateCost($latitude, $longitude);
@@ -54,6 +26,7 @@ interface ReservationServiceInterface
     public function cancelReservation($reservationId);
 }
 
+// Abstract tetap ada untuk logic jarak (opsional, bisa dipisah juga tapi kita fokus ke Midtrans dulu)
 abstract class BaseReservationService implements ReservationServiceInterface
 {
     protected $clinicLat = -7.0005141;
@@ -94,7 +67,15 @@ abstract class BaseReservationService implements ReservationServiceInterface
 
 class HomeCareService extends BaseReservationService
 {
-    use HomeCareServiceTrait;
+    // HAPUS: use HomeCareServiceTrait; (Sudah dipindah ke Model)
+    
+    protected $midtransService;
+
+    // DEPENDENCY INJECTION
+    public function __construct(MidtransService $midtransService)
+    {
+        $this->midtransService = $midtransService;
+    }
 
     public function calculateCost($latitude, $longitude)
     {
@@ -122,10 +103,6 @@ class HomeCareService extends BaseReservationService
 
     public function getAvailableSchedulesForDate($tanggal = null)
     {
-        // ... (Kode getAvailableSchedulesForDate SAMA PERSIS dengan sebelumnya) ...
-        // Agar file tidak terlalu panjang, saya persingkat bagian ini karena tidak ada perubahan logika
-        // Gunakan kode getAvailableSchedulesForDate dari file sebelumnya.
-        
         $query = MasterJadwal::with(['dokter.spesialis', 'poli']);
         if ($tanggal) {
             $date = Carbon::parse($tanggal);
@@ -159,47 +136,27 @@ class HomeCareService extends BaseReservationService
 
     public function createReservation(array $data)
     {
-        // --- 1. MODIFIKASI: AMBIL PASIEN DARI INPUT (Bukan dari Token) ---
-        // Mirip dengan ReservasiController: ambil rekam_medis_id dari input
-        
-        if (!isset($data['rekam_medis_id'])) {
-             throw new \Exception('ID Rekam Medis wajib diisi.', 422);
-        }
+        if (!isset($data['rekam_medis_id'])) throw new \Exception('ID Rekam Medis wajib diisi.', 422);
 
         $pasien = RekamMedis::find($data['rekam_medis_id']);
-        if (!$pasien) {
-            throw new \Exception('Data pasien tidak ditemukan.', 404);
-        }
+        if (!$pasien) throw new \Exception('Data pasien tidak ditemukan.', 404);
 
-        // Kita gunakan ID dari tabel users jika relasi ada, atau ID rekam medis itu sendiri
-        // Asumsi: Kita butuh User ID untuk tabel home_care_reservasi (kolom pasien_id biasanya integer)
-        // Jika RekamMedis punya kolom 'user_id', gunakan itu. Jika tidak, gunakan $pasien->id
         $userId = $pasien->user_id ?? $pasien->id; 
-
-        // -----------------------------------------------------------------
-
-        $calculation = $this->calculateDistanceAndCost(
-            $data['latitude_pasien'],
-            $data['longitude_pasien']
-        );
+        $calculation = $this->calculateDistanceAndCost($data['latitude_pasien'], $data['longitude_pasien']);
         $biayaJarak = $calculation['biayaJarak'];
         $dpAmount = env('HOMECARE_UANG_MUKA', $this->uangMuka);
 
         $masterJadwal = MasterJadwal::find($data['master_jadwal_id']);
-        if (!$masterJadwal || !$masterJadwal->kode_dokter) {
-            throw new \Exception('Master jadwal tidak valid', 422);
-        }
+        if (!$masterJadwal || !$masterJadwal->kode_dokter) throw new \Exception('Master jadwal tidak valid', 422);
 
         return DB::transaction(function () use ($data, $pasien, $userId, $biayaJarak, $dpAmount, $masterJadwal) {
+            
+            // 1. Setup Jadwal & Validasi Kuota
             $jadwalHarian = JadwalHarian::firstOrCreate(
-                [
-                    'kode_jadwal' => $data['master_jadwal_id'],
-                    'tanggal' => $data['tanggal'],
-                ],
+                ['kode_jadwal' => $data['master_jadwal_id'], 'tanggal' => $data['tanggal']],
                 ['validasi' => 0]
             );
 
-            // Cek Kuota (Sama seperti sebelumnya)
             $kuotaMaster = $masterJadwal->quota ?? 0;
             if ($kuotaMaster > 0) {
                 $kuotaTerpakai = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
@@ -207,20 +164,18 @@ class HomeCareService extends BaseReservationService
                     ->whereIn('status_pembayaran', ['menunggu_pembayaran', 'menunggu_verifikasi', 'terverifikasi'])
                     ->count();
 
-                if ($kuotaTerpakai >= $kuotaMaster) {
-                    throw new \Exception('Kuota pada jadwal ini sudah penuh', 422);
-                }
+                if ($kuotaTerpakai >= $kuotaMaster) throw new \Exception('Kuota pada jadwal ini sudah penuh', 422);
             }
 
             $biayaLayanan = env('HOMECARE_BIAYA_DASAR', 35000);
+            $totalBayar   = $biayaJarak + $biayaLayanan;
+            $orderId      = $this->generateReservationNumber('HC-');
             
-            // Simpan Reservasi
+            // 2. Simpan Data Reservasi
             $reservasi = HomeCareReservasi::create([
-                'no_pemeriksaan' => $this->generateReservationNumber('HC-'),
-                'pasien_id'      => $userId, // ID untuk relasi ke User (jika ada)
-                // TAMBAHAN: Simpan juga rekam_medis_id jika kolomnya ada di tabel
-                'rekam_medis_id' => $pasien->id, 
-                
+                'no_pemeriksaan' => $orderId,
+                'pasien_id'      => $userId,
+                'rekam_medis_id' => $pasien->id,
                 'dokter_id'      => $masterJadwal->dokter_id,
                 'jadwal_id'      => $jadwalHarian->id,
                 'tanggal_pesan'  => $data['tanggal'],
@@ -237,8 +192,8 @@ class HomeCareService extends BaseReservationService
                 'alamat_lengkap' => $data['alamat_lengkap'],
                 'biaya_transport' => $biayaJarak,
                 'biaya_reservasi' => $biayaLayanan,
-                'pembayaran_total' => $biayaJarak + $biayaLayanan,
-                'metode_pembayaran' => $data['metode_pembayaran'],
+                'pembayaran_total' => $totalBayar,
+                'metode_pembayaran' => $data['metode_pembayaran'], 
                 'status_pembayaran' => 'menunggu_pembayaran',
             ]);
 
@@ -254,51 +209,73 @@ class HomeCareService extends BaseReservationService
             HomeCareTracking::create([
                 'id_periksa' => $reservasi->id,
                 'status_tracking' => 'assigned',
-                'keterangan' => 'Booking berhasil dibuat. Menunggu pembayaran.',
+                'keterangan' => 'Booking berhasil dibuat. Menunggu pembayaran via Midtrans.',
                 'waktu' => now()
             ]);
 
-            // Payment Info
-            $expiredTime = now()->addHour();
-            $paymentInstructions = [];
+            // 3. INTEGRASI MIDTRANS (MENGGUNAKAN SERVICE)
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $orderId, 
+                    'gross_amount' => $totalBayar,
+                ],
+                'customer_details' => [
+                    'first_name' => $pasien->nama,
+                    'phone' => $pasien->no_hp ?? '', 
+                    'billing_address' => [
+                        'address' => $data['alamat_lengkap'],
+                    ]
+                ],
+                'item_details' => [
+                    [
+                        'id' => 'HOMECARE-SVC',
+                        'price' => $biayaLayanan,
+                        'quantity' => 1,
+                        'name' => 'Biaya Layanan HomeCare'
+                    ],
+                    [
+                        'id' => 'TRANSPORT',
+                        'price' => $biayaJarak,
+                        'quantity' => 1,
+                        'name' => 'Biaya Transportasi'
+                    ]
+                ]
+            ];
 
-            if ($data['metode_pembayaran'] == 'transfer') {
-                $paymentInstructions = [
-                    'bank_name' => 'Bank Mandiri',
-                    'account_number' => '137000000000 (3K Dental Care)',
-                    'amount' => $reservasi->pembayaran_total,
-                ];
-            } else if ($data['metode_pembayaran'] == 'qris') {
-                $paymentInstructions = [
-                    'qris_content' => '00020101021126580016ID.CO.QRIS.WWW.01189360091433630077770303UMI51440014ID.CO.QRIS.WWW0215ID1020030040050303UMI5204541153033605802ID59133K Dental Care6008Semarang61055012362070703A0163046B68',
-                    'amount' => $reservasi->pembayaran_total,
-                ];
-            }
+            // Code Jauh Lebih Bersih!
+            $paymentData = $this->midtransService->createSnapToken($params);
+            
+            $reservasi->snap_token = $paymentData['token'];
+            $reservasi->redirect_url = $paymentData['redirect_url'];
+            $reservasi->save();
 
             return [
                 'reservation' => $reservasi->load(['jadwalHarian.masterJadwal.dokter']),
                 'payment_info' => [
-                    'expired_at' => $expiredTime->toDateTimeString(),
-                    'instructions' => $paymentInstructions,
-                    'status_desc' => 'Menunggu Pembayaran Uang Muka',
+                    'status_desc' => 'Menunggu Pembayaran',
+                    'snap_token' => $paymentData['token'],
+                    'redirect_url' => $paymentData['redirect_url'],
+                    'amount' => $totalBayar,
+                    'expired_at' => now()->addHour()->toDateTimeString(),
                 ]
             ];
         });
     }
 
-    // ... Method sisanya (confirmPayment, dll) SAMA PERSIS ...
     public function confirmPayment($reservationId)
     {
         $reservasi = HomeCareReservasi::find($reservationId);
         if (!$reservasi) throw new \Exception('Booking tidak ditemukan', 404);
-        $reservasi->markAsAwaitingVerification();
+        
+        $reservasi->markAsAwaitingVerification(); // Pakai method model baru
+        
         HomeCareTracking::create([
             'id_periksa' => $reservasi->id, 'status_tracking' => 'assigned',
-            'keterangan' => 'Pembayaran DP berhasil. Menunggu konfirmasi Admin.', 'waktu' => now()
+            'keterangan' => 'Pembayaran berhasil dikonfirmasi. Menunggu verifikasi admin.', 'waktu' => now()
         ]);
         return $reservasi;
     }
-
+    
     public function getPaymentHistory($reservationId)
     {
         $history = HomeCareTracking::where('id_periksa', $reservationId)
@@ -308,11 +285,7 @@ class HomeCareService extends BaseReservationService
 
     public function getInvoice($reservationId)
     {
-        // PERBAIKAN: Load relasi 'rekamMedis' atau 'pasien' (sesuai nama fungsi di Model HomeCareReservasi)
-        // Jika Anda menamai relasinya "rekamMedis", pastikan 'with' menggunakan nama itu.
-        $reservasi = HomeCareReservasi::with(['tindakanPemeriksaan.masterTindakan', 'biayaTambahan'])
-            ->find($reservationId);
-
+        $reservasi = HomeCareReservasi::with(['tindakanPemeriksaan.masterTindakan', 'biayaTambahan'])->find($reservationId);
         if (!$reservasi) throw new \Exception('Data tidak ditemukan', 404);
 
         $totalTindakan = $reservasi->tindakanPemeriksaan->sum(function ($item) {
@@ -322,11 +295,8 @@ class HomeCareService extends BaseReservationService
         $subTotal = $totalTindakan + $biayaTransport;
         $uangMuka = $reservasi->biayaTambahan->where('komponen', 'UANG_MUKA')->sum('biaya');
         $sisaTagihan = $subTotal - $uangMuka;
-
-        // AMBIL NAMA PASIEN DINAMIS
-        // Coba ambil dari relasi 'rekamMedis' dulu, jika null coba 'pasien', jika null pakai fallback string.
-        // Pastikan model HomeCareReservasi memiliki method: public function rekamMedis() { return $this->belongsTo(RekamMedis::class, 'rekam_medis_id'); }
-        $namaPasien = $reservasi->rekamMedis->nama ?? $reservasi->pasien->nama ?? 'Pasien (Nama Tidak Ditemukan)';
+        
+        $namaPasien = $reservasi->rekamMedis->nama ?? $reservasi->pasien->nama ?? 'Pasien';
 
         return [
             'data' => [
@@ -335,7 +305,7 @@ class HomeCareService extends BaseReservationService
                 'tanggal' => $reservasi->tanggal_pesan,
                 'rincian_perawatan' => $reservasi->tindakanPemeriksaan->map(function ($t) {
                     return [
-                        'nama' => $t->masterTindakan->tindakan ?? 'Tindakan Medis',
+                        'nama' => $t->masterTindakan->tindakan ?? 'Tindakan',
                         'harga' => $t->biaya ?? $t->masterTindakan->biaya_tindakan
                     ];
                 }),
@@ -343,7 +313,7 @@ class HomeCareService extends BaseReservationService
                 'subtotal' => $subTotal,
                 'uang_booking' => $uangMuka,
                 'total_akhir' => max(0, $sisaTagihan),
-                'status_lunas' => $reservasi->isPaid()
+                'status_lunas' => $reservasi->isPaid() // Menggunakan method dari Model
             ]
         ];
     }
@@ -352,8 +322,11 @@ class HomeCareService extends BaseReservationService
     {
         $reservasi = HomeCareReservasi::find($reservationId);
         if (!$reservasi) throw new \Exception('Booking tidak ditemukan', 404);
+        
         if ($reservasi->isPaid()) return ['message' => 'Tagihan sudah lunas.', 'data' => $reservasi];
-        $reservasi->markAsPaid();
+        
+        $reservasi->markAsPaid(); // Method dari Model
+        
         HomeCareTracking::create([
             'id_periksa' => $reservasi->id, 'status_tracking' => 'finished',
             'keterangan' => 'Pelunasan berhasil. Layanan selesai.', 'waktu' => now()
@@ -365,8 +338,11 @@ class HomeCareService extends BaseReservationService
     {
         $reservasi = HomeCareReservasi::find($reservationId);
         if (!$reservasi) throw new \Exception('Booking tidak ditemukan', 404);
+        
         if (!$reservasi->isCancellable()) throw new \Exception('Reservasi tidak bisa dibatalkan', 422);
-        $reservasi->cancel();
+        
+        $reservasi->cancel(); // Method dari Model
+        
         HomeCareTracking::create([
             'id_periksa' => $reservasi->id, 'status_tracking' => 'assigned',
             'keterangan' => 'Reservasi dibatalkan oleh pengguna.', 'waktu' => now()
