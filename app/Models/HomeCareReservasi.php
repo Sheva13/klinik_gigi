@@ -24,6 +24,8 @@ class HomeCareReservasi extends Model
         'jam_mulai',
         'jam_selesai',
         'keluhan',
+        'jenis_keluhan',
+        'jenis_keluhan_lainnya',
         'biaya_reservasi',
         'promo_id',
         'potongan_promo',
@@ -37,7 +39,7 @@ class HomeCareReservasi extends Model
         'status_booking',
         'snap_token',
         'redirect_url',
-        'status_pembayaran',
+        'status_booking', // Renamed from status_pembayaran
         'jenis_pasien',
         'alamat_lengkap',
         'latitude',
@@ -45,6 +47,12 @@ class HomeCareReservasi extends Model
         'tipe_layanan',
         'snap_token',
         'redirect_url',
+        'status_pelunasan',
+        'snap_token_pelunasan',
+
+        'total_biaya_tindakan',
+        'promo_id',
+        'potongan_promo',
     ];
 
     public function rekamMedis()
@@ -70,7 +78,7 @@ class HomeCareReservasi extends Model
     public function masterJadwal()
     {
         return $this->belongsTo(MasterJadwal::class, 'jadwal_id', 'id');
-    }   
+    }
 
     public function tindakanPemeriksaan()
     {
@@ -88,25 +96,32 @@ class HomeCareReservasi extends Model
         return $this->hasMany(HomeCareTracking::class, 'id_periksa', 'id');
     }
 
+    public function promo()
+    {
+        return $this->belongsTo(MasterPromo::class, 'promo_id', 'id');
+    }
+
     // Trait methods implemented (migrated from consolidated HomeCareService)
     public function isPaid(): bool
     {
-        return strtolower($this->status_pembayaran) === 'lunas';
+        return $this->status_booking === 'lunas';
     }
 
     public function isPendingPayment(): bool
     {
-        return strtolower($this->status_pembayaran) === 'menunggu_pembayaran';
+        return $this->status_booking === 'belum_lunas';
     }
 
+    // Deprecated in new schema, mapped to 'belum_lunas' check
     public function isAwaitingVerification(): bool
     {
-        return strtolower($this->status_pembayaran) === 'menunggu_verifikasi';
+        return $this->status_booking === 'belum_lunas';
     }
 
+    // Deprecated in new schema
     public function isVerified(): bool
     {
-        return strtolower($this->status_pembayaran) === 'terverifikasi';
+        return $this->status_booking === 'lunas';
     }
 
     public function getTotal(): float
@@ -144,20 +159,22 @@ class HomeCareReservasi extends Model
     {
         $this->status_reservasi = 'dibatalkan';
         $this->status = 'Dibatalkan';
+        $this->status_booking = 'gagal';
         $this->save();
     }
 
     public function markAsAwaitingVerification(): void
     {
-        $this->status_pembayaran = 'menunggu_verifikasi';
+        // No longer distinct status, keep as belum_lunas
+        $this->status_booking = 'belum_lunas';
         $this->save();
     }
 
     public function markAsPaid(): void
     {
-        $this->status_pembayaran = 'lunas';
-        $this->status = 'Menunggu Dokter'; 
-        $this->status_reservasi = 'menunggu'; 
+        $this->status_booking = 'lunas';
+        $this->status = 'Menunggu Dokter';
+        $this->status_reservasi = 'menunggu';
         $this->save();
     }
 }

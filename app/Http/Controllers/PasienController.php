@@ -32,6 +32,9 @@ class PasienController extends Controller
             ], 404);
         }
 
+        // Add User Points to the response
+        $pasien->poin = $user->poin ?? 0;
+
         // Kembalikan data pasien yang benar
         return response()->json([
             'status' => 'success',
@@ -66,7 +69,7 @@ class PasienController extends Controller
     {
         // PENTING: Route ini HARUS di dalam middleware 'auth:sanctum'
         $user = $request->user(); // atau auth()->user()
-        
+
         if (!$user) {
             return response()->json(['status' => 'error', 'message' => 'User tidak terautentikasi'], 401);
         }
