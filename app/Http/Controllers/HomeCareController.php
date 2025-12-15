@@ -303,7 +303,6 @@ class HomeCareController extends Controller
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }
-
     public function getPointHistory(Request $request)
     {
         $userId = $request->query('user_id'); 
