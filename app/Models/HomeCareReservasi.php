@@ -12,9 +12,11 @@ class HomeCareReservasi extends Model
     protected $table = 'homecare_reservasi';
 
     protected $fillable = [
+        'id',
         'no_pemeriksaan',
         'no_antrian',
         'pasien_id',
+        'rekam_medis_id',
         'dokter_id',
         'jadwal_id',
         'tanggal_pesan',
@@ -23,11 +25,18 @@ class HomeCareReservasi extends Model
         'jam_selesai',
         'keluhan',
         'biaya_reservasi',
+        'promo_id',
+        'potongan_promo',
         'biaya_transport',
         'pembayaran_total',
         'metode_pembayaran',
         'status',
         'status_reservasi',
+        'jenis_keluhan',
+        'jenis_keluhan_lainnya',
+        'status_booking',
+        'snap_token',
+        'redirect_url',
         'status_pembayaran',
         'jenis_pasien',
         'alamat_lengkap',
@@ -40,7 +49,7 @@ class HomeCareReservasi extends Model
 
     public function rekamMedis()
     {
-        return $this->belongsTo(RekamMedis::class, 'pasien_id', 'rekam_medis');
+        return $this->belongsTo(RekamMedis::class, 'rekam_medis_id', 'id');
     }
 
     public function pasien()
@@ -147,7 +156,8 @@ class HomeCareReservasi extends Model
     public function markAsPaid(): void
     {
         $this->status_pembayaran = 'lunas';
-        $this->status_reservasi = 'selesai';
+        $this->status = 'Menunggu Dokter'; 
+        $this->status_reservasi = 'menunggu'; 
         $this->save();
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reservasi;
+use App\Models\HomeCareReservasi;
 use App\Models\RekamMedis;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -69,61 +70,117 @@ class RiwayatController extends Controller
             // BUKAN ID dari tabel rekam_medis
             // Contoh: pasien_id = "RM002", bukan pasien_id = 1
             
-            // Muat relasi jadwal.poli juga agar frontend menerima struktur yang sama
-            $riwayat = Reservasi::with(['pasien', 'dokter', 'jadwal.poli'])
-                ->where('pasien_id', $rekamMedis->rekam_medis) // Filter dengan nomor rekam medis
+            // Build poliklinik list
+            $riwayatPoliklinik = Reservasi::with(['pasien', 'dokter', 'jadwal.poli'])
+                ->where('pasien_id', $rekamMedis->rekam_medis)
                 ->orderBy('tanggal_pesan', 'desc')
-                ->get();
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'jenis_layanan' => 'poliklinik',
 
-            Log::info('RiwayatController - Query result', [
-                'pasien_id_filter' => $rekamMedis->rekam_medis,
-                'count' => $riwayat->count()
-            ]);
+                        'no_pemeriksaan' => $item->no_pemeriksaan,
+                        'dokter' => $item->dokter?->nama ?? '-',
+                        'tanggal' => $item->tanggal_pesan,
+                        'tanggal_pesan' => $item->tanggal_pesan,
+                        'poli' => $item->jadwal?->poli?->nama_poli ?? '-',
 
-            // Mapping data
-            $mappedRiwayat = $riwayat->map(function ($item) {
-                // Pertahankan mapping lama, tambahkan field tambahan agar sejalan
-                // dengan response dari ReservasiController (tanpa menghilangkan data lama).
-                return [
-                    // Informasi reservasi (mapping lama)
-                    'no_pemeriksaan' => $item->no_pemeriksaan,
-                    'dokter' => $item->dokter?->nama ?? '-',
-                    'tanggal' => $item->tanggal_pesan,
-                    'tanggal_pesan' => $item->tanggal_pesan,
-                    'poli' => $item->jadwal?->poli?->nama_poli ?? '-',
-                    'status_reservasi' => $item->status_reservasi,
-                    'jam_mulai' => $item->jam_mulai ?? '-',
-                    'jam_selesai' => $item->jam_selesai ?? '-',
-                    'biaya' => $item->pembayaran_total ?? '0',
+                        'status_reservasi' => $item->status_reservasi,
+                        'jam_mulai' => $item->jam_mulai ?? '-',
+                        'jam_selesai' => $item->jam_selesai ?? '-',
+                        'biaya' => $item->pembayaran_total ?? '0',
 
-                    // Informasi pasien (dari relasi RekamMedis)
-                    'nama' => $item->pasien?->nama ?? '-',
-                    'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
-                    'no_rekam_medis' => $item->pasien?->rekam_medis ?? '-',
-                    'foto' => $item->pasien?->file_foto ?? '',
+                        'nama' => $item->pasien?->nama ?? '-',
+                        'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
+                        'no_rekam_medis' => $item->pasien?->rekam_medis ?? '-',
+                        'foto' => $item->pasien?->file_foto ?? '',
 
-                    // Tambahan: fields yang biasanya ada di Reservasi model
-                    'pasien_id' => $item->pasien_id,
-                    'dokter_id' => $item->dokter_id,
-                    'jadwal_id' => $item->jadwal_id,
-                    'no_antrian' => $item->no_antrian ?? null,
-                    'status_pembayaran' => $item->status_pembayaran ?? null,
-                    'metode_pembayaran' => $item->metode_pembayaran ?? null,
-                    'jenis_pasien' => $item->jenis_pasien ?? null,
-                    'pembayaran_total' => $item->pembayaran_total ?? null,
-                    'keluhan' => $item->keluhan ?? null,
-                    'created_at' => $item->created_at?->toDateTimeString() ?? null,
-                    'updated_at' => $item->updated_at?->toDateTimeString() ?? null,
+                        'pasien_id' => $item->pasien_id,
+                        'dokter_id' => $item->dokter_id,
+                        'jadwal_id' => $item->jadwal_id,
+                        'no_antrian' => $item->no_antrian ?? null,
+                        'status_pembayaran' => $item->status_pembayaran ?? null,
+                        'metode_pembayaran' => $item->metode_pembayaran ?? null,
+                        'jenis_pasien' => $item->jenis_pasien ?? null,
+                        'pembayaran_total' => $item->pembayaran_total ?? null,
+                        'keluhan' => $item->keluhan ?? null,
+                        'created_at' => $item->created_at?->toDateTimeString() ?? null,
+                        'updated_at' => $item->updated_at?->toDateTimeString() ?? null,
+                        'full_reservasi' => $item->toArray(),
+                    ];
+                });
 
-                    // Sertakan representasi penuh dari model (termasuk relasi)
-                    // sehingga frontend bisa mengakses semua field tanpa mengubah mapping lama.
-                    'full_reservasi' => $item->toArray(),
-                ];
-            });
+            // Build homecare list
+            $riwayatHomeCare = HomeCareReservasi::with([
+                'pasien',
+                'dokter',
+                'jadwalHarian',
+            ])
+                // pasien_id menyimpan nomor rekam_medis (string), bukan id numeric
+                ->where('pasien_id', $rekamMedis->id)
+                ->orderBy('tanggal_pesan', 'desc')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'jenis_layanan' => 'homecare',
+
+                        'no_pemeriksaan' => $item->no_pemeriksaan,
+                        'dokter' => $item->dokter?->nama ?? '-',
+                        'tanggal' => $item->tanggal_pesan,
+                        'tanggal_pesan' => $item->tanggal_pesan,
+                        'poli' => 'Home Care',
+
+                        'status_reservasi' => $item->status_reservasi,
+                        'jam_mulai' => $item->jam_mulai ?? '-',
+                        'jam_selesai' => $item->jam_selesai ?? '-',
+                        'biaya' => $item->pembayaran_total ?? '0',
+
+                        // Biaya & Pembayaran (support fields expected by frontend)
+                        'biaya_reservasi' => $item->biaya_reservasi ?? 0,
+                        'biaya_transport' => $item->biaya_transport ?? 0,
+                        'pembayaran_total' => $item->pembayaran_total ?? 0,
+                        'metode_pembayaran' => $item->metode_pembayaran ?? null,
+                        'status_booking' => $item->status_booking ?? null,
+                        'status' => $item->status ?? null,
+                        'status_pembayaran' => $item->status_pembayaran ?? null,
+
+                        'nama' => $item->pasien?->nama ?? '-',
+                        'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
+                        'no_rekam_medis' => $item->pasien?->rekam_medis ?? '-',
+                        'foto' => $item->pasien?->file_foto ?? '',
+
+                        'no_antrian' => $item->no_antrian,
+                        'status_pembayaran' => $item->status_pembayaran,
+                        'keluhan' => $item->keluhan,
+                        'alamat_lengkap' => $item->alamat_lengkap,
+                        'latitude' => $item->latitude,
+                        'longitude' => $item->longitude,
+
+                        'full_reservasi' => $item->toArray(),
+                    ];
+                });
+
+            // Gabungkan dan sortir berdasarkan tanggal_pesan
+            $riwayatGabungan = $riwayatPoliklinik
+                ->merge($riwayatHomeCare)
+                ->sortByDesc('tanggal_pesan')
+                ->values();
+
+            // Filter berdasarkan query param 'jenis' jika diberikan
+            $jenis = $request->query('jenis');
+            if ($jenis === 'poliklinik') {
+                $riwayatGabungan = $riwayatGabungan->filter(function ($item) {
+                    return $item['jenis_layanan'] === 'poliklinik';
+                })->values();
+            } elseif ($jenis === 'home' || $jenis === 'homecare') {
+                $riwayatGabungan = $riwayatGabungan->filter(function ($item) {
+                    return $item['jenis_layanan'] === 'homecare';
+                })->values();
+            }
 
             return response()->json([
                 'success' => true,
-                'data' => $mappedRiwayat
+                'data' => $riwayatGabungan
             ]);
 
         } catch (\Exception $e) {
