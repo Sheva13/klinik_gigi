@@ -9,8 +9,15 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /**
+     * @use HasFactory<\Database\Factories\UserFactory>
+     */
     use HasFactory, Notifiable;
+
+    protected $table = 'users';
+    protected $primaryKey = 'user_id'; // Kunci utama custom
+    public $incrementing = false;     // Karena varchar/string
+    protected $keyType = 'string';
 
     /**
      * The attributes that are mass assignable.
@@ -18,7 +25,14 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'user_id',
+        'nama_pengguna',
+        'nik',
+        'rekam_medis_id',
+        'tanggal_lahir',
+        'jenis_kelamin',
+        'file_foto',
+        'no_hp',
         'email',
         'poin',
         'password',
@@ -35,7 +49,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
      * @return array<string, string>
      */
@@ -45,5 +59,11 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // Compatibility Accessor for 'name' used by some Laravel components/notifications
+    public function getNameAttribute()
+    {
+        return $this->nama_pengguna;
     }
 }
