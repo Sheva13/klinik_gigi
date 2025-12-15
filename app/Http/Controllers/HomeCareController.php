@@ -114,7 +114,7 @@ class HomeCareController extends Controller
             if ($reservasi->status_booking === 'belum_lunas') {
                 $midtransStatus = $this->midtransService->getTransactionStatus($reservasi->no_pemeriksaan);
 
-                if ($midtransStatus && ($midtransStatus->transaction_status == 'capture' || $midtransStatus->transaction_status == 'settlement')) {
+                if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
                     // Update Status
                     $reservasi->status_booking = 'lunas';
                     $reservasi->status = 'Menunggu Dokter';
@@ -123,7 +123,7 @@ class HomeCareController extends Controller
                     $reservasi->save();
 
                     // Tambah Poin Manual (Copy Logic from Webhook)
-                    $poinDidapat = floor(($midtransStatus->gross_amount ?? 0) / 10000);
+                    $poinDidapat = floor(($midtransStatus['gross_amount'] ?? 0) / 10000);
                     if ($reservasi->pasien_id && $poinDidapat > 0) {
                         \Illuminate\Support\Facades\DB::table('users')
                             ->where('user_id', $reservasi->pasien_id)
@@ -136,7 +136,7 @@ class HomeCareController extends Controller
                 $settlementOrderId = 'PL-' . $reservasi->no_pemeriksaan;
                 $midtransStatus = $this->midtransService->getTransactionStatus($settlementOrderId);
 
-                if ($midtransStatus && ($midtransStatus->transaction_status == 'capture' || $midtransStatus->transaction_status == 'settlement')) {
+                if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
                     // Update Status Pelunasan
                     $reservasi->status_pelunasan = 'lunas';
                     // status_booking tetap 'lunas'
@@ -147,7 +147,7 @@ class HomeCareController extends Controller
                     $reservasi->save();
 
                     // Tambah Poin Manual (Pelunasan)
-                    $poinDidapat = floor(($midtransStatus->gross_amount ?? 0) / 10000);
+                    $poinDidapat = floor(($midtransStatus['gross_amount'] ?? 0) / 10000);
                     if ($reservasi->pasien_id && $poinDidapat > 0) {
                         \Illuminate\Support\Facades\DB::table('users')
                             ->where('user_id', $reservasi->pasien_id)
@@ -302,5 +302,21 @@ class HomeCareController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }
+    }
+
+    public function getPointHistory(Request $request)
+    {
+        $userId = $request->query('user_id'); 
+        // Fallback checks
+        if (!$userId) return response()->json(['data' => []]);
+
+        $history = \App\Models\PointHistory::where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $history
+        ]);
     }
 }

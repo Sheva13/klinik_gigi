@@ -12,6 +12,7 @@ class HomeCareReservasi extends Model
     protected $table = 'homecare_reservasi';
 
     protected $fillable = [
+        'id',
         'no_pemeriksaan',
         'no_antrian',
         'pasien_id',
@@ -26,11 +27,18 @@ class HomeCareReservasi extends Model
         'jenis_keluhan',
         'jenis_keluhan_lainnya',
         'biaya_reservasi',
+        'promo_id',
+        'potongan_promo',
         'biaya_transport',
         'pembayaran_total',
         'metode_pembayaran',
         'status',
         'status_reservasi',
+        'jenis_keluhan',
+        'jenis_keluhan_lainnya',
+        'status_booking',
+        'snap_token',
+        'redirect_url',
         'status_booking', // Renamed from status_pembayaran
         'jenis_pasien',
         'alamat_lengkap',

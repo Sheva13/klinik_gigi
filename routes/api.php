@@ -116,6 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/homecare/settlement', [HomeCareController::class, 'createSettlement']); // NEW ROUTE
     Route::get('/homecare/promos', [HomeCareController::class, 'getPromos']);
     Route::get('/homecare/user-points', [HomeCareController::class, 'getUserPoints']);
+    Route::get('/homecare/point-history', [HomeCareController::class, 'getPointHistory']);
 
     Route::get('/homecare/booking/{id}/status', [HomeCareController::class, 'checkPaymentStatus']);
 
