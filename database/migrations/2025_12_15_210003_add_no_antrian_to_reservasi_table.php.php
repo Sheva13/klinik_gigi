@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('reservasi', function (Blueprint $table) {
-            $table->string('no_antrian', 20)->nullable()->after('no_pemeriksaan');
-        });
+        // Kode di dalam sini DIHAPUS atau di-nonaktifkan
+        // Schema::table('reservasi', function (Blueprint $table) {
+        //     $table->string('no_antrian', 20)->nullable()->after('no_pemeriksaan');
+        // });
     }
 
     /**
@@ -21,8 +22,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('reservasi', function (Blueprint $table) {
-            $table->dropColumn('no_antrian');
-        });
+        //
     }
 };
