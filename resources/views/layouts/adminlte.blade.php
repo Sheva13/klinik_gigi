@@ -137,8 +137,8 @@
                 </a>
 
                 {{-- Dental Care (Pastikan Route ini ada atau biarkan link manual) --}}
-                <a href="/dental-care" class="{{ request()->is('dental-care*') ? 'active' : '' }}">
-                    <span class="material-symbols-outlined">dentistry</span> Dental Care
+                <a href="{{ route('homecare.index') }}" class="{{ request()->is('homecare*') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">dentistry</span> Home Care
                 </a>
 
                 <a href="{{ route('jadwal.index') }}" class="{{ request()->is('jadwal*') ? 'active' : '' }}">

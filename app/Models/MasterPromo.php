@@ -9,14 +9,8 @@ class MasterPromo extends Model
 {
     use HasFactory;
 
-    /**
-     * Nama tabel di database.
-     */
     protected $table = 'master_promo';
 
-    /**
-     * Kolom yang bisa diisi (mass assignable).
-     */
     protected $fillable = [
         'judul_promo',
         'deskripsi',
@@ -27,7 +21,10 @@ class MasterPromo extends Model
         'harga_poin',
         'nilai_potongan',
         'limit_per_user',
+        // Tambahan baru
+        'harga_poin',
+        'nilai_potongan',
+        'limit_per_user'
     ];
-
     public $timestamps = true;
 }
