@@ -33,6 +33,9 @@ class HomeCareReservasi extends Model
         'alamat_lengkap',
         'latitude',
         'longitude',
+        'tipe_layanan',
+        'snap_token',
+        'redirect_url',
     ];
 
     public function rekamMedis()
@@ -55,6 +58,11 @@ class HomeCareReservasi extends Model
         return $this->belongsTo(JadwalHarian::class, 'jadwal_id', 'id');
     }
 
+    public function masterJadwal()
+    {
+        return $this->belongsTo(MasterJadwal::class, 'jadwal_id', 'id');
+    }   
+
     public function tindakanPemeriksaan()
     {
         // After migration this will use 'homecare_reservasi_id'
@@ -69,5 +77,77 @@ class HomeCareReservasi extends Model
     public function tracking()
     {
         return $this->hasMany(HomeCareTracking::class, 'id_periksa', 'id');
+    }
+
+    // Trait methods implemented (migrated from consolidated HomeCareService)
+    public function isPaid(): bool
+    {
+        return strtolower($this->status_pembayaran) === 'lunas';
+    }
+
+    public function isPendingPayment(): bool
+    {
+        return strtolower($this->status_pembayaran) === 'menunggu_pembayaran';
+    }
+
+    public function isAwaitingVerification(): bool
+    {
+        return strtolower($this->status_pembayaran) === 'menunggu_verifikasi';
+    }
+
+    public function isVerified(): bool
+    {
+        return strtolower($this->status_pembayaran) === 'terverifikasi';
+    }
+
+    public function getTotal(): float
+    {
+        return (float) $this->pembayaran_total;
+    }
+
+    public function getServiceCost(): float
+    {
+        return (float) ($this->biaya_reservasi ?? 0);
+    }
+
+    public function getRemainingPayment(): float
+    {
+        $paid = $this->biayaTambahan()
+            ->where('komponen', 'UANG_MUKA')
+            ->sum('biaya');
+
+        return max(0, $this->pembayaran_total - $paid);
+    }
+
+    public function getDownPayment(): float
+    {
+        return (float) ($this->biayaTambahan()
+            ->where('komponen', 'UANG_MUKA')
+            ->sum('biaya') ?? 0);
+    }
+
+    public function isCancellable(): bool
+    {
+        return !$this->isPaid() && !in_array(strtolower($this->status_reservasi), ['selesai', 'dibatalkan']);
+    }
+
+    public function cancel(): void
+    {
+        $this->status_reservasi = 'dibatalkan';
+        $this->status = 'Dibatalkan';
+        $this->save();
+    }
+
+    public function markAsAwaitingVerification(): void
+    {
+        $this->status_pembayaran = 'menunggu_verifikasi';
+        $this->save();
+    }
+
+    public function markAsPaid(): void
+    {
+        $this->status_pembayaran = 'lunas';
+        $this->status_reservasi = 'selesai';
+        $this->save();
     }
 }

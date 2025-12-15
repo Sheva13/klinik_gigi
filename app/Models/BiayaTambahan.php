@@ -11,7 +11,9 @@ class BiayaTambahan extends Model
 {
     use HasFactory;
     protected $table = 'biaya_tambahan';
-    protected $fillable = ['id_periksa', 'komponen', 'biaya', 'reservasi_id', 'homecare_reservasi_id'];
+    protected $fillable = ['id_periksa', 'komponen', 'biaya', 'reservasi_id', 'homecare_reservasi_id', 'qty', 'jumlah_kali'];
+
+    public $timestamps = false;
 
     // Relasi kembali ke booking/kunjungan
     public function dataPasien()
@@ -26,7 +28,6 @@ class BiayaTambahan extends Model
         return $this->belongsTo(Reservasi::class, 'reservasi_id', 'id');
     }
 
-    // Relasi ke reservasi homecare (jika biaya berkaitan dengan homecare)
     public function homeCareReservasi()
     {
         return $this->belongsTo(HomeCareReservasi::class, 'homecare_reservasi_id', 'id');

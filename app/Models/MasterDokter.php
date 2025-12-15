@@ -9,6 +9,7 @@ class MasterDokter extends Model
 {
     use HasFactory;
     protected $table = 'master_dokter';
+    public $timestamps = false; 
     protected $fillable = [
         'kode_dokter',
         'nama',
@@ -46,10 +47,6 @@ class MasterDokter extends Model
 
     public function spesialis()
     {
-        
         return $this->belongsTo(MasterSpesialis::class, 'spesialisasi', 'id');
     }
-
-    
-
 }

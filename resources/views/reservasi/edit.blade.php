@@ -126,7 +126,8 @@
 
         <div class="d-flex align-items-center gap-3">
             <div class="text-end d-none d-md-block">
-                <div class="fw-bold text-white">Basudewa</div>
+                {{-- Data Admin dinamis --}}
+                <div class="fw-bold text-white">{{ Auth::guard('admin')->user()->nama ?? 'Admin' }}</div>
                 <small class="text-muted">Administrator</small>
             </div>
             <img src="{{ asset('assets/images/profile/wais.jpg') }}"
@@ -145,6 +146,7 @@
             </p>
         </div>
 
+        {{-- Form Update ke Controller --}}
         <form action="{{ route('reservasi.admin.update', $reservasi->id) }}" method="POST">
             @csrf
             @method('PUT')
@@ -201,9 +203,13 @@
             </div>
 
             @php
+                // List Jam Praktek
                 $jamPraktek = ['09:00', '09:30', '11:00', '13:00', '13:30', '14:00', '15:00'];
-                $jamSaatIni = optional($reservasi->jadwal)->jam_mulai
-                    ? \Carbon\Carbon::parse($reservasi->jadwal->jam_mulai)->format('H:i')
+                
+                // 🔥 LOGIC FIX: Ambil dari $reservasi->jam_mulai (Jam Janji Pasien)
+                // Bukan dari $reservasi->jadwal (Jam Buka Klinik)
+                $jamSaatIni = $reservasi->jam_mulai 
+                    ? \Carbon\Carbon::parse($reservasi->jam_mulai)->format('H:i') 
                     : null;
             @endphp
 
@@ -224,6 +230,17 @@
                 </div>
             </div>
 
+            {{-- 🔥 TAMBAHAN: Dropdown Status Pembayaran --}}
+            <div class="mb-4">
+                <label for="status_pembayaran" class="form-label">Status Pembayaran</label>
+                <select class="form-select form-select-dark" id="status_pembayaran" name="status_pembayaran">
+                    <option value="menunggu_pembayaran" {{ $reservasi->status_pembayaran == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar</option>
+                    <option value="menunggu_verifikasi" {{ $reservasi->status_pembayaran == 'menunggu_verifikasi' ? 'selected' : '' }}>Menunggu Verifikasi</option>
+                    <option value="terverifikasi" {{ $reservasi->status_pembayaran == 'terverifikasi' ? 'selected' : '' }}>Lunas / Terverifikasi</option>
+                    <option value="gagal" {{ $reservasi->status_pembayaran == 'gagal' ? 'selected' : '' }}>Gagal</option>
+                </select>
+            </div>
+
             <div class="mb-5">
                 <label for="alasan" class="form-label">Alasan Perubahan</label>
                 <textarea class="form-control form-control-dark" id="alasan" name="alasan" rows="4"
@@ -231,6 +248,7 @@
             </div>
 
             <div class="d-flex justify-content-end gap-3 pt-2 border-top border-secondary">
+                {{-- Route Batal kembali ke Index (Aman) --}}
                 <a href="{{ route('reservasi.admin.index') }}" class="btn btn-cancel">Batal</a>
                 <button type="submit" class="btn btn-gold">
                     <span class="material-symbols-outlined" style="font-size: 1.2rem;">save</span>

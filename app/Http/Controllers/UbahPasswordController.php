@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use App\Models\MpUser;
 use App\Models\Otp;
 use App\Mail\OtpMail;
 use Carbon\Carbon;
@@ -18,7 +17,7 @@ class UbahPasswordController extends Controller
     private $otpExpireMinutes = 5;
 
     /**
-     * Kirim OTP untuk ganti password
+     * 1. Kirim OTP
      */
     public function requestOtpForPasswordChange(Request $request)
     {
@@ -34,7 +33,7 @@ class UbahPasswordController extends Controller
         if (!$user->email) {
             return response()->json([
                 'success' => false,
-                'message' => 'Akun tidak memiliki email. Tidak dapat mengirim OTP.'
+                'message' => 'Akun tidak memiliki email.'
             ], 400);
         }
 
@@ -49,13 +48,11 @@ class UbahPasswordController extends Controller
             ], 429);
         }
 
-        // Generate OTP 6 digit
         $pin = random_int(100000, 999999);
         $hashed = Hash::make((string) $pin);
 
         $expiresAt = Carbon::now()->addMinutes($this->otpExpireMinutes);
 
-        // Simpan OTP hanya untuk change password
         Otp::create([
             'email'     => $email,
             'code_hash' => $hashed,
@@ -63,7 +60,6 @@ class UbahPasswordController extends Controller
             'purpose'   => 'CHANGE_PASSWORD',
         ]);
 
-        // Kirim email
         try {
             Mail::to($email)->queue(new OtpMail($pin, $this->otpExpireMinutes));
         } catch (Exception $e) {
@@ -74,23 +70,21 @@ class UbahPasswordController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'OTP untuk ubah password telah dikirim.'
+            'message' => 'OTP telah dikirim.'
         ]);
     }
 
+
     /**
-     * Validasi OTP + Ubah Password
+     * 2. Verifikasi OTP saja (page 1)
      */
-    public function verifyOtpAndChangePassword(Request $request)
+    public function verifyOtp(Request $request)
     {
         $request->validate([
-            'otp'            => 'required|string',
-            'password_lama'  => 'required|string',
-            'password_baru'  => 'required|string|min:8|confirmed'
+            'otp' => 'required|string',
         ]);
 
         $user = $request->user();
-
         if (!$user) {
             return response()->json([
                 'success' => false,
@@ -100,7 +94,6 @@ class UbahPasswordController extends Controller
 
         $email = strtolower($user->email);
 
-        // Ambil OTP valid terbaru
         $otp = Otp::where('email', $email)
             ->whereNull('used_at')
             ->where('purpose', 'CHANGE_PASSWORD')
@@ -111,11 +104,10 @@ class UbahPasswordController extends Controller
         if (!$otp) {
             return response()->json([
                 'success' => false,
-                'message' => 'OTP tidak valid atau sudah kadaluarsa.'
+                'message' => 'OTP tidak valid atau kadaluarsa.'
             ], 404);
         }
 
-        // Cek OTP
         if (!Hash::check($request->otp, $otp->code_hash)) {
             $otp->increment('attempts');
 
@@ -125,33 +117,47 @@ class UbahPasswordController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Kode OTP salah.'
+                'message' => 'OTP salah.'
             ], 401);
         }
 
-        // Cek password lama
-        if (!Hash::check($request->password_lama, $user->password)) {
+        // Tandai OTP valid → sehingga user bisa lanjut ke page 2
+        $otp->update(['used_at' => Carbon::now()]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP valid. Silakan lanjut ke reset password.'
+        ]);
+    }
+
+
+    /**
+     * 3. Reset password (page 2)
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'password_baru' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+        if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Password lama tidak sesuai.'
-            ], 400);
+                'message' => 'Unauthorized'
+            ], 401);
         }
 
-        // ----- Ganti password -----
         $user->update([
             'password' => Hash::make($request->password_baru)
         ]);
 
-        // Tandai OTP sudah dipakai
-        $otp->update(['used_at' => Carbon::now()]);
-
-        // Hapus semua token lama (logout semua device)
         $user->tokens()->delete();
         $user->update(['current_token' => null]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Password berhasil diubah. Silakan login ulang.'
+            'message' => 'Password berhasil direset. Silakan login ulang.'
         ]);
     }
 }

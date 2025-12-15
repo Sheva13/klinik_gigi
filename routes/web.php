@@ -1,93 +1,80 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PromoControllerWeb;
 use App\Http\Controllers\DokterControllerWeb;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminReservasiController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HomeCareWebController; // [PENTING] Jangan lupa import ini
 
 /*
 |--------------------------------------------------------------------------
-| 1. PUBLIC ROUTES (Bisa Diakses Siapa Saja)
+| 1. PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
-
-// Halaman Utama: LANGSUNG KE LOGIN ADMIN
-Route::get('/', function () {
-    return redirect()->route('auth.login');
-})->name('home');
-
-// Login Admin
+Route::get('/', function () { return redirect()->route('auth.login'); })->name('home');
 Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('auth.login');
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('login');
 
 /*
 |--------------------------------------------------------------------------
-| 2. ADMIN ROUTES (Wajib Login)
+| 2. ADMIN ROUTES
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:admin')->group(function () {
 
-    // --- DASHBOARD ADMIN ---
+    // --- DASHBOARD ---
     Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
-    
     Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
-
-    // --- MANAJEMEN RESERVASI ---
+    // --- RESERVASI & ANTRIAN ---
     Route::prefix('admin/reservasi')->group(function () {
         Route::get('/', [AdminReservasiController::class, 'index'])->name('reservasi.admin.index');
-        
-        // Punya Teman (Create) - Dipakai oleh tombol (+)
         Route::get('/create', [AdminReservasiController::class, 'create'])->name('reservasi.admin.create');
         Route::post('/', [AdminReservasiController::class, 'createManual'])->name('reservasi.admin.store');
-
-        // 💡 [TAMBAHAN BARU LIXA]: Route untuk Pencarian Pasien Lama via AJAX
         Route::get('/cari-pasien', [AdminReservasiController::class, 'cariPasien'])->name('reservasi.admin.cariPasien');
+        
+        // Antrian Pasien
+        Route::get('/antrian', [AdminReservasiController::class, 'antrianIndex'])->name('reservasi.admin.antrian');
 
-        // --- BAGIAN TAMBAHAN (EDIT & UPDATE) ---
+        // CRUD & Aksi Reservasi
         Route::get('/{id}/edit', [AdminReservasiController::class, 'edit'])->name('reservasi.admin.edit');
         Route::put('/{id}', [AdminReservasiController::class, 'update'])->name('reservasi.admin.update');
-        // -------------------------------------------
-        
-        // ============================================
-        // === TAMBAHAN UNTUK PAGE 4 (PEMBAYARAN) ===
-        // ============================================
-        // Rute untuk menampilkan detail pembayaran (Page 4)
         Route::get('/{id}/pembayaran', [AdminReservasiController::class, 'showPayment'])->name('admin.reservasi.pembayaran');
-        
-        // Rute untuk proses 'Tandai sebagai Lunas' dan upload bukti bayar
         Route::post('/{id}/tandai-lunas', [AdminReservasiController::class, 'tandaiLunas'])->name('reservasi.admin.tandaiLunas');
-        // ============================================
-
-
-        // Route SHOW (Tombol Mata)
         Route::get('/{id}', [AdminReservasiController::class, 'show'])->name('reservasi.admin.show');
         Route::post('/{id}/status', [AdminReservasiController::class, 'updateStatusReservasi'])->name('reservasi.admin.status');
         Route::post('/{id}/verify-payment', [AdminReservasiController::class, 'updatePembayaran'])->name('reservasi.admin.verifyPayment');
     });
 
+    Route::middleware(['auth'])->group(function () {
+    Route::get('/homecare', [HomeCareWebController::class, 'index'])->name('homecare.index');
+    Route::get('/homecare/{id}', [HomeCareWebController::class, 'show'])->name('homecare.show');
+    Route::put('/homecare/{id}/status', [HomeCareWebController::class, 'updateStatus'])->name('homecare.update-status');
+});
 
-    // --- MANAJEMEN PROMO ---
-    Route::get('/promo', [PromoControllerWeb::class, 'index'])->name('promo.index'); 
-    Route::get('/promo/create', [PromoControllerWeb::class, 'create'])->name('promo.create');
-    Route::post('/promo', [PromoControllerWeb::class, 'store'])->name('promo.store');
-    Route::get('/promo/{id}/edit', [PromoControllerWeb::class, 'edit'])->name('promo.edit');
-    Route::put('/promo/{id}', [PromoControllerWeb::class, 'update'])->name('promo.update');
-    Route::delete('/promo/{id}', [PromoControllerWeb::class, 'destroy'])->name('promo.destroy');
+    // --- PROMO ---
+    Route::prefix('promo')->group(function () {
+        Route::get('/', [PromoControllerWeb::class, 'index'])->name('promo.index'); 
+        Route::get('/create', [PromoControllerWeb::class, 'create'])->name('promo.create');
+        Route::post('/', [PromoControllerWeb::class, 'store'])->name('promo.store');
+        Route::get('/{id}/edit', [PromoControllerWeb::class, 'edit'])->name('promo.edit');
+        Route::put('/{id}', [PromoControllerWeb::class, 'update'])->name('promo.update');
+        Route::delete('/{id}', [PromoControllerWeb::class, 'destroy'])->name('promo.destroy');
+    });
 
-
-    // --- MANAJEMEN DOKTER ---
+    // --- DOKTER ---
     Route::resource('dokter', DokterControllerWeb::class);
 
-
-    // --- MANAJEMEN JADWAL ---
-    Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal.index');
-    Route::post('/jadwal', [JadwalController::class, 'store'])->name('jadwal.store');
-    Route::get('/jadwal/{id}/edit', [JadwalController::class, 'edit'])->name('jadwal.edit');
-    Route::put('/jadwal/{id}', [JadwalController::class, 'update'])->name('jadwal.update');
-    Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
+    // --- JADWAL ---
+    Route::prefix('jadwal')->group(function () {
+        Route::get('/', [JadwalController::class, 'index'])->name('jadwal.index');
+        Route::post('/', [JadwalController::class, 'store'])->name('jadwal.store');
+        Route::get('/{id}/edit', [JadwalController::class, 'edit'])->name('jadwal.edit');
+        Route::put('/{id}', [JadwalController::class, 'update'])->name('jadwal.update');
+        Route::delete('/{id}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
+    });
 
 });
