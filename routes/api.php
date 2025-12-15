@@ -47,7 +47,7 @@ Route::get('/promo', [PromoController::class, 'index']);
 
 // OTP (Password Reset & Verifikasi)
 Route::post('/auth/request-otp', [AuthController::class, 'requestOtpEmail']);
-Route::post('/auth/verify-otp',  [AuthController::class, 'verifyOtpEmail']);
+Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtpEmail']);
 
 // ========================================================================
 // 🔒 PROTECTED ROUTES (WAJIB LOGIN / ADA TOKEN)
@@ -58,7 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/password/request-change', [UbahPasswordController::class, 'requestOtpForPasswordChange']);
     Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtpAndChangePassword']);
-    
+
     // --- PROFIL & PASIEN ---
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);
@@ -79,7 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // 🦷 ROUTE RESERVASI KLINIK (FLUTTER)
     // ==============================
     // Kita amankan di sini agar hanya user login yang bisa booking
-    
+
     // Helper: Ambil Data User untuk Form Reservasi
     Route::get('/reservasi/user', [ReservasiController::class, 'getUserData']);
 
@@ -109,19 +109,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/homecare/calculate', [HomeCareController::class, 'calculateCost']);
     Route::post('/homecare/book', [HomeCareController::class, 'store']); // Alias lama
     Route::post('/homecare/booking', [HomeCareController::class, 'storeBooking']); // Alias baru
-    
+
     Route::post('/homecare/booking/{id}/konfirmasi-bayar', [HomeCareController::class, 'confirmPayment']);
     Route::get('/homecare/booking/{id}/tracking', [HomeCareController::class, 'getTrackingHistory']);
     Route::post('/homecare/update-status', [HomeCareController::class, 'updateStatus']);
     Route::post('/homecare/finish-treatment/{id}', [HomeCareController::class, 'finishTreatment']);
     Route::get('/homecare/invoice/{id}', [HomeCareController::class, 'getInvoice']);
     Route::post('/homecare/pay-settlement/{id}', [HomeCareController::class, 'paySettlement']);
-<<<<<<<<< Temporary merge branch 1
-=========
+    Route::post('/homecare/settlement', [HomeCareController::class, 'createSettlement']); // NEW ROUTE
+    Route::get('/homecare/promos', [HomeCareController::class, 'getPromos']);
+    Route::get('/homecare/user-points', [HomeCareController::class, 'getUserPoints']);
+
     Route::get('/homecare/booking/{id}/status', [HomeCareController::class, 'checkPaymentStatus']);
-    Route::get('/profil', [ProfilController::class, 'show']);
-    Route::post('/profil/update', [ProfilController::class, 'update']);
->>>>>>>>> Temporary merge branch 2
 
     // --- UPLOAD FOTO DOKTER ---
     Route::post('/dokter/upload-foto/{id}', [DokterController::class, 'uploadFotoProfil']);
