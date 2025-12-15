@@ -1,6 +1,6 @@
 <?php
 return [
-    'paths' => ['api/*'],
+    'paths' => ['api/*', 'assets/*'],
     'allowed_methods' => ['*'],
     'allowed_origins' => ['*'],
     'allowed_headers' => ['*'],

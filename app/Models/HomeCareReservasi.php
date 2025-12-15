@@ -34,6 +34,11 @@ class HomeCareReservasi extends Model
         'metode_pembayaran',
         'status',
         'status_reservasi',
+        'jenis_keluhan',
+        'jenis_keluhan_lainnya',
+        'status_booking',
+        'snap_token',
+        'redirect_url',
         'status_booking', // Renamed from status_pembayaran
         'jenis_pasien',
         'alamat_lengkap',
