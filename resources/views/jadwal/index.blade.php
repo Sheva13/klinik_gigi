@@ -1,6 +1,6 @@
 @extends('layouts.adminlte')
 
-@section('title', 'Jadwal Praktik')
+@section('title', 'Jadwal Praktek')
 
 @section('styles')
 <style>
@@ -53,7 +53,7 @@
         color: #fff;
     }
 
-    /* --- GAYA UNTUK AVATAR INISIAL --- */
+    /* --- GAYA UNTUK AVATAR INISIAL (Fallback Baru) --- */
     .avatar-initial {
         display: flex;
         align-items: center;
@@ -63,6 +63,7 @@
         background-color: #f5c542; /* Warna Emas */
         border-radius: 50%;
         text-transform: uppercase;
+        flex-shrink: 0; /* Agar tidak terdistorsi dalam flexbox */
     }
     /* Ukuran kecil untuk list di kiri */
     .avatar-sm {
@@ -87,13 +88,7 @@
             <h2 class="fw-bold text-white">Manajemen Jadwal Praktik</h2>
             <p class="text-secondary mb-0">Atur jadwal hari dan jam praktik untuk setiap dokter.</p>
         </div>
-        <!-- <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="/" class="text-secondary text-decoration-none">Dashboard</a></li>
-                <li class="breadcrumb-item active text-white" aria-current="page">Jadwal Praktik</li>
-            </ol>
-        </nav> -->
-    </div>
+        </div>
 
     <div class="row">
         <div class="col-lg-4 mb-4">
@@ -114,17 +109,27 @@
                             <div class="card bg-transparent dokter-card p-3 rounded-3 {{ ($selectedDokter && $selectedDokter->kode_dokter == $dokter->kode_dokter) ? 'active' : '' }}">
                                 <div class="d-flex align-items-center gap-3">
                                     
-                                    @if($dokter->file_foto && Storage::disk('public')->exists($dokter->file_foto))
-                                      <img src="{{ asset('storage/'.$dokter->file_foto) }}" 
-                                         class="rounded-circle object-fit-cover" 
-                                           style="width: 50px; height: 50px;">
-                                    @else
-                                     <img src="{{ asset('assets/images/dr_april.png') }}" 
+                                    {{-- LOGIKA BARU UNTUK MEMUAT FOTO (List Kiri) --}}
+                                    @php
+                                        // Tentukan sumber foto yang akan digunakan
+                                        $fotoUrl = null;
+                                        if ($dokter->file_foto && Storage::disk('public')->exists($dokter->file_foto)) {
+                                            $fotoUrl = asset('storage/'.$dokter->file_foto); // Foto di storage lokal
+                                        } elseif ($dokter->foto_dokter) {
+                                            $fotoUrl = $dokter->foto_dokter; // URL jaringan dari database
+                                        }
+                                        $inisial = strtoupper(substr($dokter->nama, 0, 1));
+                                    @endphp
+
+                                    @if($fotoUrl)
+                                        <img src="{{ $fotoUrl }}" 
                                             class="rounded-circle object-fit-cover" 
-                                                 style="width: 50px; height: 50px;">
+                                            style="width: 50px; height: 50px;">
+                                    @else
+                                        {{-- Fallback ke Avatar Inisial --}}
+                                        <div class="avatar-initial avatar-sm">{{ $inisial }}</div>
                                     @endif
 
-                                    
                                     <div class="flex-grow-1">
                                         <h6 class="mb-0 text-white fw-bold">{{ $dokter->nama }}</h6>
                                         <small class="text-secondary">
@@ -151,18 +156,26 @@
                         <div class="d-flex justify-content-between align-items-start border-bottom border-secondary pb-4 mb-4">
                             <div class="d-flex align-items-center gap-4">
                                 
+                                {{-- LOGIKA BARU UNTUK MEMUAT FOTO (Header Kanan) --}}
                                 @php
                                 use Illuminate\Support\Facades\Storage;
+                                    // Tentukan sumber foto yang akan digunakan
+                                    $fotoUrlHeader = null;
+                                    if ($selectedDokter->file_foto && Storage::disk('public')->exists($selectedDokter->file_foto)) {
+                                        $fotoUrlHeader = asset('storage/'.$selectedDokter->file_foto); // Foto di storage lokal
+                                    } elseif ($selectedDokter->foto_dokter) {
+                                        $fotoUrlHeader = $selectedDokter->foto_dokter; // URL jaringan dari database
+                                    }
+                                    $inisialHeader = strtoupper(substr($selectedDokter->nama, 0, 1));
                                 @endphp
 
-                                @if($selectedDokter->file_foto && Storage::disk('public')->exists($selectedDokter->file_foto))
-                                    <img src="{{ asset('storage/'.$selectedDokter->file_foto) }}" 
+                                @if($fotoUrlHeader)
+                                    <img src="{{ $fotoUrlHeader }}" 
                                         class="rounded-circle object-fit-cover border border-secondary" 
                                         style="width: 70px; height: 70px;">
                                 @else
-                                    <img src="{{ asset('assets/images/dr_april.png') }}" 
-                                        class="rounded-circle object-fit-cover border border-secondary" 
-                                        style="width: 70px; height: 70px;">
+                                    {{-- Fallback ke Avatar Inisial --}}
+                                    <div class="avatar-initial avatar-lg">{{ $inisialHeader }}</div>
                                 @endif
 
                                 <div>
@@ -211,9 +224,9 @@
                                         </td>
                                         <td class="bg-transparent text-end">
                                             <button type="button" 
-                                                    onclick="editJadwal({{ $jadwal->id }})" 
-                                                    class="btn btn-link text-warning p-0 me-2" 
-                                                    title="Edit Jadwal">
+                                                            onclick="editJadwal({{ $jadwal->id }})" 
+                                                            class="btn btn-link text-warning p-0 me-2" 
+                                                            title="Edit Jadwal">
                                                 <span class="material-symbols-outlined">edit</span>
                                             </button>
                                             <form action="{{ route('jadwal.destroy', $jadwal->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus jadwal ini?')">
