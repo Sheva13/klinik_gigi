@@ -6,21 +6,19 @@
 <style>
     /* --- STYLE TABEL DARK MODE YANG KUAT --- */
     .table-dark-custom {
-        /* Override variabel Bootstrap agar tabel benar-benar gelap */
         --bs-table-bg: #1A1A1A;
         --bs-table-color: #ffffff;
         --bs-table-hover-bg: #252525;
         --bs-table-hover-color: #ffffff;
         --bs-table-border-color: #333333;
         
-        background-color: #1A1A1A; /* Fallback */
+        background-color: #1A1A1A;
         color: #ffffff;
         border-color: #333333;
     }
     
-    /* Header Tabel */
     .table-dark-custom th {
-        background-color: #2C2C2C !important; /* Pakai !important agar tidak tertimpa */
+        background-color: #2C2C2C !important;
         color: #f5c542; /* Warna Emas */
         font-weight: 600;
         text-transform: uppercase;
@@ -30,30 +28,35 @@
         padding: 1rem;
     }
 
-    /* Body Tabel */
     .table-dark-custom td {
         padding: 1rem;
         vertical-align: middle;
         border-bottom: 1px solid #333;
     }
 
-    /* Card Wrapper */
     .card-dark {
         background-color: #1A1A1A;
         border: 1px solid #333;
-        border-radius: 12px; /* Lebih rounded */
-        overflow: hidden; /* Agar sudut tabel mengikuti card */
+        border-radius: 12px;
+        overflow: hidden;
     }
 
-    /* Form Inputs Dark Mode */
+    /* --- FORM INPUTS --- */
     .form-control-dark {
         background-color: #2C2C2C;
         border: 1px solid #4b5563;
-        color: #fff;
+        color: #ffffff !important;
+    }
+    .form-control-dark::placeholder {
+        color: #adb5bd !important;
+        opacity: 1;
+    }
+    .form-control-dark[type="date"] {
+        color-scheme: dark;
     }
     .form-control-dark:focus {
         background-color: #2C2C2C;
-        color: #fff;
+        color: #ffffff;
         border-color: #f5c542;
         box-shadow: 0 0 0 0.2rem rgba(245, 197, 66, 0.25);
     }
@@ -61,13 +64,41 @@
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
     }
 
-    /* Status Badges */
     .badge-status { 
         font-size: 0.8rem; 
         padding: 6px 12px; 
         border-radius: 6px; 
         font-weight: 500;
         letter-spacing: 0.3px;
+    }
+
+    /* --- PERBAIKAN PAGINASI (FIX TEXT COLOR) --- */
+    /* Mengubah warna teks 'Showing x results' menjadi terang */
+    .card-footer .text-muted {
+        color: #d1d5db !important; /* Abu-abu terang */
+    }
+    
+    /* Styling Tombol Paginasi Dark Mode */
+    .page-link {
+        background-color: #2C2C2C;
+        border-color: #444;
+        color: #f5c542; /* Text Emas */
+    }
+    .page-link:hover {
+        background-color: #333;
+        color: #fff;
+        border-color: #f5c542;
+    }
+    .page-item.active .page-link {
+        background-color: #f5c542;
+        border-color: #f5c542;
+        color: #121212;
+        font-weight: bold;
+    }
+    .page-item.disabled .page-link {
+        background-color: #1A1A1A;
+        border-color: #333;
+        color: #555;
     }
 </style>
 @endsection
