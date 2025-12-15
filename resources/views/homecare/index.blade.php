@@ -1,136 +1,221 @@
 @extends('layouts.adminlte')
 
-@section('content')
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-    tailwind.config = {
-        darkMode: "class",
-        theme: {
-            extend: {
-                colors: { "primary": "#f5c542", "background-dark": "#121212" },
-                fontFamily: { "display": ["Manrope", "sans-serif"] }
-            },
-        },
+@section('title', 'Daftar Reservasi Home Care')
+
+@section('styles')
+<style>
+    /* --- STYLE TABEL DARK MODE YANG KUAT --- */
+    .table-dark-custom {
+        /* Override variabel Bootstrap agar tabel benar-benar gelap */
+        --bs-table-bg: #1A1A1A;
+        --bs-table-color: #ffffff;
+        --bs-table-hover-bg: #252525;
+        --bs-table-hover-color: #ffffff;
+        --bs-table-border-color: #333333;
+        
+        background-color: #1A1A1A; /* Fallback */
+        color: #ffffff;
+        border-color: #333333;
     }
-</script>
+    
+    /* Header Tabel */
+    .table-dark-custom th {
+        background-color: #2C2C2C !important; /* Pakai !important agar tidak tertimpa */
+        color: #f5c542; /* Warna Emas */
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #444;
+        padding: 1rem;
+    }
 
-<div class="content-wrapper bg-[#121212] text-white" style="min-height: 100vh; margin-left: 0; background-color: #121212;">
-    <main class="flex-1 p-8">
-        <div class="w-full max-w-7xl mx-auto">
-            <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
-                <div>
-                    <h1 class="text-white text-3xl font-bold leading-tight">Riwayat Home Care</h1>
-                    <p class="text-gray-400 mt-1">Monitoring Status Kunjungan Pasien</p>
+    /* Body Tabel */
+    .table-dark-custom td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #333;
+    }
+
+    /* Card Wrapper */
+    .card-dark {
+        background-color: #1A1A1A;
+        border: 1px solid #333;
+        border-radius: 12px; /* Lebih rounded */
+        overflow: hidden; /* Agar sudut tabel mengikuti card */
+    }
+
+    /* Form Inputs Dark Mode */
+    .form-control-dark {
+        background-color: #2C2C2C;
+        border: 1px solid #4b5563;
+        color: #fff;
+    }
+    .form-control-dark:focus {
+        background-color: #2C2C2C;
+        color: #fff;
+        border-color: #f5c542;
+        box-shadow: 0 0 0 0.2rem rgba(245, 197, 66, 0.25);
+    }
+    .form-select.form-control-dark {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    }
+
+    /* Status Badges */
+    .badge-status { 
+        font-size: 0.8rem; 
+        padding: 6px 12px; 
+        border-radius: 6px; 
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
+</style>
+@endsection
+
+@section('content')
+<div class="container-fluid">
+    
+    {{-- Header --}}
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+        <div>
+            <h1 class="fw-bold text-white mb-1" style="font-size: 1.75rem;">Reservasi Home Care</h1>
+            <p class="text-secondary mb-0">Pantau dan kelola pesanan kunjungan dokter ke rumah.</p>
+        </div>
+    </div>
+
+    {{-- Filter Card --}}
+    <div class="card card-dark p-4 mb-4 shadow-sm">
+        <form action="{{ route('homecare.index') }}" method="GET">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="text-secondary small mb-1">Pencarian</label>
+                    <input type="text" name="search" class="form-control form-control-dark" 
+                           placeholder="Cari No Pemeriksaan / Nama Pasien..." 
+                           value="{{ request('search') }}">
                 </div>
-            </div>
-
-            <form action="{{ route('homecare.index') }}" method="GET" class="bg-[#1A1A1A] p-4 rounded-xl border border-gray-800 mb-6 flex flex-col md:flex-row gap-4">
-                <div class="flex-grow">
-                    <label class="text-xs text-gray-400 mb-1 block">Cari Nama Pasien</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                            <i class="fas fa-search"></i>
-                        </span>
-                        <input name="search" value="{{ request('search') }}" class="w-full h-10 rounded-lg bg-[#2C2C2C] border-none text-white placeholder:text-gray-500 pl-10 pr-4 focus:ring-2 focus:ring-[#f5c542]" placeholder="Nama pasien..." type="text"/>
-                    </div>
-                </div>
-
-                <div class="flex-none w-full md:w-48">
-                    <label class="text-xs text-gray-400 mb-1 block">Status</label>
-                    <select name="status" class="w-full h-10 rounded-lg bg-[#2C2C2C] border-none text-white px-4 focus:ring-2 focus:ring-[#f5c542]">
-                        <option value="">Semua Status</option>
-                        <option value="Ditugaskan" {{ request('status') == 'Ditugaskan' ? 'selected' : '' }}>Ditugaskan</option>
-                        <option value="OTW" {{ request('status') == 'OTW' ? 'selected' : '' }}>OTW</option>
-                        <option value="Pemeriksaan" {{ request('status') == 'Pemeriksaan' ? 'selected' : '' }}>Pemeriksaan</option>
-                        <option value="Selesai" {{ request('status') == 'Selesai' ? 'selected' : '' }}>Selesai</option>
+                <div class="col-md-3">
+                    <label class="text-secondary small mb-1">Status</label>
+                    <select name="status" class="form-select form-control-dark">
+                        <option value="">-- Semua Status --</option>
+                        <option value="menunggu_konfirmasi" {{ request('status') == 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
+                        <option value="dokter_menuju_lokasi" {{ request('status') == 'dokter_menuju_lokasi' ? 'selected' : '' }}>Dokter OTW</option>
+                        <option value="sedang_diperiksa" {{ request('status') == 'sedang_diperiksa' ? 'selected' : '' }}>Sedang Diperiksa</option>
+                        <option value="menunggu_pelunasan" {{ request('status') == 'menunggu_pelunasan' ? 'selected' : '' }}>Selesai (Menunggu Bayar)</option>
+                        <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
+                        <option value="dibatalkan" {{ request('status') == 'dibatalkan' ? 'selected' : '' }}>Dibatalkan</option>
                     </select>
                 </div>
-
-                <div class="flex-none">
-                    <label class="text-xs text-gray-400 mb-1 block">Dari Tanggal</label>
-                    <input name="start_date" value="{{ request('start_date') }}" class="h-10 rounded-lg bg-[#2C2C2C] border-none text-white placeholder:text-gray-500 px-4 focus:ring-2 focus:ring-[#f5c542]" type="date"/>
+                <div class="col-md-3">
+                    <label class="text-secondary small mb-1">Tanggal Kunjungan</label>
+                    <input type="date" name="start_date" class="form-control form-control-dark" value="{{ request('start_date') }}">
                 </div>
-                <div class="flex-none">
-                    <label class="text-xs text-gray-400 mb-1 block">Sampai Tanggal</label>
-                    <input name="end_date" value="{{ request('end_date') }}" class="h-10 rounded-lg bg-[#2C2C2C] border-none text-white placeholder:text-gray-500 px-4 focus:ring-2 focus:ring-[#f5c542]" type="date"/>
-                </div>
-
-                <div class="flex-none flex items-end">
-                    <button type="submit" class="h-10 px-6 rounded-lg bg-[#f5c542] text-black font-bold hover:bg-[#e4a93c] transition-colors w-full md:w-auto">
-                        Filter
+                <div class="col-md-2 d-grid align-items-end">
+                    <button type="submit" class="btn btn-warning fw-bold text-dark" style="background-color: #f5c542; border: none;">
+                        <i class="fas fa-filter me-1"></i> Terapkan
                     </button>
                 </div>
-            </form>
-
-            <div class="space-y-4">
-                @forelse($riwayat as $data)
-                <div class="bg-[#1A1A1A] rounded-xl overflow-hidden border border-gray-800 transition hover:border-[#f5c542]/50">
-                    <div class="p-6">
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center w-full mb-6">
-                            <div>
-                                <p class="text-xs text-gray-400">Pasien</p>
-                                <p class="text-white font-semibold text-lg">{{ $data->nama_pasien }}</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-gray-400">No. Reservasi</p>
-                                <p class="text-gray-300 font-mono">{{ $data->no_reservasi }}</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-gray-400">Dokter</p>
-                                <p class="text-gray-300">{{ $data->nama_dokter ?? 'Belum ada' }}</p>
-                            </div>
-                            <div class="flex justify-end">
-                                <a href="{{ route('homecare.show', $data->id) }}" class="flex items-center justify-center gap-x-2 rounded-lg bg-white/5 border border-white/10 h-10 px-4 text-white font-medium text-sm hover:bg-[#f5c542] hover:text-black hover:border-[#f5c542] transition-all">
-                                    <i class="fas fa-edit"></i>
-                                    <span>Detail & Ubah</span>
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="relative pt-2">
-                            @php
-                                $statuses = ['Ditugaskan', 'OTW', 'Pemeriksaan', 'Selesai'];
-                                $currentStatusIndex = array_search($data->status, $statuses);
-                                // Jika status tidak ditemukan (misal: Menunggu), index jadi -1 (abu-abu semua)
-                                if ($currentStatusIndex === false) $currentStatusIndex = -1; 
-                            @endphp
-                            
-                            <div class="flex items-center justify-between relative z-10">
-                                @foreach($statuses as $index => $status)
-                                    <div class="flex flex-col items-center flex-1">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors duration-300
-                                            {{ $index <= $currentStatusIndex ? 'bg-[#f5c542] border-[#f5c542] text-black' : 'bg-[#2C2C2C] border-gray-600 text-gray-500' }}">
-                                            @if($status == 'Ditugaskan') <i class="fas fa-user-md text-xs"></i>
-                                            @elseif($status == 'OTW') <i class="fas fa-car text-xs"></i>
-                                            @elseif($status == 'Pemeriksaan') <i class="fas fa-stethoscope text-xs"></i>
-                                            @elseif($status == 'Selesai') <i class="fas fa-check text-xs"></i>
-                                            @endif
-                                        </div>
-                                        <p class="text-[10px] mt-1 font-medium {{ $index <= $currentStatusIndex ? 'text-[#f5c542]' : 'text-gray-500' }}">{{ $status }}</p>
-                                    </div>
-                                    
-                                    @if(!$loop->last)
-                                        <div class="absolute top-4 h-[2px] -z-10 bg-gray-700" style="left: {{ 12.5 + ($index * 25) }}%; width: 25%;">
-                                            <div class="h-full transition-all duration-500 {{ $index < $currentStatusIndex ? 'bg-[#f5c542]' : '' }}"></div>
-                                        </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @empty
-                <div class="text-center text-gray-500 py-10 bg-[#1A1A1A] rounded-xl border border-gray-800">
-                    <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
-                    <p>Tidak ada data ditemukan sesuai filter.</p>
-                </div>
-                @endforelse
             </div>
+        </form>
+    </div>
 
-            <div class="mt-8">
-                {{ $riwayat->links() }}
+    {{-- Table Section --}}
+    <div class="card card-dark shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark-custom table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">No. Pemeriksaan</th>
+                            <th>Waktu Kunjungan</th>
+                            <th>Pasien</th>
+                            <th>Dokter Bertugas</th>
+                            <th>Status</th>
+                            <th class="text-end pe-4">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($riwayat as $item)
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-bold text-warning" style="font-family: monospace; font-size: 1rem;">
+                                    {{ $item->no_pemeriksaan }}
+                                </span>
+                                <div class="text-secondary small mt-1">
+                                    <i class="far fa-clock me-1"></i> Dibuat: {{ \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i') }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-white">
+                                    {{ \Carbon\Carbon::parse($item->tanggal_pesan)->format('d M Y') }}
+                                </div>
+                                <div class="text-info small mt-1">
+                                    {{ \Carbon\Carbon::parse($item->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($item->jam_selesai)->format('H:i') }} WIB
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-white">{{ $item->nama_pasien }}</div>
+                                <div class="text-secondary small mt-1">
+                                    <i class="fas fa-phone-alt me-1"></i> {{ $item->no_hp_pasien ?? '-' }}
+                                </div>
+                            </td>
+                            <td>
+                                @if($item->nama_dokter)
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
+                                            <i class="fas fa-user-md text-white small"></i>
+                                        </div>
+                                        <span class="text-white">{{ $item->nama_dokter }}</span>
+                                    </div>
+                                @else
+                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">
+                                        Belum Assign
+                                    </span>
+                                @endif
+                            </td>
+                            <td>
+                                @php
+                                    $statusClass = match($item->status_reservasi) {
+                                        'menunggu_konfirmasi' => 'bg-warning text-dark',
+                                        'dokter_menuju_lokasi' => 'bg-info text-white',
+                                        'sedang_diperiksa' => 'bg-primary text-white',
+                                        'menunggu_pelunasan' => 'bg-secondary text-warning border border-warning',
+                                        'lunas' => 'bg-success text-white',
+                                        'dibatalkan' => 'bg-danger text-white',
+                                        default => 'bg-secondary text-white'
+                                    };
+                                    $statusLabel = ucwords(str_replace('_', ' ', $item->status_reservasi));
+                                @endphp
+                                <span class="badge {{ $statusClass }} badge-status">
+                                    {{ $statusLabel }}
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{{ route('homecare.show', $item->id) }}" class="btn btn-sm btn-outline-light d-inline-flex align-items-center gap-1" style="border-color: #444;">
+                                    Detail <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="py-4">
+                                    <i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-25"></i>
+                                    <p class="text-secondary mb-0">Tidak ada data reservasi ditemukan.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
-    </main>
+        
+        {{-- Pagination --}}
+        @if($riwayat->hasPages())
+        <div class="card-footer bg-transparent border-top border-secondary py-3">
+            {{ $riwayat->links('pagination::bootstrap-5') }}
+        </div>
+        @endif
+    </div>
 </div>
 @endsection

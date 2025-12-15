@@ -49,10 +49,16 @@ Route::middleware('auth:admin')->group(function () {
         Route::post('/{id}/verify-payment', [AdminReservasiController::class, 'updatePembayaran'])->name('reservasi.admin.verifyPayment');
     });
 
-    Route::middleware(['auth'])->group(function () {
+    // --- ROUTES HOME CARE WEB ADMIN ---
+Route::middleware(['auth'])->group(function () {
+    // Halaman List
     Route::get('/homecare', [HomeCareWebController::class, 'index'])->name('homecare.index');
+    
+    // Halaman Detail
     Route::get('/homecare/{id}', [HomeCareWebController::class, 'show'])->name('homecare.show');
-    Route::put('/homecare/{id}/status', [HomeCareWebController::class, 'updateStatus'])->name('homecare.update-status');
+    
+    // Action Update Status (Ini yang menyebabkan error sebelumnya)
+    Route::post('/homecare/{id}/status', [HomeCareWebController::class, 'updateStatus'])->name('homecare.updateStatus');
 });
 
     // --- PROMO ---
