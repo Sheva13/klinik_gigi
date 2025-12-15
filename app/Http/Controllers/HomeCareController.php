@@ -43,11 +43,12 @@ class HomeCareController extends Controller
     {
         try {
             $tanggal = $request->query('tanggal'); // optional YYYY-MM-DD
+            $kodePoli = $request->query('kode_poli');
 
             if ($tanggal) {
-                $jadwal = $this->reservationService->getAvailableSchedulesForDate($tanggal);
+                $jadwal = $this->reservationService->getAvailableSchedulesForDate($tanggal, $kodePoli);
             } else {
-                $jadwal = $this->reservationService->getAvailableSchedules();
+                $jadwal = $this->reservationService->getAvailableSchedules($kodePoli);
             }
 
             return response()->json(['data' => $jadwal]);
@@ -117,9 +118,8 @@ class HomeCareController extends Controller
                 if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
                     // Update Status
                     $reservasi->status_booking = 'lunas';
-                    $reservasi->status = 'Menunggu Dokter';
-                    $reservasi->status_reservasi = 'menunggu';
-                    $reservasi->status_pembayaran = 'lunas'; // Legacy support
+                    $reservasi->status = 'Menunggu Konfirmasi'; // Fix: Jangan 'Menunggu Dokter' agar App tidak bilang OTW
+                    $reservasi->status_reservasi = 'menunggu_konfirmasi'; // Fix: Samakan dengan enum di Admin Panel
                     $reservasi->save();
 
                     // Tambah Poin Manual (Copy Logic from Webhook)

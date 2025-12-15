@@ -125,7 +125,8 @@
                 <table class="table table-dark-custom table-hover mb-0 align-middle">
                     <thead>
                         <tr>
-                            <th class="ps-4">No. Pemeriksaan</th>
+                            <th>No. Pemeriksaan</th>
+                            <th>No. RM</th>
                             <th>Waktu Kunjungan</th>
                             <th>Pasien</th>
                             <th>Dokter Bertugas</th>
@@ -141,35 +142,35 @@
                                     {{ $item->no_pemeriksaan }}
                                 </span>
                                 <div class="text-secondary small mt-1">
-                                    <i class="far fa-clock me-1"></i> Dibuat: {{ \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i') }}
+                                    <i class="far fa-clock me-1"></i> {{ \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i') }}
                                 </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary font-monospace">{{ $item->no_rm ?? $item->pasien_id }}</span>
                             </td>
                             <td>
                                 <div class="fw-bold text-white">
                                     {{ \Carbon\Carbon::parse($item->tanggal_pesan)->format('d M Y') }}
                                 </div>
                                 <div class="text-info small mt-1">
-                                    {{ \Carbon\Carbon::parse($item->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($item->jam_selesai)->format('H:i') }} WIB
+                                    {{ \Carbon\Carbon::parse($item->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($item->jam_selesai)->format('H:i') }}
                                 </div>
                             </td>
                             <td>
-                                <div class="fw-bold text-white">{{ $item->nama_pasien }}</div>
+                                <div class="fw-bold text-white">{{ $item->nama_pasien ?? $item->nama_user ?? 'Nama Tidak Diketahui' }}</div>
                                 <div class="text-secondary small mt-1">
                                     <i class="fas fa-phone-alt me-1"></i> {{ $item->no_hp_pasien ?? '-' }}
                                 </div>
                             </td>
                             <td>
                                 @if($item->nama_dokter)
-                                    <div class="d-flex align-items-center gap-2">
-                                        <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
-                                            <i class="fas fa-user-md text-white small"></i>
-                                        </div>
-                                        <span class="text-white">{{ $item->nama_dokter }}</span>
-                                    </div>
+                                    <div class="fw-bold text-white">{{ $item->nama_dokter }}</div>
+                                    <div class="text-secondary small">Dokter Bertugas</div>
+                                @elseif($item->dokter_id)
+                                    <div class="fw-bold text-warning">{{ $item->dokter_id }}</div>
+                                    <div class="text-secondary small">Nama Tidak Ditemukan</div>
                                 @else
-                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">
-                                        Belum Assign
-                                    </span>
+                                    <span class="badge bg-danger">Belum Assign</span>
                                 @endif
                             </td>
                             <td>
