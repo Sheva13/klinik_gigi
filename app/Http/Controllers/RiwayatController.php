@@ -89,6 +89,7 @@ class RiwayatController extends Controller
                         'jam_mulai' => $item->jam_mulai ?? '-',
                         'jam_selesai' => $item->jam_selesai ?? '-',
                         'biaya' => $item->pembayaran_total ?? '0',
+                        'total_biaya_tindakan' => $item->total_biaya_tindakan ?? '0',
 
                         'nama' => $item->pasien?->nama ?? '-',
                         'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
