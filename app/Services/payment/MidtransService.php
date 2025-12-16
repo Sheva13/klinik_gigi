@@ -2,27 +2,13 @@
 
 namespace App\Services\Payment;
 
-use Midtrans\Config;
-use Midtrans\Snap;
 use Illuminate\Support\Facades\Log;
 
 class MidtransService
 {
     public function __construct()
     {
-        $this->configure();
-    }
-
-    /**
-     * Konfigurasi library Midtrans
-     */
-    protected function configure()
-    {
-        Config::$serverKey = config('midtrans.server_key');
-        Config::$clientKey = config('midtrans.client_key');
-        Config::$isProduction = config('midtrans.is_production');
-        Config::$isSanitized = config('midtrans.is_sanitized');
-        Config::$is3ds = config('midtrans.is_3ds');
+        // Tidak perlu configure jika library tidak tersedia
     }
 
     /**
@@ -30,8 +16,15 @@ class MidtransService
      */
     public function createSnapToken(array $params)
     {
+        // Cek apakah library Midtrans tersedia
+        if (!class_exists('\Midtrans\Config')) {
+            Log::error("Midtrans library not found. Please install midtrans/midtrans-php package.");
+            throw new \Exception("Midtrans library not found. Please install midtrans/midtrans-php package.");
+        }
+
+        $this->configure();
         try {
-            $transaction = Snap::createTransaction($params);
+            $transaction = \Midtrans\Snap::createTransaction($params);
 
             return [
                 'token' => $transaction->token,
@@ -41,6 +34,57 @@ class MidtransService
             Log::error("Midtrans Snap Error: " . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * Ambil URL Snap untuk pembayaran
+     */
+    public function getSnapUrl(string $orderId, float $grossAmount, string $customerName, string $customerEmail, string $customerPhone, array $items)
+    {
+        // Cek apakah library Midtrans tersedia
+        if (!class_exists('\Midtrans\Config')) {
+            Log::error("Midtrans library not found. Please install midtrans/midtrans-php package.");
+            return null; // Kembalikan null jika library tidak tersedia
+        }
+
+        $this->configure();
+
+        $params = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => $grossAmount,
+            ],
+            'customer_details' => [
+                'first_name' => $customerName,
+                'email' => $customerEmail,
+                'phone' => $customerPhone,
+            ],
+            'item_details' => $items
+        ];
+
+        try {
+            $snapToken = \Midtrans\Snap::createTransaction($params);
+            return $snapToken->redirect_url;
+        } catch (\Throwable $e) {
+            Log::error("Midtrans Snap Error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Konfigurasi library Midtrans
+     */
+    protected function configure()
+    {
+        if (!class_exists('\Midtrans\Config')) {
+            return;
+        }
+
+        \Midtrans\Config::$serverKey = config('midtrans.server_key');
+        \Midtrans\Config::$clientKey = config('midtrans.client_key');
+        \Midtrans\Config::$isProduction = config('midtrans.is_production');
+        \Midtrans\Config::$isSanitized = config('midtrans.is_sanitized');
+        \Midtrans\Config::$is3ds = config('midtrans.is_3ds');
     }
 
     /**
@@ -62,6 +106,11 @@ class MidtransService
      */
     public function getTransactionStatus(string $orderId)
     {
+        if (!class_exists('\Midtrans\Transaction')) {
+            Log::error("Midtrans library not found. Please install midtrans/midtrans-php package.");
+            return null;
+        }
+
         try {
             return \Midtrans\Transaction::status($orderId);
         } catch (\Throwable $e) {

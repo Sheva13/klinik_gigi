@@ -174,7 +174,7 @@
         </div>
         <div class="d-flex align-items-center gap-3">
             
-            {{-- 🔥 TOMBOL LIHAT ANTRIAN (Added by Lixa) --}}
+            {{-- 🔥 TOMBOL LIHAT ANTRIAN (Route sudah benar) --}}
             <a href="{{ route('reservasi.admin.antrian') }}" class="btn btn-outline-light d-flex align-items-center gap-2 border-secondary">
                 <span class="material-symbols-outlined text-gold">groups</span>
                 Lihat Antrian
@@ -191,7 +191,7 @@
         </div>
     </div>
 
-   {{-- 2. INFO CARDS (UPDATED - 5 Columns) --}}
+    {{-- 2. INFO CARDS (UPDATED - 5 Columns) --}}
     <div class="row g-4 mb-4">
         {{-- Total --}}
         <div class="col-12 col-sm-6 col-md-4 col-xl">
@@ -211,7 +211,7 @@
             </div>
         </div>
         
-        {{-- 🔥 DIPROSES (Added by Lixa) --}}
+        {{-- 🔥 DIPROSES --}}
         <div class="col-12 col-sm-6 col-md-4 col-xl"> 
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">stethoscope</span>
@@ -297,9 +297,11 @@
                     <label class="small text-muted mb-2">Status Pembayaran</label>
                     <select name="status_pembayaran" class="form-select form-select-dark" onchange="this.form.submit()">
                         <option value="semua" {{ request('status_pembayaran') == 'semua' ? 'selected' : '' }}>Semua Status</option>
-                        <option value="terverifikasi" {{ request('status_pembayaran') == 'terverifikasi' ? 'selected' : '' }}>Lunas</option>
-                        <option value="menunggu_pembayaran" {{ request('status_pembayaran') == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar</option>
-                        <option value="menunggu_verifikasi" {{ request('status_pembayaran') == 'menunggu_verifikasi' ? 'selected' : '' }}>Cek Bukti</option>
+                        {{-- KOREKSI LIXA: Tambahkan status 'lunas' dan pastikan 'terverifikasi' menjadi satu arti (Lunas) --}}
+                        <option value="lunas" {{ request('status_pembayaran') == 'lunas' ? 'selected' : '' }}>Lunas (Online)</option>
+                        <option value="terverifikasi" {{ request('status_pembayaran') == 'terverifikasi' ? 'selected' : '' }}>Terverifikasi (Manual)</option>
+                        <option value="menunggu_pembayaran" {{ request('status_pembayaran') == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar (Online)</option>
+                        <option value="menunggu_verifikasi" {{ request('status_pembayaran') == 'menunggu_verifikasi' ? 'selected' : '' }}>Cek Bukti (Manual)</option>
                         <option value="gagal" {{ request('status_pembayaran') == 'gagal' ? 'selected' : '' }}>Gagal</option>
                     </select>
                 </div>
@@ -393,19 +395,23 @@
                             <td class="text-center">
                                 @php
                                     $p = $item->status_pembayaran;
+                                    // KOREKSI LIXA: Tambahkan status 'lunas' (dari Webhook)
                                     $pcl = match($p) { 
-                                        'terverifikasi'       => 'bg-success', 
-                                        'menunggu_pembayaran' => 'bg-secondary', 
-                                        'menunggu_verifikasi' => 'bg-warning text-dark',
-                                        'gagal'               => 'bg-danger',
-                                        default               => 'bg-secondary' 
+                                        'lunas'                 => 'bg-success', // Dari Midtrans Webhook
+                                        'terverifikasi'         => 'bg-success', // Dari Admin Manual
+                                        'menunggu_pembayaran'   => 'bg-secondary', 
+                                        'menunggu_verifikasi'   => 'bg-warning text-dark',
+                                        'gagal'                 => 'bg-danger',
+                                        default                 => 'bg-secondary' 
                                     };
+                                    // KOREKSI LIXA: Tambahkan status 'lunas'
                                     $plb = match($p) { 
-                                        'terverifikasi'       => 'Lunas', 
-                                        'menunggu_pembayaran' => 'Belum Bayar', 
-                                        'menunggu_verifikasi' => 'Cek Bukti',
-                                        'gagal'               => 'Gagal',
-                                        default               => $p 
+                                        'lunas'                 => 'Lunas (Online)', 
+                                        'terverifikasi'         => 'Lunas (Manual)', 
+                                        'menunggu_pembayaran'   => 'Belum Bayar', 
+                                        'menunggu_verifikasi'   => 'Cek Bukti',
+                                        'gagal'                 => 'Gagal',
+                                        default                 => $p 
                                     };
                                 @endphp
                                 <span class="badge {{ $pcl }}">{{ $plb }}</span>

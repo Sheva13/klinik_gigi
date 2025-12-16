@@ -118,21 +118,23 @@
 <div class="container-fluid">
 
     <div class="d-flex align-items-center gap-3 mb-4">
-        <a href="{{ route('reservasi.admin.index') }}" class="btn btn-dark border-secondary d-flex align-items-center p-2 rounded-circle">
+        {{-- Tombol Kembali ke Antrian (Sesuai request User) --}}
+        <a href="{{ route('reservasi.admin.antrian') }}" class="btn btn-dark border-secondary d-flex align-items-center p-2 rounded-circle">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>
         <div>
             <span class="text-secondary small d-block">Detail Reservasi</span>
             <h1 class="h3 fw-bold mb-0 text-white">{{ $reservasi->no_pemeriksaan }}</h1>
         </div>
-
         <button class="btn btn-warning ms-auto px-4 fw-bold rounded-pill shadow-lg" data-bs-toggle="modal" data-bs-target="#modalKelolaReservasi">
             <span class="material-symbols-outlined align-middle me-2">settings_suggest</span> Kelola Reservasi
         </button>
     </div>
 
+    {{-- KONTEN DETAIL (TIDAK BERUBAH) --}}
     <div class="row">
         <div class="col-lg-8">
+            {{-- CARD INFO MEDIS --}}
             <div class="card card-dark-premium mb-4 border-0">
                 <div class="card-header border-bottom border-secondary py-3">
                     <div class="d-flex align-items-center">
@@ -142,7 +144,7 @@
                 </div>
 
                 <div class="card-body p-4">
-                    <div class="row g-4 mb-4">
+                     <div class="row g-4 mb-4">
                         <div class="col-md-6">
                             <div class="p-3 rounded-3 position-relative" style="background-color: #252525; border-left: 4px solid #ffc107;">
                                 <div class="d-flex align-items-start">
@@ -151,10 +153,10 @@
                                     </div>
                                     <div class="flex-grow-1">
                                         <span class="info-label">Data Pasien</span>
-                                        <div class="info-value fs-5 mb-1">{{ $reservasi->pasien->nama_lengkap ?? '-' }}</div>
+                                        <div class="info-value fs-5 mb-1">{{ $reservasi->rekamMedis->nama ?? '-' }}</div>
                                         <div class="d-flex gap-2 mt-2 flex-wrap">
                                             <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary fw-normal">
-                                                RM: {{ $reservasi->pasien->rekam_medis ?? '-' }}
+                                                RM: {{ $reservasi->rekamMedis->rekam_medis ?? '-' }}
                                             </span>
                                             <span class="badge bg-warning bg-opacity-25 text-warning border border-warning fw-normal">
                                                 {{ $reservasi->no_pemeriksaan }}
@@ -181,11 +183,11 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                     </div>
 
-                    <hr class="border-secondary opacity-25 my-4">
+                     <hr class="border-secondary opacity-25 my-4">
 
-                    <div class="row g-4">
+                     <div class="row g-4">
                         <div class="col-md-4">
                             <div class="d-flex align-items-center">
                                 <div class="icon-box bg-success bg-opacity-10 text-success">
@@ -227,10 +229,11 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                     </div>
                 </div>
             </div>
             
+            {{-- CARD TRACKING (Visualisasi Status) --}}
             <div class="card card-dark-premium border-0 mt-4">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center mb-5">
@@ -292,7 +295,8 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card card-dark-premium mb-4 border-0 h-100">
+             {{-- CARD PEMBAYARAN --}}
+             <div class="card card-dark-premium mb-4 border-0 h-100">
                 <div class="card-header border-bottom border-secondary py-3">
                     <h5 class="mb-0 text-white fw-bold">Rincian Pembayaran</h5>
                 </div>
@@ -306,19 +310,28 @@
                             <small class="text-uppercase text-secondary letter-spacing-1">Total Biaya</small>
                             <h2 class="text-warning fw-bold mb-0 mt-1">Rp {{ number_format($reservasi->pembayaran_total, 0, ',', '.') }}</h2>
                         </div>
-                         <div class="alert {{ $reservasi->status_pembayaran == 'terverifikasi' ? 'alert-success' : 'alert-warning' }} border-0 d-flex align-items-center" role="alert">
-                            @if($reservasi->status_pembayaran == 'terverifikasi')
-                                <span class="material-symbols-outlined me-2">check_circle</span>
-                                <div><div class="fw-bold">LUNAS</div><small>Terverifikasi</small></div>
-                            @else
-                                <span class="material-symbols-outlined me-2">pending</span>
-                                <div><div class="fw-bold">BELUM LUNAS</div><small>{{ strtoupper(str_replace('_', ' ', $reservasi->status_pembayaran)) }}</small></div>
-                            @endif
+                        
+                        @php
+                            $pStatus = $reservasi->status_pembayaran;
+                            $isLunas = in_array($pStatus, ['lunas', 'terverifikasi']);
+                            $alertClass = $isLunas ? 'alert-success' : 'alert-warning';
+                            $icon = $isLunas ? 'check_circle' : 'pending';
+                            $title = $isLunas ? 'LUNAS' : 'BELUM LUNAS';
+                            $subtitle = strtoupper(str_replace('_', ' ', $pStatus));
+                        @endphp
+
+                        <div class="alert {{ $alertClass }} border-0 d-flex align-items-center" role="alert">
+                            <span class="material-symbols-outlined me-2">{{ $icon }}</span>
+                            <div>
+                                <div class="fw-bold">{{ $title }}</div>
+                                <small>{{ $subtitle }}</small>
+                            </div>
                         </div>
+
                     </div>
                     <div class="mt-4">
-                        @if($reservasi->status_pembayaran != 'terverifikasi')
-                            <a href="{{ route('admin.reservasi.pembayaran', $reservasi->id) }}" class="btn btn-outline-light w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+                        @if(!$isLunas)
+                            <a href="{{ route('reservasi.admin.showPayment', $reservasi->id) }}" class="btn btn-outline-light w-100 py-2 d-flex align-items-center justify-content-center gap-2">
                                 <span class="material-symbols-outlined fs-6">receipt_long</span> Cek Bukti Transfer
                             </a>
                         @endif
@@ -329,134 +342,115 @@
     </div>
 </div>
 
+{{-- 🔥🔥 MODAL SATU FORM (FULL FIX) 🔥🔥 --}}
 <div class="modal fade" id="modalKelolaReservasi" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content modal-content-pro">
             
             <div class="modal-header border-secondary py-3">
-                <h5 class="modal-title fw-bold">
+                <h5 class="modal-title fw-bold text-white">
                     <span class="material-symbols-outlined align-middle text-warning me-2">tune</span>
-                    Kelola Reservasi
+                    Kelola Reservasi (Edit Lengkap)
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
 
-            <div class="modal-body p-4">
-                <div class="row g-4">
-                    
-                    <div class="col-lg-8">
-                        <form action="{{ route('reservasi.admin.update', $reservasi->id) }}" method="POST" class="h-100">
-                            @csrf
-                            @method('PUT')
-                            
-                            <div class="control-panel-box">
-                                <div class="panel-title text-warning">
-                                    <span class="material-symbols-outlined fs-5">edit_note</span>
-                                    <span>Edit Data Medis</span>
-                                </div>
+            {{-- 🔥 SATU FORM PEMBUNGKUS UNTUK SEMUA INPUT --}}
+            <form action="{{ route('reservasi.admin.update', $reservasi->id) }}" method="POST">
+                @csrf
+                @method('PUT')
 
+                <div class="modal-body p-4">
+                    <div class="row g-4">
+                        
+                        {{-- KOLOM KIRI: EDIT DATA MEDIS --}}
+                        <div class="col-lg-7">
+                            <div class="p-3 rounded border border-secondary bg-dark">
+                                <h6 class="text-warning mb-3 fw-bold text-uppercase">Data Medis & Jadwal</h6>
+                                
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="label-pro">Dokter Pemeriksa</label>
+                                        <label class="small text-secondary">Dokter</label>
                                         <select name="dokter_id" class="form-select form-select-pro">
-                                            @if(isset($dokters))
-                                                @foreach($dokters as $d)
-                                                    <option value="{{ $d->kode_dokter }}" {{ $reservasi->dokter_id == $d->kode_dokter ? 'selected' : '' }}>
-                                                        {{ $d->nama }}
-                                                    </option>
-                                                @endforeach
-                                            @endif
+                                            @foreach($dokters as $d)
+                                                <option value="{{ $d->kode_dokter }}" {{ $reservasi->dokter_id == $d->kode_dokter ? 'selected' : '' }}>{{ $d->nama }}</option>
+                                            @endforeach
                                         </select>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="label-pro">Tanggal</label>
-                                        <input type="date" name="tanggal_pesan" value="{{ $reservasi->tanggal_pesan }}" class="form-control form-control-pro">
+                                        <label class="small text-secondary">Tanggal</label>
+                                        <input type="date" name="tanggal_pesan" value="{{ \Carbon\Carbon::parse($reservasi->tanggal_pesan)->format('Y-m-d') }}" class="form-control form-control-pro">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="label-pro">Jam Mulai</label>
-                                        <input type="time" name="jam_mulai" value="{{ $reservasi->jam_mulai }}" class="form-control form-control-pro">
+                                        <label class="small text-secondary">Jam Mulai</label>
+                                        <input type="time" name="jam_mulai" value="{{ \Carbon\Carbon::parse($reservasi->jam_mulai)->format('H:i') }}" class="form-control form-control-pro">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="label-pro">Jam Selesai</label>
-                                        <input type="time" name="jam_selesai" value="{{ $reservasi->jam_selesai }}" class="form-control form-control-pro">
+                                        <label class="small text-secondary">Jam Selesai</label>
+                                        <input type="time" name="jam_selesai" value="{{ \Carbon\Carbon::parse($reservasi->jam_selesai)->format('H:i') }}" class="form-control form-control-pro">
                                     </div>
                                     <div class="col-12">
-                                        <label class="label-pro">Keluhan Pasien</label>
+                                        <label class="small text-secondary">Keluhan</label>
                                         <textarea name="keluhan" class="form-control form-control-pro" rows="3">{{ $reservasi->keluhan }}</textarea>
-                                    </div>
-                                    <div class="col-12 mt-4">
-                                        <button type="submit" class="btn btn-warning btn-action-pro shadow-sm text-dark">
-                                            Simpan Perubahan Data
-                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </form>
-                    </div>
+                        </div>
 
-                    <div class="col-lg-4">
-                        <div class="d-flex flex-column gap-3 h-100">
-                            
-                            <form action="{{ route('reservasi.admin.status', $reservasi->id) }}" method="POST">
-                                @csrf
-                                <div class="control-panel-box">
-                                    <div class="panel-title text-info">
-                                        <span class="material-symbols-outlined fs-5">timeline</span>
-                                        <span>Status Kunjungan</span>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <label class="label-pro">Update Tracking Pasien</label>
-                                        <select name="status_reservasi" class="form-select form-select-pro">
-                                            <option value="menunggu" {{ $reservasi->status_reservasi == 'menunggu' ? 'selected' : '' }}>Menunggu</option>
-                                            <option value="dalam_proses" {{ $reservasi->status_reservasi == 'dalam_proses' ? 'selected' : '' }}>Dalam Proses</option>
-                                            <option value="selesai" {{ $reservasi->status_reservasi == 'selesai' ? 'selected' : '' }}>Selesai</option>
-                                            <option value="batal" {{ $reservasi->status_reservasi == 'batal' ? 'selected' : '' }}>Dibatalkan</option>
-                                        </select>
-                                    </div>
-                                    <button type="submit" class="btn btn-outline-info btn-action-pro">
-                                        Update Status
-                                    </button>
+                        {{-- KOLOM KANAN: STATUS & PEMBAYARAN --}}
+                        <div class="col-lg-5">
+                            <div class="d-flex flex-column gap-3 h-100">
+                                
+                                {{-- Section Status --}}
+                                <div class="p-3 rounded border border-secondary bg-dark">
+                                    <h6 class="text-info mb-3 fw-bold text-uppercase">Status Kunjungan</h6>
+                                    <select name="status_reservasi" class="form-select form-select-pro">
+                                        <option value="menunggu" {{ $reservasi->status_reservasi == 'menunggu' ? 'selected' : '' }}>Menunggu</option>
+                                        <option value="dalam_proses" {{ $reservasi->status_reservasi == 'dalam_proses' ? 'selected' : '' }}>Dalam Proses</option>
+                                        <option value="selesai" {{ $reservasi->status_reservasi == 'selesai' ? 'selected' : '' }}>Selesai</option>
+                                        <option value="batal" {{ $reservasi->status_reservasi == 'batal' ? 'selected' : '' }}>Dibatalkan</option>
+                                    </select>
                                 </div>
-                            </form>
 
-                            <form action="{{ route('reservasi.admin.verifyPayment', $reservasi->id) }}" method="POST" class="flex-grow-1">
-                                @csrf
-                                <div class="control-panel-box d-flex flex-column">
-                                    <div class="panel-title text-success">
-                                        <span class="material-symbols-outlined fs-5">payments</span>
-                                        <span>Keuangan</span>
-                                    </div>
-
+                                {{-- Section Keuangan --}}
+                                <div class="p-3 rounded border border-secondary bg-dark flex-grow-1">
+                                    <h6 class="text-success mb-3 fw-bold text-uppercase">Keuangan</h6>
                                     <div class="mb-3">
-                                        <label class="label-pro">Metode Pembayaran</label>
-                                        <select name="metode_pembayaran" class="form-select form-select-pro mb-3">
+                                        <label class="small text-secondary">Metode Bayar</label>
+                                        <select name="metode_pembayaran" class="form-select form-select-pro">
+                                            <option value="Manual" {{ $reservasi->metode_pembayaran == 'Manual' ? 'selected' : '' }}>Manual</option>
                                             <option value="Cash" {{ $reservasi->metode_pembayaran == 'Cash' ? 'selected' : '' }}>Cash</option>
                                             <option value="Transfer" {{ $reservasi->metode_pembayaran == 'Transfer' ? 'selected' : '' }}>Transfer</option>
+                                            <option value="Midtrans" {{ $reservasi->metode_pembayaran == 'Midtrans' ? 'selected' : '' }}>Midtrans</option>
                                         </select>
-
-                                        <label class="label-pro">Status Verifikasi</label>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="small text-secondary">Status Pembayaran</label>
                                         <select name="status_pembayaran" class="form-select form-select-pro">
                                             <option value="menunggu_pembayaran" {{ $reservasi->status_pembayaran == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar</option>
-                                            <option value="menunggu_verifikasi" {{ $reservasi->status_pembayaran == 'menunggu_verifikasi' ? 'selected' : '' }}>Menunggu Konfirmasi (Cek Bukti)</option>
-                                            <option value="terverifikasi" {{ $reservasi->status_pembayaran == 'terverifikasi' ? 'selected' : '' }}>Lunas / Terverifikasi</option>
-                                            <option value="gagal" {{ $reservasi->status_pembayaran == 'gagal' ? 'selected' : '' }}>Gagal / Ditolak</option>
+                                            <option value="menunggu_verifikasi" {{ $reservasi->status_pembayaran == 'menunggu_verifikasi' ? 'selected' : '' }}>Menunggu Verifikasi</option>
+                                            <option value="lunas" {{ $reservasi->status_pembayaran == 'lunas' ? 'selected' : '' }}>Lunas (Online)</option>
+                                            <option value="terverifikasi" {{ $reservasi->status_pembayaran == 'terverifikasi' ? 'selected' : '' }}>Lunas (Manual)</option>
+                                            <option value="gagal" {{ $reservasi->status_pembayaran == 'gagal' ? 'selected' : '' }}>Gagal</option>
                                         </select>
                                     </div>
-
-                                    <div class="mt-auto">
-                                        <button type="submit" class="btn btn-outline-success btn-action-pro">
-                                            Simpan Status Bayar
-                                        </button>
-                                    </div>
                                 </div>
-                            </form>
-                            
+
+                            </div>
                         </div>
                     </div>
-
                 </div>
-            </div>
+
+                {{-- FOOTER MODAL (TOMBOL SIMPAN UTAMA) --}}
+                <div class="modal-footer border-top border-secondary p-3 bg-dark">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning fw-bold px-5 text-dark shadow">
+                        SIMPAN SEMUA PERUBAHAN
+                    </button>
+                </div>
+
+            </form> {{-- END FORM BESAR --}}
+            
         </div>
     </div>
 </div>

@@ -34,7 +34,7 @@
         background-color: var(--card-bg);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     }
-     
+    
     /* JUDUL SECTION */
     .section-title {
         font-size: 1.25rem;
@@ -95,11 +95,11 @@
         align-items: center;
         cursor: pointer;
     }
-     
+    
     .input-group:focus-within .input-group-text-custom {
         border-color: var(--gold-primary) !important;
     }
-     
+    
     /* INPUT GROUP for Search Pasien */
     .search-pasien-group {
         display: flex;
@@ -123,7 +123,7 @@
     .search-pasien-group button:hover {
         background-color: var(--gold-hover);
     }
-     
+    
     /* ACTION FOOTER (Sticky) */
     .action-footer {
         position: sticky;
@@ -174,34 +174,48 @@
 <div class="main-container">
 
     {{-- HEADER KUSTOM --}}
-    <div class="mb-4">
-        <h1 class="fw-bold mb-1 text-gold" style="font-size: 1.8rem;">Tambah Reservasi Baru</h1>
-        <p class="text-muted mb-0">Isi detail di bawah ini untuk membuat jadwal reservasi baru</p>
+    <div class="d-flex align-items-center gap-3 mb-4">
+        {{-- 🔥 TOMBOL KEMBALI DI HEADER --}}
+        <a href="{{ route('reservasi.admin.index') }}" class="btn btn-dark border-secondary d-flex align-items-center p-2 rounded-circle me-2">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+        <div>
+            <h1 class="fw-bold mb-1 text-gold" style="font-size: 1.8rem;">Tambah Reservasi Baru</h1>
+            <p class="text-muted mb-0">Isi detail di bawah ini untuk membuat jadwal reservasi baru</p>
+        </div>
     </div>
     {{-- END HEADER --}}
 
-    <form action="{{ route('reservasi.admin.store') }}" method="POST" id="formReservasiBaru">
+    {{-- FORM UTAMA --}}
+    <form action="{{ route('reservasi.admin.createManual') }}" method="POST" id="formReservasiBaru">
         @csrf 
-         
-        {{-- Input tersembunyi untuk ID Pasien Lama --}}
+        
+        {{-- Input tersembunyi untuk ID Pasien Lama (Ini kuncinya!) --}}
         <input type="hidden" id="pasien_id_exist" name="pasien_id_exist" value="">
 
         {{-- === BAGIAN 1: DATA PASIEN === --}}
         <div class="form-group-section">
             <h4 class="section-title"><i class="fas fa-address-card"></i> Data Pasien</h4>
-             
-            {{-- FITUR PENCARIAN PASIEN LAMA --}}
+            
+            {{-- SEARCH BAR (AJAX) --}}
             <div class="form-group">
                 <label for="search_pasien" class="text-white">Cari Pasien Lama (No RM / Nama)</label>
                 <div class="search-pasien-group">
                     <input type="text" class="form-control" id="search_pasien" placeholder="Masukkan Nomor Rekam Medis (RM) atau Nama...">
-                    <button type="button" id="btn_search_pasien">
-                        <i class="fas fa-search"></i>
+                    
+                    <button type="button" id="btn_search_pasien" title="Cari Pasien" class="px-4 fw-bold">
+                        <i class="fas fa-search me-2"></i> Cari
+                    </button>
+                    
+                    {{-- Tombol Reset --}}
+                    <button type="button" id="btn_reset_pasien" class="btn btn-secondary ms-2" style="border-radius: 8px; background-color: #333; color: #fff; border: 1px solid #444;" title="Reset Form">
+                         <i class="fas fa-undo"></i>
                     </button>
                 </div>
-                <small id="pasien_status" class="text-muted mt-2 d-block">&nbsp;</small> 
+                <small id="pasien_status" class="text-muted mt-2 d-block">Biarkan kosong jika pasien baru. Ketik RM/Nama lalu klik tombol Cari.</small> 
             </div>
-             
+            
+            {{-- FIELD DATA PASIEN (Akan otomatis terisi atau bisa diketik manual) --}}
             <div id="data_pasien_form">
                 <div class="row">
                     <div class="form-group col-md-6">
@@ -213,12 +227,12 @@
                         <input type="text" class="form-control" id="ttl" name="ttl" placeholder="Contoh: Jakarta, 01/01/2000" required>
                     </div>
                 </div>
-                 
+                
                 <div class="form-group">
                     <label for="alamat" class="text-white">Alamat</label>
                     <textarea class="form-control" id="alamat" name="alamat" rows="2" required></textarea>
                 </div>
-                 
+                
                 <div class="row">
                     <div class="form-group col-md-6">
                         <label for="no_hp" class="text-white">No. HP</label>
@@ -227,8 +241,9 @@
                     <div class="form-group col-md-6">
                         <label for="jenis_pasien" class="text-white">Jenis Pasien</label>
                         <select class="form-control custom-select" id="jenis_pasien" name="jenis_pasien" required>
-                            <option value="baru">Baru</option>
-                            <option value="lama">Lama</option>
+                            <option value="Umum">Umum</option>
+                            <option value="BPJS">BPJS</option>
+                            <option value="Asuransi">Asuransi</option>
                         </select>
                     </div>
                 </div>
@@ -241,7 +256,6 @@
             <div class="row">
                 <div class="form-group col-md-6">
                     <label for="poli" class="text-white">Poli</label>
-                    {{-- 🔥 FIX 1: Ganti name="poli_id" jadi name="poli" --}}
                     <select class="form-control custom-select" id="poli" name="poli" required>
                         <option value="" class="text-muted">Pilih Poli</option>
                         @if(isset($polis))
@@ -253,7 +267,6 @@
                 </div>
                 <div class="form-group col-md-6">
                     <label for="dokter" class="text-white">Dokter</label>
-                    {{-- 🔥 FIX 2: Ganti name="dokter_id" jadi name="dokter" --}}
                     <select class="form-control custom-select" id="dokter" name="dokter" required>
                         <option value="" class="text-muted">Pilih Dokter</option>
                         @if(isset($dokters))
@@ -271,7 +284,7 @@
                         <input type="text" class="form-control date-picker" id="tanggal_janji" name="tanggal_janji" placeholder="Pilih Tanggal..." required data-input>
                         <div class="input-group-append">
                              <span class="input-group-text-custom" data-toggle>
-                                <i class="fas fa-calendar-alt text-gold"></i>
+                                 <i class="fas fa-calendar-alt text-gold"></i>
                             </span>
                         </div>
                     </div>
@@ -294,29 +307,27 @@
                 <div class="form-group col-md-4">
                     <label for="metode_bayar" class="text-white">Metode Pembayaran</label>
                     <select class="form-control custom-select" id="metode_bayar" name="metode_bayar" required>
-                        <option value="" class="text-muted">Pilih Metode</option>
-                        <option value="cash">Tunai (Cash)</option>
-                        <option value="transfer">Transfer Bank</option>
-                        <option value="debit">Kartu Debit</option>
+                        <option value="Manual" selected>Manual (Cash/Kartu)</option>
+                        <option value="Midtrans">Midtrans (Jika sudah dibayar via link)</option>
                     </select>
                 </div>
                 <div class="form-group col-md-4">
                     <label for="status_bayar" class="text-white">Status Pembayaran</label>
                     <select class="form-control custom-select" id="status_bayar" name="status_bayar" required>
-                        <option value="belum">Belum Bayar</option>
-                        <option value="dp">DP/Uang Muka</option>
-                        <option value="lunas">Lunas</option>
+                        <option value="menunggu_verifikasi">Menunggu Verifikasi</option>
+                        <option value="terverifikasi" selected>Lunas / Terverifikasi</option>
+                        <option value="gagal">Gagal / Ditolak</option>
                     </select>
                 </div>
                 <div class="form-group col-md-4">
                     <label for="total_biaya" class="text-white">Total Biaya</label>
-                    <input type="text" class="form-control" id="total_biaya" name="total_biaya" placeholder="Masukkan Jumlah Biaya (Contoh: 500000)">
+                    <input type="number" class="form-control" id="total_biaya" name="total_biaya" placeholder="Masukkan Jumlah Biaya (Contoh: 500000)" value="25000">
                 </div>
             </div>
         </div> 
 
-        <!-- FOOTER -->
         <div class="action-footer d-flex justify-content-end gap-3">
+            {{-- 🔥 TOMBOL BATAL JUGA KEMBALI KE INDEX --}}
             <a href="{{ route('reservasi.admin.index') }}" class="btn btn-secondary-dark">Batal</a>
             <button type="submit" class="btn btn-gold">
                 <i class="fas fa-check-circle"></i> Konfirmasi & Buat Reservasi
@@ -337,12 +348,12 @@
         flatpickr(".date-picker", {
             dateFormat: "Y-m-d",
             minDate: "today", 
-            locale: "id", 
             wrap: true 
         });
-         
+        
         // 2. Logic Pencarian Pasien Lama (AJAX)
         const btnSearch = document.getElementById('btn_search_pasien');
+        const btnReset = document.getElementById('btn_reset_pasien');
         const searchInput = document.getElementById('search_pasien');
         const pasienIdExistInput = document.getElementById('pasien_id_exist');
         const pasienStatus = document.getElementById('pasien_status');
@@ -354,87 +365,99 @@
             document.getElementById('jenis_pasien')
         ];
 
-        function resetPasienFields(isReadOnly = false) {
+        // Helper: Reset atau Kunci Form
+        function togglePasienFields(isReadOnly, clearValues = false) {
             formPasienFields.forEach(field => {
-                field.value = '';
+                if (clearValues) field.value = '';
                 field.readOnly = isReadOnly;
-                field.required = !isReadOnly;
             });
-            pasienIdExistInput.value = '';
-            pasienStatus.innerHTML = isReadOnly 
-                ? 'Data Pasien Lama ditemukan. Form dikunci.'
-                : '&nbsp;'; 
-            pasienStatus.classList.remove('text-warning', 'text-success');
-            pasienStatus.classList.add('text-muted');
+
+            if(!isReadOnly) {
+                 // Mode Input Manual (Pasien Baru/Tidak Ketemu)
+                 pasienIdExistInput.value = ''; 
+                 pasienStatus.innerHTML = 'Mode Input Pasien Baru aktif.';
+                 pasienStatus.classList.remove('text-success', 'text-danger', 'text-warning');
+                 pasienStatus.classList.add('text-muted');
+            }
         }
 
+        // Event: Tombol Cari
         btnSearch.addEventListener('click', function() {
             const query = searchInput.value.trim();
-            // FIX: Minimal 3 karakter untuk pencarian
             if (query.length < 3) {
                 pasienStatus.textContent = 'Masukkan minimal 3 karakter untuk mencari.';
                 pasienStatus.classList.add('text-warning');
-                resetPasienFields(false);
                 return;
             }
 
             pasienStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari...';
 
-            // 🔥 FIX 3: AJAX parameter jadi '?q=' sesuai Controller
+            // Panggil AJAX
             fetch("{{ route('reservasi.admin.cariPasien') }}?q=" + query)
                 .then(response => response.json())
                 .then(data => {
-                    // Controller return array [ {...}, {...} ]
                     if (Array.isArray(data) && data.length > 0) {
-                        const pasien = data[0]; // Ambil data pertama
-                         
-                        // Isi data pasien
-                        document.getElementById('nama_lengkap').value = pasien.nama || '';
-                        document.getElementById('ttl').value = pasien.tgl_lahir || ''; 
-                        document.getElementById('alamat').value = pasien.alamat || '';
-                        document.getElementById('no_hp').value = pasien.no_hp || '';
-                        document.getElementById('jenis_pasien').value = pasien.jenis_pasien || 'lama';
+                        // KASUS 1: PASIEN DITEMUKAN
+                        const pasien = data[0]; 
+                        
+                        document.getElementById('nama_lengkap').value = pasien.nama_lengkap || '';
+                        document.getElementById('ttl').value = pasien.tanggal_lahir || ''; 
+                        document.getElementById('alamat').value = pasien.alamat_rumah || '';
+                        document.getElementById('no_hp').value = pasien.nomor_telepon || '';
+                        document.getElementById('jenis_pasien').value = pasien.tipe_pasien || 'Umum';
 
-                        // Set ID Pasien Lama
-                        pasienIdExistInput.value = pasien.id; 
-                         
-                        // Kunci field
-                        resetPasienFields(true);
-                        pasienStatus.innerHTML = `Pasien Ditemukan: <span class="text-gold">${pasien.rekam_medis} - ${pasien.nama}</span>. Form dikunci.`;
+                        // Set ID agar controller tahu ini pasien lama
+                        pasienIdExistInput.value = pasien.id_database; 
+                        
+                        // Kunci Form agar tidak diedit sembarangan (karena data database)
+                        togglePasienFields(true, false);
+                        
+                        pasienStatus.innerHTML = `Pasien Ditemukan: <strong class="text-gold">${pasien.nomor_rm} - ${pasien.nama_lengkap}</strong>. Form dikunci.`;
+                        pasienStatus.classList.remove('text-muted', 'text-warning', 'text-danger');
+                        pasienStatus.classList.add('text-success');
 
                     } else {
-                        // Pasien tidak ditemukan
-                        resetPasienFields(false);
-                        pasienStatus.textContent = 'Pasien Lama tidak ditemukan. Silakan isi data pasien baru.';
-                        pasienStatus.classList.remove('text-muted');
+                        // KASUS 2: PASIEN TIDAK DITEMUKAN -> BUKA INPUT AGAR BISA MANUAL
+                        togglePasienFields(false, true); 
+                        pasienStatus.textContent = 'Pasien tidak ditemukan. Silakan input data baru secara manual.';
+                        pasienStatus.classList.remove('text-muted', 'text-success');
                         pasienStatus.classList.add('text-warning');
                     }
                 })
                 .catch(error => {
                     console.error('Error AJAX:', error);
-                    pasienStatus.textContent = 'Terjadi kesalahan saat mencari data.';
+                    pasienStatus.textContent = 'Terjadi kesalahan jaringan saat mencari data.';
                     pasienStatus.classList.add('text-danger');
-                    resetPasienFields(false);
+                    togglePasienFields(false, false);
                 });
         });
-         
+
+        // Event: Tombol Reset
+        btnReset.addEventListener('click', function() {
+            searchInput.value = '';
+            // Buka kunci form & hapus isinya (Mode Manual)
+            togglePasienFields(false, true); 
+        });
+        
+        // Event: Saat input search dikosongkan manual
         searchInput.addEventListener('input', function() {
             if (this.value.trim().length === 0 && pasienIdExistInput.value !== '') {
-                resetPasienFields(false);
+                togglePasienFields(false, false);
             }
         });
 
         // --- SUBMIT FORM ---
         document.getElementById('formReservasiBaru').addEventListener('submit', function(e) {
             e.preventDefault(); 
-             
+            
             let formData = new FormData(this);
             let btnSave = this.querySelector('button[type="submit"]');
             let originalText = btnSave.innerHTML;
+            
             btnSave.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
             btnSave.disabled = true;
 
-            fetch("{{ route('reservasi.admin.store') }}", { 
+            fetch("{{ route('reservasi.admin.createManual') }}", { 
                 method: "POST",
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
@@ -442,7 +465,20 @@
                 },
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        let errorMessage = 'Gagal menyimpan data.';
+                        if (errorData.errors) {
+                            errorMessage = Object.values(errorData.errors)[0][0]; 
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        }
+                        throw new Error(errorMessage);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     Swal.fire({
@@ -453,13 +489,14 @@
                         color: '#fff',
                         confirmButtonColor: '#D4AF37'
                     }).then(() => {
+                        // 🔥 Redirect Kembali ke Index setelah Sukses
                         window.location.href = "{{ route('reservasi.admin.index') }}"; 
                     });
                 } else {
                     Swal.fire({
                         icon: 'error',
                         title: 'Gagal',
-                        text: data.message || 'Terjadi kesalahan validasi',
+                        text: data.message || 'Terjadi kesalahan.',
                         background: '#1e1e2d',
                         color: '#fff',
                         confirmButtonColor: '#D4AF37'
@@ -467,14 +504,14 @@
                 }
             })
             .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Terjadi kesalahan sistem.',
-                    background: '#1e1e2d',
-                    color: '#fff'
-                });
-                console.error('Error:', error);
+                 Swal.fire({
+                     icon: 'error',
+                     title: 'Gagal',
+                     text: error.message || 'Terjadi kesalahan sistem.',
+                     background: '#1e1e2d',
+                     color: '#fff',
+                     confirmButtonColor: '#D4AF37'
+                 });
             })
             .finally(() => {
                 btnSave.innerHTML = originalText;

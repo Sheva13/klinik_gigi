@@ -4,380 +4,381 @@
 
 @section('content')
 
+{{-- 1. STYLE CSS CUSTOM --}}
 <style>
-    /* --- CONFIG PREMIUM DARK THEME --- */
     :root {
         --gold-primary: #D4AF37;
         --gold-hover: #b89628;
-        --bg-body: #121212;     
-        --bg-card: #1E1E1E;     
-        --bg-input: #252525;
+        --bg-dark: #121212;
+        --card-bg: #1A1A1A;
         --border-color: #333333;
-        --text-white: #ffffff;
-        --text-muted: #b0b0b0; /* Text muted dibikin lebih terang */
+        --text-muted: #a0a0a0;
     }
 
-    /* Override Body Background & Global Text */
-    body, .content-wrapper {
-        background-color: var(--bg-body) !important;
-        color: var(--text-white) !important;
-    }
-    
-    /* Paksa semua Heading jadi Putih */
-    h1, h2, h3, h4, h5, h6 { color: #ffffff !important; }
+    h1, h2, h3, h4, h5, h6 { color: #fff !important; }
+    .text-gold { color: var(--gold-primary) !important; }
+    .text-muted { color: var(--text-muted) !important; }
 
-    /* CARD STYLE */
-    .bg-card { 
-        background-color: var(--bg-card) !important; 
+    .stat-card {
+        background-color: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        border-radius: 12px;
         padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .stat-card:hover {
+        border-color: var(--gold-primary);
+        transform: translateY(-3px);
+    }
+    .stat-icon {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 3rem !important;
+        opacity: 0.1;
+        color: #fff;
+    }
+    .stat-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-top: 5px;
+        line-height: 1;
+        color: var(--gold-primary);
+    }
+    .stat-label {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
     }
 
-    /* INPUT FIELDS */
+    .val-warning { color: #ffc107 !important; }
+    .val-info { color: #17a2b8 !important; }
+    .val-success { color: #28a745 !important; }
+    .val-danger { color: #dc3545 !important; }
+
+    .form-control-dark {
+        background-color: #121212;
+        border: 1px solid var(--border-color);
+        color: #E0E0E0;
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+    }
+    .form-control-dark:focus {
+        background-color: #121212;
+        border-color: var(--gold-primary);
+        color: #fff;
+        box-shadow: none;
+    }
     .input-group-text-dark {
-        background-color: var(--bg-input);
+        background-color: #121212;
         border: 1px solid var(--border-color);
         border-right: none;
         color: var(--text-muted);
     }
-    .form-control-dark, .form-select-dark {
-        background-color: var(--bg-input);
+
+    .queue-table-card {
+        background-color: var(--card-bg);
         border: 1px solid var(--border-color);
-        color: #fff !important; /* Paksa text input putih */
-        border-radius: 8px;
-        padding: 0.7rem 1rem;
-    }
-    .form-control-dark:focus, .form-select-dark:focus {
-        background-color: var(--bg-input);
-        border-color: var(--gold-primary);
-        color: #fff !important;
-        box-shadow: none;
-    }
-    /* Placeholder color fix */
-    .form-control-dark::placeholder { color: #666; }
-
-    /* BUTTONS */
-    .btn-gold {
-        background-color: var(--gold-primary);
-        color: #000;
-        font-weight: 700;
-        border: none;
-        border-radius: 8px;
-        padding: 0.8rem 1rem;
-        width: 100%;
-        transition: all 0.3s;
-    }
-    .btn-gold:hover { 
-        background-color: var(--gold-hover); 
-        transform: translateY(-2px);
-    }
-
-    /* --- RINGKASAN BOX (FIX FONT WARNA) --- */
-    .summary-box {
-        background-color: #2b2b2b; 
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border: 1px solid #444;
-        position: relative;
-        overflow: hidden;
-        color: #ffffff !important; /* PAKSA TEXT PUTIH */
-    }
-    /* Pastikan elemen text di dalam box berwarna terang */
-    .summary-box .summary-label {
-        font-size: 0.85rem;
-        color: #cccccc !important; /* Abu terang */
-        margin-bottom: 5px;
-        display: block;
-    }
-    .summary-box h2 {
-        color: #ffffff !important; /* Angka Putih */
-        font-weight: 800;
-        margin-bottom: 0;
-    }
-    
-    /* Garis indikator warna di kiri */
-    .box-warning { border-left: 5px solid #ffc107; }
-    .box-info { border-left: 5px solid #0dcaf0; }
-    .box-success { border-left: 5px solid #198754; }
-
-    /* TABEL STYLE (PREMIUM DARK) */
-    .table-responsive {
         border-radius: 12px;
         overflow: hidden;
-        border: 1px solid var(--border-color);
+        min-height: 400px;
     }
+
     .table-dark-custom {
         width: 100%;
-        background-color: var(--bg-card);
-        color: var(--text-white);
+        color: #E0E0E0;
         margin-bottom: 0;
+        background-color: transparent;
     }
     .table-dark-custom thead th {
-        background-color: #252525;
-        color: var(--text-muted);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 1.2rem 1rem;
+        background-color: #252525 !important;
         border-bottom: 1px solid var(--border-color);
+        color: var(--text-muted);
         font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        padding: 1rem 1.5rem;
+        white-space: nowrap;
     }
     .table-dark-custom tbody td {
-        background-color: var(--bg-card);
-        border-bottom: 1px solid #2a2a2a;
-        padding: 1.2rem 1rem;
+        padding: 1rem 1.5rem;
         vertical-align: middle;
-        color: #eeeeee !important; /* Paksa text tabel putih/terang */
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.95rem;
+        background-color: var(--card-bg) !important;
+        color: #E0E0E0 !important;
     }
+    .table-dark-custom tr:last-child td { border-bottom: none; }
     .table-dark-custom tbody tr:hover td {
-        background-color: #252525; /* Hover effect */
+        background-color: rgba(255, 255, 255, 0.05) !important;
     }
-    
-    /* TYPOGRAPHY IN TABLE */
-    .queue-number {
-        font-size: 1.25rem;
+
+    .no-antrian-text {
+        font-family: 'Courier New', monospace;
+        font-size: 1.2rem;
         font-weight: 800;
         color: var(--gold-primary);
-        font-family: 'Courier New', monospace;
+        letter-spacing: 1px;
     }
-    .patient-name { font-weight: 600; font-size: 0.95rem; display: block; color: #fff !important; }
-    .rm-number { font-size: 0.75rem; color: #aaa; background: #333; padding: 2px 6px; border-radius: 4px; }
-    
-    .poli-badge {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        background: rgba(212, 175, 55, 0.1); 
-        color: var(--gold-primary);
-        padding: 4px 8px;
-        border-radius: 4px;
-        border: 1px solid rgba(212, 175, 55, 0.3);
-        margin-bottom: 4px;
-        display: inline-block;
-    }
-    .dokter-name { font-size: 0.9rem; color: #ddd; }
 
-    /* STATUS PILLS */
-    .status-pill {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
+    .badge {
+        padding: 0.5em 0.8em;
         font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
+        border-radius: 6px;
     }
-    .pill-menunggu { background: rgba(255, 193, 7, 0.1); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.2); }
-    .pill-proses { background: rgba(13, 202, 240, 0.1); color: #0dcaf0; border: 1px solid rgba(13, 202, 240, 0.2); }
-    .pill-selesai { background: rgba(25, 135, 84, 0.1); color: #198754; border: 1px solid rgba(25, 135, 84, 0.2); }
-    .pill-batal { background: rgba(220, 53, 69, 0.1); color: #dc3545; border: 1px solid rgba(220, 53, 69, 0.2); }
-    
-    .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .bg-warning-soft { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107; }
+    .bg-info-soft { background-color: rgba(23, 162, 184, 0.2); color: #17a2b8; border: 1px solid #17a2b8; }
+    .bg-success-soft { background-color: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
+    .bg-danger-soft { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
+
+    .btn-link-gold { color: var(--gold-primary); text-decoration: none; }
+    .btn-link-gold:hover { color: var(--gold-hover); text-decoration: none; }
+
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 </style>
 
 <div class="container-fluid px-0">
 
-    {{-- HEADER PAGE --}}
+    {{-- 2. HEADER HALAMAN --}}
     <div class="d-flex justify-content-between align-items-end mb-4">
-        <div>
-            <h1 class="fw-bold mb-1" style="font-size: 1.8rem; color: #fff !important;">Manajemen <span style="color: var(--gold-primary);">Antrian</span></h1>
-            <p style="color: #aaa;">{{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}</p>
-        </div>
         <div class="d-flex align-items-center gap-3">
-             <div class="text-end d-none d-md-block">
+            {{-- 🔥 TOMBOL KEMBALI KE INDEX --}}
+            <a href="{{ route('reservasi.admin.index') }}" class="btn btn-dark border-secondary d-flex align-items-center p-2 rounded-circle me-2">
+                <span class="material-symbols-outlined">arrow_back</span>
+            </a>
+            <div>
+                <h1 class="fw-bold mb-1" style="font-size: 1.8rem;">Manajemen <span class="text-gold">Antrian</span></h1>
+                {{-- Menampilkan Tanggal yang Dipilih --}}
+                <p class="text-muted mb-0">{{ \Carbon\Carbon::parse($tanggalPilih)->translatedFormat('l, d F Y') }}</p>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+            <div class="text-end d-none d-md-block">
                 <div class="fw-bold text-white">{{ Auth::guard('admin')->user()->nama ?? 'Admin' }}</div>
-                <small style="color: #aaa;">Administrator</small>
+                <small class="text-muted">Administrator</small>
             </div>
-            <img src="{{ asset('assets/images/profile/wais.jpg') }}" class="rounded-circle border border-secondary" style="width: 45px; height: 45px; object-fit: cover;">
+            <img src="{{ asset('assets/images/profile/wais.jpg') }}"
+                 alt="Profile"
+                 class="rounded-circle border border-secondary"
+                 style="width: 45px; height: 45px; object-fit: cover;">
         </div>
     </div>
 
-    <div class="row g-4">
-        
-        {{-- === KOLOM KIRI: FORM & RINGKASAN === --}}
-        <div class="col-lg-4">
-            
-            {{-- CARD 1: FORM BUAT NOMOR ANTRIAN --}}
-            <div class="bg-card mb-4">
-                <h5 class="fw-bold text-white mb-4">
-                    <span class="material-symbols-outlined align-middle me-2 text-gold">confirmation_number</span>
-                    Buat Nomor Antrian
-                </h5>
-                
-                <form action="{{ route('reservasi.admin.create') }}" method="GET">
-                    <div class="mb-3">
-                        <label class="small mb-2" style="color: #aaa;">Cari Pasien</label>
-                        <div class="input-group">
-                            <span class="input-group-text input-group-text-dark">
-                                <span class="material-symbols-outlined fs-6">search</span>
-                            </span>
-                            <input type="text" class="form-control form-control-dark" placeholder="Ketik nama atau ID..." readonly style="cursor: pointer;" onclick="this.closest('form').submit();">
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                         <label class="small mb-2" style="color: #aaa;">Dokter Tujuan</label>
-                        <select class="form-select form-select-dark" disabled>
-                            <option>Pilih di langkah selanjutnya...</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-gold">
-                        <span class="material-symbols-outlined fs-5 align-middle">add_circle</span> Buat Antrian Baru
+    {{-- 3. RINGKASAN ANTRIAN (DITARUH DI ATAS) --}}
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">hourglass_top</span>
+                <div class="stat-label">Menunggu</div>
+                <div class="stat-value val-warning">{{ $stats['menunggu'] ?? 0 }}</div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">stethoscope</span>
+                <div class="stat-label">Sedang Diperiksa</div>
+                <div class="stat-value val-info">{{ $stats['diproses'] ?? 0 }}</div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">check_circle</span>
+                <div class="stat-label">Selesai</div>
+                <div class="stat-value val-success">{{ $stats['selesai'] ?? 0 }}</div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-md-3">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">cancel</span>
+                <div class="stat-label">Batal</div>
+                <div class="stat-value val-danger">{{ $stats['batal'] ?? 0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    {{-- 4. DAFTAR ANTRIAN HARI INI (TABLE DI BAWAH) --}}
+    <div class="queue-table-card shadow-sm">
+
+        <div class="p-4 d-flex justify-content-between align-items-center flex-wrap gap-3 border-bottom border-secondary">
+            <h4 class="fw-bold text-white mb-0">Daftar Antrian</h4>
+
+            {{-- 🔥 FORM FILTER (TANGGAL & SEARCH) --}}
+            <form action="{{ route('reservasi.admin.antrian') }}" method="GET" class="d-flex gap-3">
+
+                {{-- Input Tanggal --}}
+                <div class="input-group" style="width: 200px;">
+                    <span class="input-group-text input-group-text-dark">
+                        <span class="material-symbols-outlined fs-6">calendar_month</span>
+                    </span>
+                    <input type="date" name="tanggal" value="{{ $tanggalPilih }}"
+                           class="form-control form-control-dark"
+                           style="border-left:none;"
+                           onchange="this.form.submit()">
+                </div>
+
+                {{-- Input Search --}}
+                <div class="input-group" style="width: 250px;">
+                    <button type="submit" class="input-group-text input-group-text-dark btn btn-dark">
+                        <span class="material-symbols-outlined fs-5">search</span>
                     </button>
-                </form>
-            </div>
-
-            {{-- CARD 2: RINGKASAN HARI INI (FIX FONT COLOR) --}}
-            <div class="bg-card">
-                <h5 class="fw-bold text-white mb-4">Ringkasan Antrian</h5>
-
-                {{-- Box Menunggu --}}
-                <div class="summary-box box-warning">
-                    <div>
-                        <span class="summary-label">Menunggu</span>
-                        <h2 class="fw-bold mb-0">{{ $stats['menunggu'] ?? 0 }}</h2>
-                    </div>
-                    <span class="material-symbols-outlined text-warning fs-1 opacity-50">hourglass_top</span>
+                    <input type="text" name="search" value="{{ request('search') }}"
+                           class="form-control form-control-dark"
+                           style="border-left:none;"
+                           placeholder="Cari nama / no antrian...">
                 </div>
-
-                {{-- Box Sedang Diperiksa --}}
-                <div class="summary-box box-info">
-                    <div>
-                        <span class="summary-label">Sedang Diperiksa</span>
-                        <h2 class="fw-bold mb-0">{{ $stats['diproses'] ?? 0 }}</h2>
-                    </div>
-                    <span class="material-symbols-outlined text-info fs-1 opacity-50">medical_services</span>
-                </div>
-
-                {{-- Box Selesai --}}
-                <div class="summary-box box-success">
-                    <div>
-                        <span class="summary-label">Selesai</span>
-                        <h2 class="fw-bold mb-0">{{ $stats['selesai'] ?? 0 }}</h2>
-                    </div>
-                    <span class="material-symbols-outlined text-success fs-1 opacity-50">check_circle</span>
-                </div>
-            </div>
+            </form>
         </div>
 
-        {{-- === KOLOM KANAN: TABEL DAFTAR ANTRIAN === --}}
-        <div class="col-lg-8">
-            <div class="bg-card h-100 p-0 overflow-hidden">
-                
-                {{-- Toolbar Tabel --}}
-                <div class="p-4 border-bottom border-secondary d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <h5 class="fw-bold text-white mb-0">Daftar Antrian Hari Ini</h5>
-                    <form action="{{ route('reservasi.admin.antrian') }}" method="GET">
-                        <div class="input-group" style="width: 250px;">
-                            <span class="input-group-text input-group-text-dark bg-transparent">
-                                <span class="material-symbols-outlined fs-6">search</span>
-                            </span>
-                            <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-dark bg-transparent" placeholder="Cari nama / no antrian..." style="border-left: none;">
-                        </div>
-                    </form>
-                </div>
+        <div class="table-responsive">
+            <table class="table table-dark-custom mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">NO. ANTRIAN</th>
+                        <th>NAMA PASIEN</th>
+                        <th>DOKTER</th>
+                        <th>JAM JANJI</th>
+                        <th class="text-center">STATUS</th>
+                        <th class="text-center">AKSI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($antrian as $item)
+                        <tr>
+                            <td class="ps-4">
+                                <div class="no-antrian-text">{{ $item->no_antrian ?? '-' }}</div>
+                            </td>
 
-                {{-- TABEL HITAM --}}
-                <div class="table-responsive">
-                    <table class="table table-dark-custom mb-0">
-                        <thead>
-                            <tr>
-                                <th class="ps-4">NO ANTRIAN</th>
-                                <th>NAMA PASIEN</th>
-                                <th>POLI & DOKTER</th>
-                                <th>JADWAL</th>
-                                <th class="text-center pe-4">STATUS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($antrian as $item)
-                                <tr>
-                                    {{-- 1. NO ANTRIAN --}}
-                                    <td class="ps-4">
-                                        <div class="queue-number">{{ $item->no_antrian ?? '-' }}</div>
-                                    </td>
+                            <td>
+                                <div class="fw-bold text-white">{{ $item->rekamMedis->nama ?? 'Tanpa Nama' }}</div>
+                                <small class="text-muted">{{ $item->rekamMedis->rekam_medis ?? '-' }}</small>
+                            </td>
 
-                                    {{-- 2. NAMA PASIEN --}}
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            {{-- Initials Avatar --}}
-                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-3 text-white fw-bold" style="width: 35px; height: 35px; font-size: 0.8rem;">
-                                                {{ substr($item->rekamMedis->nama ?? 'U', 0, 1) }}
-                                            </div>
-                                            <div>
-                                                <span class="patient-name">{{ $item->rekamMedis->nama ?? 'Tanpa Nama' }}</span>
-                                                <span class="rm-number">RM: {{ $item->rekamMedis->rekam_medis ?? '-' }}</span>
-                                            </div>
-                                        </div>
-                                    </td>
+                            <td class="text-muted">
+                                {{ $item->dokter->nama ?? '-' }}
+                            </td>
 
-                                    {{-- 3. POLI & DOKTER (Digabung biar rapi) --}}
-                                    <td>
-                                        <div>
-                                            {{-- Logic sederhana untuk Poli --}}
-                                            <span class="poli-badge">
-                                                {{ $item->jadwal->poli->nama_poli ?? ($item->dokter->poli->nama_poli ?? 'Poli Gigi') }}
-                                            </span>
-                                            <div class="dokter-name">{{ $item->dokter->nama ?? '-' }}</div>
-                                        </div>
-                                    </td>
+                            <td>
+                                <span class="text-white">{{ \Carbon\Carbon::parse($item->jam_mulai)->format('H:i') }}</span>
+                                <small class="text-muted">WIB</small>
+                            </td>
 
-                                    {{-- 4. JADWAL --}}
-                                    <td>
-                                        <div class="text-white fw-bold">{{ \Carbon\Carbon::parse($item->created_at)->format('H:i') }} <span style="color: #888; font-size: 0.8rem; font-weight: normal;">WIB</span></div>
-                                        <small style="color: #888; font-size: 0.75rem;">Estimasi</small>
-                                    </td>
+                            <td class="text-center">
+                                @php
+                                    $s = $item->status_reservasi;
+                                    $bgClass = match($s) {
+                                        'menunggu'     => 'bg-warning-soft',
+                                        'dalam_proses' => 'bg-info-soft',
+                                        'selesai'      => 'bg-success-soft',
+                                        'batal'        => 'bg-danger-soft',
+                                        default        => 'bg-secondary'
+                                    };
+                                    $label = match($s) {
+                                        'dalam_proses' => 'Sedang Diperiksa',
+                                        'menunggu'     => 'Menunggu',
+                                        'selesai'      => 'Selesai',
+                                        'batal'        => 'Dibatalkan',
+                                        default        => ucfirst($s)
+                                    };
+                                @endphp
+                                <span class="badge {{ $bgClass }}">{{ $label }}</span>
+                            </td>
 
-                                    {{-- 5. STATUS (Tanpa Aksi Dropdown) --}}
-                                    <td class="text-center pe-4">
-                                        @php
-                                            $s = $item->status_reservasi;
-                                            $class = match($s) {
-                                                'menunggu' => 'pill-menunggu',
-                                                'dalam_proses' => 'pill-proses',
-                                                'selesai' => 'pill-selesai',
-                                                'batal' => 'pill-batal',
-                                                default => 'pill-menunggu'
-                                            };
-                                            $dotColor = match($s) {
-                                                'menunggu' => '#ffc107',
-                                                'dalam_proses' => '#0dcaf0',
-                                                'selesai' => '#198754',
-                                                'batal' => '#dc3545',
-                                                default => '#ffc107'
-                                            };
-                                            $label = match($s) {
-                                                'dalam_proses' => 'Diperiksa',
-                                                default => ucfirst($s)
-                                            };
-                                        @endphp
-                                        <span class="status-pill {{ $class }}">
-                                            <span class="dot" style="background-color: {{ $dotColor }}"></span>
-                                            {{ $label }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="text-center py-5">
-                                        <span class="material-symbols-outlined fs-1 opacity-25 d-block mb-3" style="color: #888;">folder_off</span>
-                                        <p class="mb-0" style="color: #888;">Belum ada antrian pasien hari ini.</p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                {{-- End Table --}}
+                            <td class="text-center">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-link text-muted p-0 text-decoration-none" type="button" data-bs-toggle="dropdown">
+                                        <span class="material-symbols-outlined">more_vert</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark border-secondary shadow">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('reservasi.admin.show', $item->id) }}">
+                                                <span class="material-symbols-outlined fs-6 align-middle me-2 text-gold">visibility</span>
+                                                Detail
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider border-secondary"></li>
 
-            </div>
+                                        @if($item->status_reservasi == 'menunggu')
+                                        {{-- Tombol Aksi Cepat Panggil Masuk --}}
+                                        <li>
+                                            <form action="{{ route('reservasi.admin.status', $item->id) }}" method="POST">
+                                                @csrf
+                                                @method('PUT')
+                                                <input type="hidden" name="status_reservasi" value="dalam_proses">
+                                                <button type="submit" class="dropdown-item text-info">
+                                                    <span class="material-symbols-outlined fs-6 align-middle me-2">campaign</span>
+                                                    Panggil Masuk
+                                                </button>
+                                            </form>
+                                        </li>
+                                        @endif
+
+                                        @if($item->status_reservasi == 'dalam_proses')
+                                        {{-- Tombol Aksi Cepat Selesai Periksa --}}
+                                        <li>
+                                            <form action="{{ route('reservasi.admin.status', $item->id) }}" method="POST">
+                                                @csrf
+                                                @method('PUT')
+                                                <input type="hidden" name="status_reservasi" value="selesai">
+                                                <button type="submit" class="dropdown-item text-success">
+                                                    <span class="material-symbols-outlined fs-6 align-middle me-2">check_circle</span>
+                                                    Selesai Periksa
+                                                </button>
+                                            </form>
+                                        </li>
+                                        @endif
+
+                                        {{-- Tombol untuk mereset status jika perlu --}}
+                                        @if($item->status_reservasi == 'dalam_proses' || $item->status_reservasi == 'selesai')
+                                        <li>
+                                            <form action="{{ route('reservasi.admin.status', $item->id) }}" method="POST">
+                                                @csrf
+                                                @method('PUT')
+                                                <input type="hidden" name="status_reservasi" value="menunggu">
+                                                <button type="submit" class="dropdown-item text-warning">
+                                                    <span class="material-symbols-outlined fs-6 align-middle me-2">replay</span>
+                                                    Reset Antrian
+                                                </button>
+                                            </form>
+                                        </li>
+                                        @endif
+
+                                        <li><hr class="dropdown-divider border-secondary"></li>
+
+                                        {{-- Tombol Edit --}}
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('reservasi.admin.edit', $item->id) }}">
+                                                <span class="material-symbols-outlined fs-6 align-middle me-2">edit</span>
+                                                Edit
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <span class="material-symbols-outlined fs-1 opacity-25 d-block mb-3">groups_3</span>
+                                <p class="mb-0">Tidak ada antrian untuk tanggal ini.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+
     </div>
+
 </div>
 @endsection

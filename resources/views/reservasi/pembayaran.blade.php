@@ -23,7 +23,7 @@
     body { color: #fff; } /* Memastikan body default color putih */
     .text-gold { color: var(--gold-primary) !important; }
     .text-muted { color: var(--text-muted) !important; }
-     
+    
     /* Kelas Kustom untuk Badge Warning */
     .bg-warning-custom { background-color: var(--warning-status) !important; color: #000; } 
 
@@ -80,12 +80,12 @@
         color: #fff;
         transition: all 0.2s;
         cursor: pointer;
-        display: block; /* <<< FIX INI AGAR LEBARNYA 100% */
+        display: block; /* FIX INI AGAR LEBARNYA 100% */
     }
     .dropzone-dark:hover {
         border-color: var(--gold-primary) !important;
     }
-     
+    
     /* Style untuk daftar deskripsi (dl) agar rapi */
     .dl-horizontal dt {
         text-align: left;
@@ -126,23 +126,29 @@
             {{-- 1. RINGKASAN RESERVASI --}}
             <div class="mb-5">
                 <h4 class="fw-bold mb-3 text-white">Ringkasan Reservasi</h4>
-                 
+                
                 <div class="row text-white g-3">
                     <div class="col-md-6">
                         <dl class="row">
                             <dt class="col-sm-4 text-muted">Nama Pasien</dt>
-                            <dd class="col-sm-8 fw-bold">{{ $reservasi->rekamMedis->nama ?? 'Farel Sheva' }}</dd>
+                            <dd class="col-sm-8 fw-bold">{{ $reservasi->rekamMedis->nama ?? 'Nama Pasien' }}</dd>
 
-                            <dt class="col-sm-4 text-muted">Layanan</dt>
-                            <dd class="col-sm-8">{{ $reservasi->layanan ?? 'Periksa Gigi' }}</dd>
+                            <dt class="col-sm-4 text-muted">Dokter</dt>
+                            <dd class="col-sm-8">{{ $reservasi->dokter->nama ?? '-' }}</dd>
 
                             <dt class="col-sm-4 text-muted">Status Pembayaran</dt>
                             <dd class="col-sm-8">
                                 @php
-                                    $status = $reservasi->status_pembayaran ?? 'Belum Lunas';
-                                    $class = ($status == 'Lunas') ? 'bg-success' : 'bg-warning-custom';
+                                    // KOREKSI LIXA: Ambil status dari model yang benar
+                                    $status = $reservasi->status_pembayaran ?? 'menunggu_verifikasi';
+                                    $label = match($status) {
+                                        'lunas', 'terverifikasi' => 'Lunas',
+                                        'gagal' => 'Gagal',
+                                        default => 'Belum Lunas'
+                                    };
+                                    $class = ($label == 'Lunas') ? 'bg-success' : 'bg-warning-custom';
                                 @endphp
-                                <span class="badge {{ $class }} py-2 px-3 fw-bold">{{ $status }}</span>
+                                <span class="badge {{ $class }} py-2 px-3 fw-bold">{{ $label }}</span>
                             </dd>
                         </dl>
                     </div>
@@ -152,11 +158,12 @@
                             <dd class="col-sm-8 fw-bold text-gold">{{ $reservasi->rekamMedis->rekam_medis ?? 'RM002' }}</dd>
 
                             <dt class="col-sm-4 text-muted">Tanggal & Waktu</dt>
-                            <dd class="col-sm-8">{{ \Carbon\Carbon::parse($reservasi->tanggal_waktu ?? '2025-11-25 09:00:00')->format('d F Y') }}</dd>
+                            <dd class="col-sm-8">{{ \Carbon\Carbon::parse($reservasi->tanggal_pesan)->format('d F Y') }}</dd>
 
                             <dt class="col-sm-4 text-muted">Jumlah Total</dt>
                             <dd class="col-sm-8">
-                                <h4 class="text-white fw-bold">Rp {{ number_format($reservasi->jumlah_total ?? 25000, 0, ',', '.') }}</h4>
+                                {{-- KOREKSI LIXA: Ambil pembayaran_total yang benar --}}
+                                <h4 class="text-white fw-bold">Rp {{ number_format($reservasi->pembayaran_total ?? 0, 0, ',', '.') }}</h4>
                             </dd>
                         </dl>
                     </div>
@@ -171,7 +178,7 @@
                         <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-gold"></i>
                         <p class="text-white fw-bold">Tarik lepas file atau cari</p>
                         <small class="text-muted">Format yang didukung: JPEG PNG PDF</small>
-                         
+                        
                         {{-- DISPLAY FILE YANG SUDAH ADA / PREVIEW --}}
                         <div class="mt-4 text-left px-4">
                             @if($reservasi->bukti_pembayaran_file_name ?? null)
@@ -192,16 +199,15 @@
 
             {{-- FOOTER ACTION BUTTONS --}}
             <div class="d-flex justify-content-end gap-3 pt-4 border-top border-secondary">
-                 
+                
                 {{-- Tombol BATAL (Kembali ke Page Show/Detail) --}}
-                {{-- 🔥 PERBAIKAN ROUTING: Kembali ke Detail Reservasi, bukan Edit Jadwal --}}
                 <a href="{{ route('reservasi.admin.show', $reservasi->id) }}" class="btn btn-secondary-dark">
                     Batal
                 </a>
-                 
+                
                 {{-- Tombol SELESAI (Submit Form) --}}
                 <button type="submit" class="btn btn-gold">
-                    <i class="fas fa-check-circle"></i> Selesai
+                    <i class="fas fa-check-circle"></i> Tandai Lunas
                 </button>
             </div>
 
@@ -209,11 +215,11 @@
     </div>
 
 </div>
-{{-- Script untuk menampilkan nama file yang dipilih --}}
+{{-- Script untuk menampilkan nama file yang dipilih (TIDAK DIUBAH) --}}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const fileInput = document.getElementById('bukti_pembayaran_input');
-         
+        
         if (fileInput) {
             fileInput.addEventListener('change', function() {
                 const fileNameDisplay = document.getElementById('file_name_display');

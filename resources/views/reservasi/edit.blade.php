@@ -5,6 +5,7 @@
 @section('content')
 
 <style>
+    /* ... (CSS STYLE DI BIARKAN SAMA PERSIS) ... */
     :root {
         --gold-primary: #D4AF37;
         --gold-hover: #b89628;
@@ -160,7 +161,8 @@
                     </span>
                     <input type="date" class="form-control form-control-dark" style="border-left:none;"
                            id="tanggal_pesan" name="tanggal_pesan"
-                           value="{{ old('tanggal_pesan', $reservasi->tanggal_pesan) }}" required>
+                           {{-- KOREKSI: Pastikan format value tanggal adalah YYYY-MM-DD --}}
+                           value="{{ old('tanggal_pesan', \Carbon\Carbon::parse($reservasi->tanggal_pesan)->format('Y-m-d')) }}" required>
                 </div>
             </div>
 
@@ -203,11 +205,10 @@
             </div>
 
             @php
-                // List Jam Praktek
+                // List Jam Praktek (Dummy List - aslinya harusnya dari API/DB berdasarkan Dokter/Tanggal)
                 $jamPraktek = ['09:00', '09:30', '11:00', '13:00', '13:30', '14:00', '15:00'];
                 
-                // 🔥 LOGIC FIX: Ambil dari $reservasi->jam_mulai (Jam Janji Pasien)
-                // Bukan dari $reservasi->jadwal (Jam Buka Klinik)
+                // 🔥 LOGIC FIX: Ambil jam mulai reservasi yang dipilih
                 $jamSaatIni = $reservasi->jam_mulai 
                     ? \Carbon\Carbon::parse($reservasi->jam_mulai)->format('H:i') 
                     : null;
@@ -219,6 +220,7 @@
                 <div class="row row-cols-3 row-cols-sm-4 row-cols-md-6 g-3">
                     @foreach($jamPraktek as $jam)
                     <div class="col btn-time-wrapper">
+                        {{-- KOREKSI: Name input jam praktek harus 'jam_praktek' sesuai controller --}}
                         <input type="radio" class="btn-check" name="jam_praktek"
                                id="jam_{{ $loop->index }}" value="{{ $jam }}"
                                {{ $jam == $jamSaatIni ? 'checked' : '' }}>
@@ -234,17 +236,20 @@
             <div class="mb-4">
                 <label for="status_pembayaran" class="form-label">Status Pembayaran</label>
                 <select class="form-select form-select-dark" id="status_pembayaran" name="status_pembayaran">
-                    <option value="menunggu_pembayaran" {{ $reservasi->status_pembayaran == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar</option>
-                    <option value="menunggu_verifikasi" {{ $reservasi->status_pembayaran == 'menunggu_verifikasi' ? 'selected' : '' }}>Menunggu Verifikasi</option>
-                    <option value="terverifikasi" {{ $reservasi->status_pembayaran == 'terverifikasi' ? 'selected' : '' }}>Lunas / Terverifikasi</option>
+                    <option value="menunggu_pembayaran" {{ $reservasi->status_pembayaran == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar (Online)</option>
+                    <option value="menunggu_verifikasi" {{ $reservasi->status_pembayaran == 'menunggu_verifikasi' ? 'selected' : '' }}>Menunggu Verifikasi (Manual)</option>
+                    {{-- KOREKSI LIXA: Tambahkan status lunas dari Webhook --}}
+                    <option value="lunas" {{ $reservasi->status_pembayaran == 'lunas' ? 'selected' : '' }}>Lunas (Online)</option> 
+                    <option value="terverifikasi" {{ $reservasi->status_pembayaran == 'terverifikasi' ? 'selected' : '' }}>Lunas / Terverifikasi (Admin)</option>
                     <option value="gagal" {{ $reservasi->status_pembayaran == 'gagal' ? 'selected' : '' }}>Gagal</option>
                 </select>
             </div>
 
             <div class="mb-5">
                 <label for="alasan" class="form-label">Alasan Perubahan</label>
+                {{-- KOREKSI LIXA: Ambil nilai keluhan yang sudah ada --}}
                 <textarea class="form-control form-control-dark" id="alasan" name="alasan" rows="4"
-                          placeholder="Tuliskan alasan kenapa jadwal diubah...">{{ old('alasan') }}</textarea>
+                           placeholder="Tuliskan alasan kenapa jadwal diubah...">{{ old('alasan', $reservasi->keluhan) }}</textarea>
             </div>
 
             <div class="d-flex justify-content-end gap-3 pt-2 border-top border-secondary">

@@ -32,14 +32,10 @@ Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-<<<<<<<<< Temporary merge branch 1
-// Informasi Umum (Dokter & Jadwal Umum)
-=========
-// Route Callback Midtrans 
+// Route Callback Midtrans
 Route::post('payment/midtrans-callback', [MidtransWebhookController::class, 'handle']);
 
 // ROUTE — Jadwal Praktek
->>>>>>>>> Temporary merge branch 2
 Route::get('/jadwal-praktek', [DokterController::class, 'getJadwalPraktek']);
 Route::get('/dokter', [DokterController::class, 'index']);
 Route::get('/dokter/{id}', [DokterController::class, 'show']);
@@ -48,6 +44,14 @@ Route::get('/promo', [PromoController::class, 'index']);
 // OTP (Password Reset & Verifikasi)
 Route::post('/auth/request-otp', [AuthController::class, 'requestOtpEmail']);
 Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtpEmail']);
+
+// ==============================
+// 🦷 ROUTE RESERVASI KLINIK (PUBLIK - TANPA LOGIN)
+// ==============================
+// Endpoint yang bisa diakses sebelum login untuk menampilkan informasi dasar
+Route::get('/reservasi/poli', [ReservasiController::class, 'getDaftarPoli']);
+Route::post('/reservasi/dokter', [ReservasiController::class, 'getDokterByPoli']);
+Route::post('/reservasi/jadwal', [ReservasiController::class, 'getJadwalDenganKuota']);
 
 // ========================================================================
 // 🔒 PROTECTED ROUTES (WAJIB LOGIN / ADA TOKEN)
@@ -76,29 +80,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
 
     // ==============================
-    // 🦷 ROUTE RESERVASI KLINIK (FLUTTER)
+    // 🦷 ROUTE RESERVASI KLINIK (FLUTTER) - SETELAH LOGIN
     // ==============================
-    // Kita amankan di sini agar hanya user login yang bisa booking
 
     // Helper: Ambil Data User untuk Form Reservasi
     Route::get('/reservasi/user', [ReservasiController::class, 'getUserData']);
 
-    // Langkah 1: Ambil Poli
-    Route::get('/reservasi/poli', [ReservasiController::class, 'getDaftarPoli']);
-
-    // Langkah 2: Filter Dokter (POST karena mungkin nanti butuh kirim param banyak)
-    Route::post('/reservasi/dokter', [ReservasiController::class, 'getDokterByPoli']);
-
-    // Langkah 3: Cek Jadwal & Kuota (PENTING: Cek Libur juga ada di sini)
-    Route::post('/reservasi/jadwal', [ReservasiController::class, 'getJadwalDenganKuota']);
-
-    // Langkah 4: Create Booking (Submit)
+    // Langkah 4: Create Booking (Submit) - Butuh login karena melibatkan pembayaran
     Route::post('/reservasi/create', [ReservasiController::class, 'createReservasi']);
 
-    // Langkah 5: Update Pembayaran (Opsional via API jika User upload bukti)
+    // Langkah 5: Cek Status Pembayaran
+    Route::get('/reservasi/cek-status/{no_pemeriksaan}', [ReservasiController::class, 'cekStatusPembayaran']);
+
+    // Langkah 6: Update Pembayaran (Opsional via API jika User upload bukti)
     Route::put('/reservasi/pembayaran/{no_pemeriksaan}', [ReservasiController::class, 'updatePembayaran']);
 
-    // Langkah 6: Riwayat Reservasi Spesifik
+    // Langkah 7: Riwayat Reservasi Spesifik
     Route::get('/reservasi/riwayat/{rekam_medis_id}', [ReservasiController::class, 'riwayatReservasi']);
 
 

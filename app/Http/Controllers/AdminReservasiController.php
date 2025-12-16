@@ -11,8 +11,8 @@ use App\Models\MasterDokter;
 use App\Models\MasterPoli;
 use App\Models\JadwalHarian; 
 use App\Models\MasterJadwal;
-use App\Models\DataPasien;       // ✅ Model untuk Antrian Dokter
-use App\Models\TransaksiBayar;   // ✅ Model untuk Kasir
+use App\Models\DataPasien;      // ✅ Model untuk Antrian Dokter
+use App\Models\TransaksiBayar;  // ✅ Model untuk Kasir
 use Carbon\Carbon;
 use Exception;
 
@@ -49,12 +49,12 @@ class AdminReservasiController extends Controller
         $stats = [
             'total'    => (clone $statsQuery)->count(),
             'menunggu' => (clone $statsQuery)->whereIn('status_reservasi', ['menunggu'])->count(),
-            'diproses' => (clone $statsQuery)->whereIn('status_reservasi', ['dalam_proses'])->count(), // ✅ Ada
+            'diproses' => (clone $statsQuery)->whereIn('status_reservasi', ['dalam_proses'])->count(), 
             'selesai'  => (clone $statsQuery)->whereIn('status_reservasi', ['selesai'])->count(),
             'batal'    => (clone $statsQuery)->whereIn('status_reservasi', ['batal'])->count(),
         ];
 
-        $data = $query->orderBy('tanggal_pesan', 'desc')->orderBy('created_at', 'desc')->paginate(10);
+        $data = $query->orderBy('tanggal_pesan', 'desc')->orderBy('waktu_pesan', 'desc')->paginate(10);
         $dokters = MasterDokter::select('kode_dokter', 'nama')->get();
         $polis   = MasterPoli::select('kode_poli', 'nama_poli')->get();
 
@@ -62,17 +62,22 @@ class AdminReservasiController extends Controller
     }
 
     // ============================================================
-    // 2. HALAMAN ANTRIAN (QUEUE MANAGEMENT) - 🔥 WAJIB ADA
+    // 2. HALAMAN ANTRIAN (QUEUE MANAGEMENT)
     // ============================================================
     public function antrianIndex(Request $request)
     {
-        // Ambil reservasi HARI INI yang sudah LUNAS/VERIFIED
-        $query = Reservasi::with(['rekamMedis', 'dokter'])
-            ->whereDate('created_at', Carbon::today())
-            ->whereIn('status_pembayaran', ['terverifikasi', 'Lunas'])
-            ->orderBy('created_at', 'asc');
+        // 1. Ambil Tanggal dari Input, Default Hari Ini
+        $tanggalPilih = $request->input('tanggal', Carbon::today()->format('Y-m-d'));
 
-        // Filter Search di Halaman Antrian
+        $query = Reservasi::with(['rekamMedis', 'dokter'])
+            ->whereDate('tanggal_pesan', $tanggalPilih) // 🔥 Filter Tanggal Disini
+            ->whereNotNull('no_antrian')
+            ->whereIn('status_pembayaran', ['lunas', 'terverifikasi'])
+            // Urutan: Status (Sedang diproses duluan), lalu No Antrian
+            ->orderByRaw("FIELD(status_reservasi, 'dalam_proses', 'menunggu', 'selesai', 'batal')")
+            ->orderByRaw("CAST(SUBSTRING_INDEX(no_antrian, '-', -1) AS UNSIGNED) ASC");
+
+        // Filter Search (Nama/No Antrian)
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -85,7 +90,7 @@ class AdminReservasiController extends Controller
 
         $antrian = $query->get();
 
-        // Stats Real-time untuk Halaman Antrian
+        // Stats Real-time (Berdasarkan tanggal yang dipilih)
         $stats = [
             'menunggu' => $antrian->where('status_reservasi', 'menunggu')->count(),
             'diproses' => $antrian->where('status_reservasi', 'dalam_proses')->count(),
@@ -93,11 +98,11 @@ class AdminReservasiController extends Controller
             'batal'    => $antrian->where('status_reservasi', 'batal')->count(),
         ];
 
-        return view('reservasi.patient-queue', compact('antrian', 'stats'));
+        return view('reservasi.patient-queue', compact('antrian', 'stats', 'tanggalPilih'));
     }
 
     // ============================================================
-    // 3. CREATE & SEARCH
+    // 3. CREATE & SEARCH (Manual Admin)
     // ============================================================
     public function create()
     {
@@ -105,7 +110,7 @@ class AdminReservasiController extends Controller
         $dokters = MasterDokter::select('kode_dokter', 'nama')->get(); 
         $polis   = MasterPoli::select('kode_poli', 'nama_poli')->get();
         $jadwals = JadwalHarian::all(); 
-        return view('reservasi.reservasi_form', compact('pasiens', 'dokters', 'polis', 'jadwals')); 
+        return view('reservasi.create', compact('pasiens', 'dokters', 'polis', 'jadwals')); 
     }
 
     public function cariPasien(Request $request)
@@ -137,11 +142,12 @@ class AdminReservasiController extends Controller
     public function createManual(Request $request)
     {
         $request->validate([
-            'nama_lengkap' => 'required_without:pasien_id_exist|string|max:255', 
-            'poli'         => 'required|exists:master_poli,kode_poli', 
-            'dokter'       => 'required|exists:master_dokter,kode_dokter',
-            'tanggal_janji'=> 'required|date',
-            'waktu_janji'  => 'required',
+            'nama_lengkap'  => 'required_without:pasien_id_exist|string|max:255', 
+            'poli'          => 'required|exists:master_poli,kode_poli', 
+            'dokter'        => 'required|exists:master_dokter,kode_dokter',
+            'tanggal_janji' => 'required|date',
+            'waktu_janji'   => 'required',
+            'jenis_pasien'  => 'required|string|in:Umum,BPJS,Asuransi',
         ]);
 
         DB::beginTransaction();
@@ -157,12 +163,12 @@ class AdminReservasiController extends Controller
                 $rekam_medis_no = 'RM' . str_pad($new_rm_num, 3, '0', STR_PAD_LEFT);
 
                 $pasien = RekamMedis::create([
-                    'rekam_medis'  => $rekam_medis_no,
-                    'nama'         => $request->input('nama_lengkap'),
-                    'tgl_lahir'    => $request->input('ttl'),
-                    'alamat'       => $request->input('alamat'),
-                    'no_hp'        => $request->input('no_hp'),
-                    'jenis_pasien' => $request->input('jenis_pasien'),
+                    'rekam_medis'   => $rekam_medis_no,
+                    'nama'          => $request->input('nama_lengkap'),
+                    'tgl_lahir'     => $request->input('ttl'),
+                    'alamat'        => $request->input('alamat'),
+                    'no_hp'         => $request->input('no_hp'),
+                    'jenis_pasien'  => $request->input('jenis_pasien'),
                 ]);
                 $rekam_medis_id = $pasien->id; 
                 $pasien_nama = $pasien->nama;
@@ -175,31 +181,40 @@ class AdminReservasiController extends Controller
             // Logic Jadwal
             $tanggal_waktu_pesan = Carbon::parse($request->input('tanggal_janji') . ' ' . $request->input('waktu_janji'));
             $day_of_week = $tanggal_waktu_pesan->dayOfWeekIso; 
-            $master = MasterJadwal::where('kode_dokter', $request->input('dokter'))->where('hari', $day_of_week)->first();
+            $master = MasterJadwal::where('kode_dokter', $request->input('dokter'))
+                                    ->where('hari', $day_of_week)
+                                    ->where('jam_mulai', $request->input('waktu_janji'))
+                                    ->first(); 
             $jadwal_id = $master ? $master->id : null;
 
-            if (!$jadwal_id) throw new Exception("Jadwal Dokter tidak ditemukan di hari tersebut.");
+            if (!$jadwal_id) throw new Exception("Jadwal Dokter atau jam praktek tidak ditemukan untuk hari tersebut.");
 
             // Simpan Reservasi
             $reservasi = Reservasi::create([
                 'pasien_id'         => $rmString, 
                 'dokter_id'         => $request->input('dokter'), 
                 'jadwal_id'         => $jadwal_id,
-                'tanggal_pesan'     => $tanggal_waktu_pesan, 
+                'tanggal_pesan'     => $request->input('tanggal_janji'), 
+                'waktu_pesan'       => $tanggal_waktu_pesan->format('H:i:s'), 
                 'jam_mulai'         => $request->input('waktu_janji'),
-                'jam_selesai'       => Carbon::parse($request->input('waktu_janji'))->addMinutes(30)->format('H:i'),
+                'jam_selesai'       => Carbon::parse($request->input('waktu_janji'))->addMinutes(30)->format('H:i:s'), 
                 'keluhan'           => $request->input('keluhan'),
-                'status_pembayaran' => $request->input('status_bayar'), 
-                'metode_pembayaran' => $request->input('metode_bayar'),
+                'status_pembayaran' => $request->input('status_bayar', 'menunggu_verifikasi'), 
+                'metode_pembayaran' => $request->input('metode_bayar', 'Manual'),
                 'pembayaran_total'  => $request->input('total_biaya', 0),
                 'status_reservasi'  => 'menunggu',
-                'no_pemeriksaan'    => $this->generateNoPemeriksaan(),
+                'no_pemeriksaan'    => $this->generateNoPemeriksaanManual(), 
                 'no_antrian'        => null, 
                 'jenis_pasien'      => $request->input('jenis_pasien'), 
             ]);
 
+            // 🔥 AKSI KRITIS ADMIN: MASUKKAN ANTRIAN JIKA SUDAH LUNAS/TERVERIFIKASI
             if (in_array($request->input('status_bayar'), ['lunas', 'terverifikasi'])) {
-                $this->processQueueLogic($reservasi, $rmString, $jadwal_id);
+                $reservasi->status_pembayaran = 'terverifikasi'; 
+                $reservasi->save();
+                $this->processQueueLogicManual($reservasi, $rmString, $jadwal_id);
+            } else {
+                $reservasi->save();
             }
 
             DB::commit();
@@ -212,7 +227,7 @@ class AdminReservasiController extends Controller
     }
 
     // ============================================================
-    // 4. SHOW, EDIT, UPDATE
+    // 4. SHOW, EDIT, UPDATE (Single Entry Point untuk Modal)
     // ============================================================
     public function show($id)
     {
@@ -230,38 +245,76 @@ class AdminReservasiController extends Controller
         return view('reservasi.edit', compact('reservasi', 'dokters', 'polis')); 
     }
 
+    // 🔥🔥 UPDATE: Method ini sekarang menangani SEMUA perubahan dari Modal (Satu Tombol) 🔥🔥
     public function update(Request $request, $id)
     {
-        $reservasi = Reservasi::find($id);
-        if (!$reservasi) return redirect()->back()->with('error', 'Data tidak ditemukan.');
+        $reservasi = Reservasi::with('rekamMedis')->find($id);
+        if (!$reservasi) return back()->with('error', 'Data tidak ditemukan.');
 
-        $reservasi->tanggal_pesan = $request->tanggal_pesan;
-        if ($request->has('dokter_id')) $reservasi->dokter_id = $request->dokter_id;
-        
-        if ($request->has('jam_praktek')) {
-            $reservasi->jam_mulai = $request->jam_praktek;
-            $reservasi->jam_selesai = Carbon::parse($request->jam_praktek)->addMinutes(30)->format('H:i');
-        }
-        if ($request->filled('alasan')) {
-            $reservasi->keluhan = $reservasi->keluhan . ' [Note: ' . $request->alasan . ']';
-        }
-
-        // Update Status Pembayaran dari Edit Page
-        if ($request->filled('status_pembayaran')) {
-            $reservasi->status_pembayaran = $request->status_pembayaran;
-            if ($request->status_pembayaran == 'terverifikasi' || $request->status_pembayaran == 'Lunas') {
-                $reservasi->status_reservasi = 'menunggu';
-                $rmString = $reservasi->rekamMedis ? $reservasi->rekamMedis->rekam_medis : $reservasi->pasien_id;
-                $this->processQueueLogic($reservasi, $rmString, $reservasi->jadwal_id);
+        DB::beginTransaction();
+        try {
+            // 1. Update Data Medis & Jadwal (Jika ada inputnya)
+            if ($request->has('dokter_id')) $reservasi->dokter_id = $request->dokter_id;
+            if ($request->has('tanggal_pesan')) $reservasi->tanggal_pesan = $request->tanggal_pesan;
+            
+            if ($request->has('jam_mulai')) {
+                $reservasi->jam_mulai = $request->jam_mulai;
+                // Otomatis set jam selesai +30 menit
+                $reservasi->jam_selesai = Carbon::parse($request->jam_mulai)->addMinutes(30)->format('H:i:s');
             }
-        }
+            if ($request->has('jam_selesai')) $reservasi->jam_selesai = $request->jam_selesai; 
+            
+            if ($request->filled('keluhan')) $reservasi->keluhan = $request->keluhan;
 
+            // 2. Update Status Reservasi (Operasional)
+            if ($request->has('status_reservasi')) {
+                $reservasi->status_reservasi = $request->status_reservasi;
+            }
+
+            // 3. Update Keuangan
+            if ($request->has('metode_pembayaran')) {
+                $reservasi->metode_pembayaran = $request->metode_pembayaran;
+            }
+            
+            // Logic Perubahan Status Pembayaran
+            if ($request->filled('status_pembayaran') && $reservasi->status_pembayaran != $request->status_pembayaran) {
+                $reservasi->status_pembayaran = $request->status_pembayaran;
+                
+                // 🔥 Jika diubah jadi Lunas -> Masukkan Antrian (Kalau belum punya)
+                if (in_array($request->status_pembayaran, ['terverifikasi', 'lunas'])) {
+                    // Pastikan status reservasi operasional juga siap
+                    if($reservasi->status_reservasi == 'menunggu_pembayaran') {
+                         $reservasi->status_reservasi = 'menunggu';
+                    }
+                    
+                    $rmString = $reservasi->rekamMedis ? $reservasi->rekamMedis->rekam_medis : $reservasi->pasien_id;
+                    $this->processQueueLogicManual($reservasi, $rmString, $reservasi->jadwal_id);
+                }
+            }
+
+            $reservasi->save();
+            DB::commit();
+
+            return back()->with('success', 'Data reservasi berhasil diperbarui.');
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal update: ' . $e->getMessage());
+        }
+    }
+    
+    // Method Khusus untuk update status operasional saja (opsional, jika tombol aksi cepat dipakai)
+    public function updateStatusReservasi(Request $request, $id)
+    {
+        $reservasi = Reservasi::findOrFail($id);
+        $request->validate(['status_reservasi' => 'required|in:menunggu,dalam_proses,selesai,batal']);
+        $reservasi->status_reservasi = $request->status_reservasi;
         $reservasi->save();
-        return redirect()->route('reservasi.admin.show', $reservasi->id)->with('success', 'Data berhasil diperbarui!');
+        return back()->with('success', 'Status Kunjungan Diperbarui');
     }
 
     // ============================================================
-    // 5. PEMBAYARAN & LUNAS
+    // 5. PEMBAYARAN & LUNAS (Manual Admin)
     // ============================================================
     public function showPayment($id)
     {
@@ -284,7 +337,8 @@ class AdminReservasiController extends Controller
             $reservasi->status_reservasi = 'menunggu'; 
             
             $rmString = $reservasi->rekamMedis ? $reservasi->rekamMedis->rekam_medis : $reservasi->pasien_id;
-            $this->processQueueLogic($reservasi, $rmString, $reservasi->jadwal_id);
+            // 🔥 AKSI KRITIS ADMIN: Panggil logic antrian Manual
+            $this->processQueueLogicManual($reservasi, $rmString, $reservasi->jadwal_id);
 
             DB::commit();
             return redirect()->route('reservasi.admin.index')->with('success', 'LUNAS! Pasien Masuk Antrian.');
@@ -294,79 +348,78 @@ class AdminReservasiController extends Controller
         }
     }
 
-    // ✅ UPDATE MANUAL
+    // Endpoint khusus jika hanya update pembayaran (fallback)
     public function updatePembayaran(Request $request, $id)
     {
-        $reservasi = Reservasi::with('rekamMedis')->findOrFail($id);
-        DB::beginTransaction();
-        try {
-            $statusBaru = $request->input('status_pembayaran', 'terverifikasi');
-            $reservasi->status_pembayaran = $statusBaru;
-
-            if ($statusBaru == 'terverifikasi' || $statusBaru == 'Lunas') {
-                $reservasi->status_reservasi = 'menunggu';
-                $rmString = $reservasi->rekamMedis ? $reservasi->rekamMedis->rekam_medis : $reservasi->pasien_id;
-                $this->processQueueLogic($reservasi, $rmString, $reservasi->jadwal_id);
-            }
-
-            $reservasi->save();
-            DB::commit();
-            return back()->with('success', 'Status Pembayaran Diperbarui');
-        } catch (Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Gagal update: ' . $e->getMessage());
-        }
+        return $this->update($request, $id); // Alihkan ke fungsi update utama
     }
 
-    public function updateStatusReservasi(Request $request, $id)
+    // ============================================================
+    // PRIVATE HELPER (KHUSUS ADMIN MANUAL)
+    // ============================================================
+    
+    private function generateNoPemeriksaanManual()
     {
-        $reservasi = Reservasi::findOrFail($id);
-        $request->validate(['status_reservasi' => 'required|in:menunggu,dalam_proses,selesai,batal']);
-        $reservasi->status_reservasi = $request->status_reservasi;
-        $reservasi->save();
-        return back()->with('success', 'Status Kunjungan Diperbarui');
-    }
-
-    // ============================================================
-    // PRIVATE HELPER
-    // ============================================================
-    private function generateNoPemeriksaan() {
         $tanggal = Carbon::now()->format('Ymd');
-        do { $random = random_int(100, 999); $no = "RSV-{$tanggal}{$random}"; } 
-        while (Reservasi::where('no_pemeriksaan', $no)->exists());
-        return $no;
+        $prefix = "RSV-{$tanggal}";
+
+        $lastReservasi = Reservasi::where('no_pemeriksaan', 'LIKE', $prefix . '%')
+                                    ->whereDate('created_at', Carbon::today())
+                                    ->orderBy('no_pemeriksaan', 'desc')
+                                    ->first();
+        
+        $urutan = 1;
+        if ($lastReservasi) {
+            $lastNumber = (int) substr($lastReservasi->no_pemeriksaan, -3); 
+            $urutan = $lastNumber + 1;
+        }
+        $noUrutString = str_pad($urutan, 3, '0', STR_PAD_LEFT);
+
+        return $prefix . $noUrutString; 
     }
 
-    // 🔥 FIX LOGIC ANTRIAN DISINI
-    private function processQueueLogic($reservasi, $rmString, $jadwalId) {
+    // 🔥 Logic antrian yang dipertahankan di Admin untuk MANUAL INPUT
+    private function processQueueLogicManual($reservasi, $rmString, $jadwalId) {
+        // 1. GENERATE NO ANTRIAN (Hanya jika belum ada)
         if (!$reservasi->no_antrian || $reservasi->no_antrian == '-') {
             $maxAntrian = DataPasien::where('id_jadwal', $jadwalId)->whereDate('created_at', Carbon::today())->max('no_antri'); 
             $urutanBaru = $maxAntrian ? ($maxAntrian + 1) : 1;
+            
             $prefix = match($reservasi->jenis_pasien) { 'BPJS' => 'B', 'Asuransi' => 'A', default => 'U' };
             $reservasi->no_antrian = $prefix . '-' . str_pad($urutanBaru, 3, '0', STR_PAD_LEFT);
             $reservasi->save(); 
         } else {
-             $parts = explode('-', $reservasi->no_antrian);
-             $urutanBaru = (count($parts) > 1) ? (int) end($parts) : 1; 
+            $parts = explode('-', $reservasi->no_antrian);
+            $urutanBaru = (count($parts) > 1) ? (int) end($parts) : 1; 
         }
-
+        
+        // 2. INSERT/UPDATE DATA PASIEN (Antrian Hari Ini)
         $cekAntrian = DataPasien::where('rekam_medis', $rmString)->where('id_jadwal', $jadwalId)->whereDate('created_at', Carbon::today())->first();
         $idPeriksa = null;
+        
         if (!$cekAntrian) {
             $dp = DataPasien::create([
-                'id_jadwal' => $jadwalId, 'rekam_medis' => $rmString, 'no_antri' => $urutanBaru,
+                'id_jadwal' => $jadwalId, 
+                'rekam_medis' => $rmString, 
+                'no_antri' => $urutanBaru, 
                 'status' => 1, 'pasien_baru' => 0, 'rujukan' => 0, 'biaya_admin' => 0, 'keluhan' => $reservasi->keluhan,
+                'tanggal_periksa' => $reservasi->tanggal_pesan // Tambahkan tanggal periksa
             ]);
             $idPeriksa = $dp->id;
-        } else { $idPeriksa = $cekAntrian->id; }
+        } else { 
+            $idPeriksa = $cekAntrian->id;
+        }
 
+        // 3. INSERT TRANSAKSI BAYAR (Kasir)
         $cekTrx = TransaksiBayar::where('id_periksa', $idPeriksa)->first();
         if (!$cekTrx && $idPeriksa) {
             TransaksiBayar::create([
                 'id_periksa' => $idPeriksa, 
-                'ambil_obat' => 0, // ✅ WAJIB ADA BIAR TIDAK ERROR
+                'ambil_obat' => 0, 
                 'total_tindakan' => 0, 'total_obat' => 0, 'total_penunjang' => 0,
-                'total_tambahan' => 0, 'total_bayar' => 0, 'waktu' => Carbon::now(), 'diskon' => 0, 'biaya_admin' => 0, 'pasien_baru' => 0,
+                'total_tambahan' => 0, 
+                'total_bayar' => $reservasi->pembayaran_total, 
+                'waktu' => Carbon::now(), 'diskon' => 0, 'biaya_admin' => 0, 'pasien_baru' => 0,
             ]);
         }
     }

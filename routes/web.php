@@ -32,25 +32,39 @@ Route::middleware('auth:admin')->group(function () {
 
     // --- RESERVASI & ANTRIAN ---
     Route::prefix('admin/reservasi')->group(function () {
+        
+        // 1. DAFTAR RESERVASI (INDEX)
         Route::get('/', [AdminReservasiController::class, 'index'])->name('reservasi.admin.index');
+        
+        // 2. CREATE MANUAL
         Route::get('/create', [AdminReservasiController::class, 'create'])->name('reservasi.admin.create');
-        Route::post('/', [AdminReservasiController::class, 'createManual'])->name('reservasi.admin.store');
+        Route::post('/', [AdminReservasiController::class, 'createManual'])->name('reservasi.admin.createManual'); // KOREKSI: Gunakan createManual
+        
+        // 3. CARI PASIEN (AJAX)
         Route::get('/cari-pasien', [AdminReservasiController::class, 'cariPasien'])->name('reservasi.admin.cariPasien');
 
-        // 🔥 ROUTE BARU: ANTRIAN (Patient Queue)
-        
-        // Antrian Pasien
+        // 4. ANTRIAN (Patient Queue)
         Route::get('/antrian', [AdminReservasiController::class, 'antrianIndex'])->name('reservasi.admin.antrian');
 
-        // CRUD & Aksi Reservasi
+        // 5. DETAIL, EDIT, UPDATE DATA RESERVASI
         Route::get('/{id}/edit', [AdminReservasiController::class, 'edit'])->name('reservasi.admin.edit');
-        Route::put('/{id}', [AdminReservasiController::class, 'update'])->name('reservasi.admin.update');
-
-        Route::get('/{id}/pembayaran', [AdminReservasiController::class, 'showPayment'])->name('admin.reservasi.pembayaran');
-        Route::post('/{id}/tandai-lunas', [AdminReservasiController::class, 'tandaiLunas'])->name('reservasi.admin.tandaiLunas');
+        Route::put('/{id}', [AdminReservasiController::class, 'update'])->name('reservasi.admin.update'); // Method PUT
         Route::get('/{id}', [AdminReservasiController::class, 'show'])->name('reservasi.admin.show');
-        Route::post('/{id}/status', [AdminReservasiController::class, 'updateStatusReservasi'])->name('reservasi.admin.status');
-        Route::post('/{id}/verify-payment', [AdminReservasiController::class, 'updatePembayaran'])->name('reservasi.admin.verifyPayment');
+        
+        // 6. UPDATE STATUS OPERASIONAL (Menunggu -> Diproses -> Selesai)
+        // 🔥 FIX UTAMA: Ubah method dari POST ke PUT, dan gunakan nama route 'reservasi.admin.status'
+        Route::put('/{id}/status', [AdminReservasiController::class, 'updateStatusReservasi'])->name('reservasi.admin.status');
+        
+        // 7. KELOLA PEMBAYARAN MANUAL
+        // Route untuk menampilkan form pembayaran/cek bukti
+        Route::get('/{id}/pembayaran', [AdminReservasiController::class, 'showPayment'])->name('reservasi.admin.showPayment');
+        
+        // Route untuk menandai LUNAS (Upload bukti & panggil Queue Logic)
+        Route::post('/{id}/tandai-lunas', [AdminReservasiController::class, 'tandaiLunas'])->name('reservasi.admin.tandaiLunas');
+        
+        // Route untuk update pembayaran dari modal/form detail (PUT karena update status)
+        Route::put('/{id}/verify-payment', [AdminReservasiController::class, 'updatePembayaran'])->name('reservasi.admin.updatePembayaran'); 
+        
     });
 
     // Routes Lainnya (Promo, Dokter, Jadwal) - Tetap Sama
