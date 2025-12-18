@@ -129,7 +129,7 @@
             <!-- Dokter Information -->
             <div class="card bg-dark border-secondary mb-3">
                 <div class="card-header border-secondary">
-                    <h5 class="card-title mb-0 text-white">Dokter Bertugas</h5>
+                    <h5 class="card-title mb-0 text-white">Dokter</h5>
                 </div>
                 <div class="card-body">
                     @if($item->nama_dokter)

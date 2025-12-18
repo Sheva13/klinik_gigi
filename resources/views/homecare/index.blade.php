@@ -129,7 +129,7 @@
                             <th>No. RM</th>
                             <th>Waktu Kunjungan</th>
                             <th>Pasien</th>
-                            <th>Dokter Bertugas</th>
+                            <th>Dokter</th>
                             <th>Status</th>
                             <th class="text-end pe-4">Aksi</th>
                         </tr>
@@ -165,7 +165,7 @@
                             <td>
                                 @if($item->nama_dokter)
                                     <div class="fw-bold text-white">{{ $item->nama_dokter }}</div>
-                                    <div class="text-secondary small">Dokter Bertugas</div>
+                                    <div class="text-secondary small">Dokter</div>
                                 @elseif($item->dokter_id)
                                     <div class="fw-bold text-warning">{{ $item->dokter_id }}</div>
                                     <div class="text-secondary small">Nama Tidak Ditemukan</div>

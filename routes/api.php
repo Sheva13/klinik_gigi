@@ -28,6 +28,8 @@ use App\Http\Controllers\MidtransWebhookController;
 // 🟢 PUBLIC ROUTES (BISA DIAKSES TANPA LOGIN)
 // ========================================================================
 
+Route::get('/images/{path}', [HomeCareController::class, 'showImage'])->where('path', '.*');
+
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);

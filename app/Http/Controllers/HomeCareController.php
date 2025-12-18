@@ -238,15 +238,18 @@ class HomeCareController extends Controller
         $type = $request->query('type', 'booking'); // booking | settlement
 
         $dateNow = Carbon::now('Asia/Jakarta');
-        $query = MasterPromo::query()
-            ->whereDate('tanggal_mulai', '<=', $dateNow)
-            ->whereDate('tanggal_selesai', '>=', $dateNow);
+        $query = MasterPromo::query();
+        // Filter by Validity Date
+        $query->whereDate('tanggal_mulai', '<=', $dateNow)
+              ->whereDate('tanggal_selesai', '>=', $dateNow);
 
-        if ($type == 'settlement') {
-            // Pelunasan hanya boleh potongan_total
-            $query->where('tipe', 'potongan_total');
+        // Filter by Target Transaksi (Booking vs Pelunasan)
+        if ($type != 'all') {
+            $target = ($type == 'settlement') ? 'pelunasan' : 'booking';
+            $query->whereIn('target_transaksi', [$target, 'semua']);
         }
         // Booking boleh semua (inclusive free_transport)
+        $query->orderBy('id', 'desc');
 
         $promos = $query->get();
         return response()->json(['data' => $promos]);
@@ -317,5 +320,18 @@ class HomeCareController extends Controller
             'status' => 'success',
             'data' => $history
         ]);
+    }
+        public function showImage($path)
+    {
+        $path = storage_path('app/public/' . $path);
+
+        if (!file_exists($path)) {
+            return response()->json(['message' => 'Image not found.'], 404);
+        }
+
+        $file = file_get_contents($path);
+        $type = mime_content_type($path);
+
+        return response($file, 200)->header("Content-Type", $type);
     }
 }
