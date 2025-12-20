@@ -11,15 +11,31 @@ class PromoController extends Controller
     /**
      * Mengambil daftar promo yang masih aktif.
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $today = Carbon::today();
+            $today = Carbon::now('Asia/Jakarta');
 
-            // Ambil promo yang tanggal selesainya >= hari ini
-            $promos = MasterPromo::where('tanggal_selesai', '>=', $today)
-                                ->orWhereNull('tanggal_selesai') // Atau yang tidak ada tanggal selesainya
-                                ->get();
+            $query = MasterPromo::query();
+
+            // 1. Filter Tanggal (Gabungan Logic: Sudah mulai DAN (belum berakhir ATAU tidak ada batas akhir))
+            $query->whereDate('tanggal_mulai', '<=', $today)
+                  ->where(function($q) use ($today) {
+                      $q->whereDate('tanggal_selesai', '>=', $today)
+                        ->orWhereNull('tanggal_selesai');
+                  });
+
+            // 2. Filter Tipe Transaksi (Logic dari HomeCare)
+            // Param: type = 'booking' | 'settlement' | 'all'
+            $type = $request->query('type'); 
+            
+            if ($type && $type != 'all') {
+                $target = ($type == 'settlement') ? 'pelunasan' : 'booking';
+                $query->whereIn('target_transaksi', [$target, 'semua']);
+            }
+
+            $query->orderBy('id', 'desc');
+            $promos = $query->get();
 
             // Tentukan base URL untuk gambar
             $baseUrl = asset('');
@@ -41,6 +57,11 @@ class PromoController extends Controller
                     'id' => $promo->id,
                     'judul_promo' => $promo->judul_promo,
                     'deskripsi' => $promo->deskripsi,
+                    'kode_promo' => $promo->kode_promo ?? null,
+                    'tipe' => $promo->tipe, 
+                    'nilai_potongan' => $promo->nilai_potongan,
+                    'harga_poin' => $promo->harga_poin,
+                    'target_transaksi' => $promo->target_transaksi,
                     'gambar_banner' => $fotoUrl, // Kirim URL lengkap
                     'tanggal_mulai' => $promo->tanggal_mulai,
                     'tanggal_selesai' => $promo->tanggal_selesai,

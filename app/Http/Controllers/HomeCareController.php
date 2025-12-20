@@ -231,44 +231,7 @@ class HomeCareController extends Controller
     }
 
 
-    // --- FITUR BARU: API POIN & PROMO ---
 
-    public function getPromos(Request $request)
-    {
-        $type = $request->query('type', 'booking'); // booking | settlement
-
-        $dateNow = Carbon::now('Asia/Jakarta');
-        $query = MasterPromo::query();
-        // Filter by Validity Date
-        $query->whereDate('tanggal_mulai', '<=', $dateNow)
-              ->whereDate('tanggal_selesai', '>=', $dateNow);
-
-        // Filter by Target Transaksi (Booking vs Pelunasan)
-        if ($type != 'all') {
-            $target = ($type == 'settlement') ? 'pelunasan' : 'booking';
-            $query->whereIn('target_transaksi', [$target, 'semua']);
-        }
-        // Booking boleh semua (inclusive free_transport)
-        $query->orderBy('id', 'desc');
-
-        $promos = $query->get();
-        return response()->json(['data' => $promos]);
-    }
-
-    public function getUserPoints(Request $request)
-    {
-        $userId = $request->query('user_id'); // Or via Auth::id() if authenticated
-        // Fallback checks
-        if (!$userId)
-            return response()->json(['poin' => 0]);
-
-        // Use Query Builder for consistency with Webhook and reliability with String IDs
-        $poin = \Illuminate\Support\Facades\DB::table('users')
-            ->where('user_id', $userId)
-            ->value('poin');
-
-        return response()->json(['poin' => (int) $poin]);
-    }
 
     // --- FITUR BARU: ENDPOINTS EXISTING ---
 
@@ -306,21 +269,7 @@ class HomeCareController extends Controller
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }
-    public function getPointHistory(Request $request)
-    {
-        $userId = $request->query('user_id'); 
-        // Fallback checks
-        if (!$userId) return response()->json(['data' => []]);
 
-        $history = \App\Models\PointHistory::where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $history
-        ]);
-    }
         public function showImage($path)
     {
         $path = storage_path('app/public/' . $path);
