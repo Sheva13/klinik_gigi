@@ -4,9 +4,7 @@
 
 @section('styles')
 <style>
-    /* Custom Styles Khusus Halaman Ini untuk meniru Mockup Tailwind */
-    
-    /* Card Background menyerupai bg-[#1A1A1A] */
+    /* Card Background */
     .card-custom {
         background-color: #1A1A1A;
         border: 1px solid #333333;
@@ -26,10 +24,7 @@
         border-radius: 8px;
         transition: opacity 0.3s;
     }
-    .btn-gold:hover {
-        opacity: 0.9;
-        color: #000;
-    }
+    .btn-gold:hover { opacity: 0.9; color: #000; }
 
     /* Table Styles */
     .table-custom {
@@ -39,7 +34,7 @@
     }
     .table-custom th {
         background-color: #2C2C2C;
-        color: #9ca3af; /* Text Gray */
+        color: #9ca3af;
         font-weight: 600;
         text-transform: uppercase;
         font-size: 0.75rem;
@@ -53,13 +48,44 @@
         font-size: 0.875rem;
     }
     
-    /* Banner Image Styling */
+    /* Banner Thumb */
     .banner-thumb {
-        width: 100px;
-        height: 50px;
+        width: 80px;
+        height: 45px;
         object-fit: cover;
         border-radius: 6px;
         background-color: #333;
+        border: 1px solid #444;
+    }
+
+    /* Action Buttons Style */
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .btn-action span { font-size: 18px; }
+    .btn-action-edit {
+        background-color: rgba(245, 197, 66, 0.1);
+        color: #f5c542;
+        border: 1px solid rgba(245, 197, 66, 0.3);
+    }
+    .btn-action-edit:hover {
+        background-color: #f5c542;
+        color: #000;
+    }
+    .btn-action-delete {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-action-delete:hover {
+        background-color: #ef4444;
+        color: #fff;
     }
 </style>
 @endsection
@@ -71,86 +97,110 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-5 gap-3">
         <div>
             <h1 class="fw-bold mb-1" style="font-size: 2.5rem; letter-spacing: -1px;">Daftar Promo</h1>
-            <p class="text-secondary mb-0">Kelola promo yang aktif untuk pasien 3K Dental Care.</p>
+            <p class="text-secondary mb-0">Kelola promo dan gamifikasi yang aktif untuk pasien 3K Dental Care.</p>
         </div>
-        
-        <div class="d-flex align-items-center gap-4">
-            {{-- Tombol Tambah --}}
+        <div class="d-flex align-items-center gap-3">
+            {{-- Filter --}}
+            <form action="{{ route('promo.index') }}" method="GET" class="d-flex align-items-center">
+                <select name="target" class="form-select bg-dark text-white border-secondary" style="width: 200px;" onchange="this.form.submit()">
+                    <option value="">Semua Target</option>
+                    <option value="semua" {{ request('target') == 'semua' ? 'selected' : '' }}>Semua Transaksi</option>
+                    <option value="booking" {{ request('target') == 'booking' ? 'selected' : '' }}>Booking Only</option>
+                    <option value="pelunasan" {{ request('target') == 'pelunasan' ? 'selected' : '' }}>Pelunasan Only</option>
+                </select>
+            </form>
+
             <a href="{{ route('promo.create') }}" class="btn btn-gold">
-    <span class="material-symbols-outlined" style="font-size: 20px;">add</span>
-    Tambah Promo Baru
-</a>
-            
-            {{-- Profil Admin Kecil --}}
-            
+                <span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+                Tambah Promo Baru
+            </a>
         </div>
     </div>
 
-    {{-- Table Section --}}
+    {{-- Alert --}}
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert" 
-             style="background-color: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; color: #28a745;">
-            <i class="bi bi-check-circle me-2"></i> {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert" 
+             style="background-color: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.4); color: #4ade80;">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
-    <div class="card card-custom overflow-hidden">
+
+    {{-- Table Section --}}
+    <div class="card card-custom overflow-hidden shadow-sm">
         <div class="table-responsive">
             <table class="table table-custom mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th scope="col">Judul Promo</th>
-                        <th scope="col">Deskripsi</th>
-                        <th scope="col">Gambar Banner</th>
-                        <th scope="col">Tanggal Mulai</th>
-                        <th scope="col">Tanggal Selesai</th>
+                        <th scope="col">Banner</th>
+                        <th scope="col">Info Promo</th>
+                        <th scope="col">Periode</th>
+                        <th scope="col">Potongan</th>
+                        <th scope="col">Poin</th>
+                        <th scope="col">Limit</th>
+                        <th scope="col">Target</th>
                         <th scope="col" class="text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {{-- Contoh Looping Data dari Database --}}
                     @forelse($promos as $promo)
                     <tr>
-                        <td class="fw-bold text-white">{{ $promo->judul_promo }}</td>
-                        <td class="text-secondary" style="max-width: 250px;">
-                            {{ Str::limit($promo->deskripsi, 60) }}
-                        </td>
                         <td>
                             @if($promo->gambar_banner)
-                                {{-- Asumsi gambar disimpan di storage/app/public --}}
                                 <img src="{{ asset('storage/' . $promo->gambar_banner) }}" alt="Banner" class="banner-thumb">
                             @else
-                                <div class="banner-thumb d-flex align-items-center justify-content-center text-secondary text-xs">
-                                    No Image
-                                </div>
+                                <div class="banner-thumb d-flex align-items-center justify-content-center text-secondary text-xs">No Img</div>
                             @endif
                         </td>
-                        <td class="text-secondary">
-                            {{ \Carbon\Carbon::parse($promo->tanggal_mulai)->format('d M Y') }}
+                        <td>
+                            <div class="fw-bold text-white mb-1">{{ $promo->judul_promo }}</div>
+                            <div class="text-secondary small" style="max-width: 250px;">{{ Str::limit($promo->deskripsi, 50) }}</div>
                         </td>
-                        <td class="text-secondary">
-                            {{ \Carbon\Carbon::parse($promo->tanggal_selesai)->format('d M Y') }}
+                        <td>
+                            <div class="text-white small">{{ \Carbon\Carbon::parse($promo->tanggal_mulai)->format('d M Y') }}</div>
+                            <div class="text-secondary small" style="font-size: 0.75rem;">s/d {{ \Carbon\Carbon::parse($promo->tanggal_selesai)->format('d M Y') }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">
+                                Rp {{ number_format($promo->nilai_potongan, 0, ',', '.') }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-warning fw-bold">{{ $promo->harga_poin }}</span> <span class="text-secondary small">pts</span>
+                        </td>
+                        <td>
+                            <span class="text-white">{{ $promo->limit_per_user }}x</span> <span class="text-secondary small">/user</span>
+                        </td>
+                        <td>
+                            @if($promo->target_transaksi == 'booking')
+                                <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">Booking</span>
+                            @elseif($promo->target_transaksi == 'pelunasan')
+                                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">Pelunasan</span>
+                            @else
+                                <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25">Semua</span>
+                            @endif
                         </td>
                         <td class="text-end">
                             <div class="d-flex gap-2 justify-content-end">
-                                <a href="{{ route('promo.edit', $promo->id) }}" class="btn btn-icon btn-sm text-warning" title="Edit">
-    <span class="material-symbols-outlined">edit</span>
-</a>
+                                {{-- Tombol Edit --}}
+                                <a href="{{ route('promo.edit', $promo->id) }}" class="btn-action btn-action-edit" title="Edit">
+                                    <span class="material-symbols-outlined">edit</span>
+                                </a>
+                                {{-- Tombol Hapus --}}
                                 <form action="{{ route('promo.destroy', $promo->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus promo ini?')">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="btn btn-icon btn-sm text-danger" title="Hapus">
-                <span class="material-symbols-outlined">delete</span>
-            </button>
-        </form>
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn-action btn-action-delete" title="Hapus">
+                                        <span class="material-symbols-outlined">delete</span>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center py-5 text-secondary">
-                            <span class="material-symbols-outlined d-block mb-2" style="font-size: 48px;">folder_off</span>
-                            Belum ada data promo.
+                        <td colspan="7" class="text-center py-5 text-secondary">
+                            <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.5;">folder_off</span>
+                            <p class="mb-0 mt-2">Belum ada data promo.</p>
                         </td>
                     </tr>
                     @endforelse
@@ -159,10 +209,6 @@
         </div>
     </div>
     
-    {{-- Pagination (Optional) --}}
-    <div class="mt-4">
-        {{-- {{ $promos->links() }} --}}
-    </div>
-
+    <div class="mt-4">{{-- {{ $promos->links() }} --}}</div>
 </div>
 @endsection

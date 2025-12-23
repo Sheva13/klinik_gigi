@@ -4,32 +4,28 @@
 
 @section('styles')
 <style>
-    /* --- STYLE KHUSUS HALAMAN INI (Konversi Tailwind ke CSS Biasa) --- */
-
-    /* Input Fields Dark Mode */
+    /* --- STYLE KHUSUS HALAMAN INI (Dark Mode) --- */
     .form-control-dark {
         background-color: #2C2C2C;
-        border: 1px solid #4b5563; /* Gray-700 */
+        border: 1px solid #4b5563;
         color: #ffffff;
-        border-radius: 0.5rem; /* Rounded-lg */
+        border-radius: 0.5rem;
         padding: 0.75rem 1rem;
     }
     .form-control-dark:focus {
         background-color: #2C2C2C;
         color: #ffffff;
-        border-color: #f5c542; /* Primary Gold */
+        border-color: #f5c542; /* Gold */
         box-shadow: 0 0 0 0.25rem rgba(245, 197, 66, 0.25);
     }
     .form-control-dark::placeholder {
-        color: #6b7280; /* Gray-500 */
+        color: #6b7280;
     }
-    
-    /* Fix Date Input Icon Color in Dark Mode */
-    .form-control-dark[type="date"] {
+    .form-control-dark[type="date"], .form-control-dark[type="number"] {
         color-scheme: dark;
     }
 
-    /* Upload Area Styles */
+    /* Upload Area */
     .upload-area {
         border: 2px dashed #4b5563;
         border-radius: 0.5rem;
@@ -48,7 +44,7 @@
         color: #f5c542;
     }
 
-    /* Tombol Gold (Sama seperti Index) */
+    /* Tombol */
     .btn-gold {
         background-image: linear-gradient(to right, #f5c542, #e4a93c);
         color: #121212;
@@ -60,11 +56,11 @@
         color: #000;
     }
 
-    /* Card Custom */
+    /* Card */
     .card-dark {
         background-color: #1A1A1A;
         border: 1px solid #333333;
-        border-radius: 0.75rem; /* Rounded-xl */
+        border-radius: 0.75rem;
     }
 </style>
 @endsection
@@ -76,10 +72,8 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
             <h1 class="fw-bold text-white mb-1" style="font-size: 2rem;">Tambah Promo Baru</h1>
-            <p class="text-secondary mb-0">Isi formulir di bawah untuk menambahkan promo baru ke dalam sistem.</p>
+            <p class="text-secondary mb-0">Isi formulir untuk menambahkan promo & gamifikasi baru.</p>
         </div>
-        
-        
     </div>
 
     {{-- Form Section --}}
@@ -87,83 +81,115 @@
         <form action="{{ route('promo.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
-            {{-- Judul Promo --}}
+            {{-- 1. Judul Promo --}}
             <div class="mb-4">
                 <label for="judul_promo" class="form-label text-light small fw-bold mb-2">Judul Promo</label>
                 <input type="text" 
                        class="form-control form-control-dark @error('judul_promo') is-invalid @enderror" 
                        id="judul_promo" 
                        name="judul_promo" 
-                       placeholder="cth: Promo Kemerdekaan"
+                       placeholder="Contoh: Diskon Kemerdekaan"
                        value="{{ old('judul_promo') }}" required>
                 @error('judul_promo')
                     <div class="text-danger small mt-1">{{ $message }}</div>
                 @enderror
             </div>
 
-            {{-- Deskripsi --}}
+            {{-- 2. Deskripsi --}}
             <div class="mb-4">
                 <label for="deskripsi" class="form-label text-light small fw-bold mb-2">Deskripsi</label>
                 <textarea class="form-control form-control-dark @error('deskripsi') is-invalid @enderror" 
                           id="deskripsi" 
                           name="deskripsi" 
                           rows="4" 
-                          placeholder="cth: Diskon 17% untuk semua perawatan gigi" required>{{ old('deskripsi') }}</textarea>
+                          placeholder="Jelaskan detail promo..." required>{{ old('deskripsi') }}</textarea>
                 @error('deskripsi')
                     <div class="text-danger small mt-1">{{ $message }}</div>
                 @enderror
             </div>
 
-            {{-- Upload Banner --}}
+            {{-- 3. Upload Banner --}}
             <div class="mb-4">
-                <label class="form-label text-light small fw-bold mb-2">Upload Gambar Banner</label>
-                
+                <label class="form-label text-light small fw-bold mb-2">Gambar Banner</label>
                 <div class="upload-area" onclick="document.getElementById('gambar_banner').click()">
                     <span class="material-symbols-outlined upload-icon mb-3">upload_file</span>
-                    <div class="text-light small fw-semibold">
-                        Klik untuk upload file
-                    </div>
+                    <div class="text-light small fw-semibold">Klik untuk upload file</div>
                     <p class="text-secondary small mb-0">atau tarik dan lepas disini</p>
                     <p class="text-secondary small mt-1" style="font-size: 0.75rem;">PNG, JPG, GIF hingga 10MB</p>
-                    
-                    {{-- Hidden Input --}}
-                    <input type="file" 
-                           id="gambar_banner" 
-                           name="gambar_banner" 
-                           class="d-none" 
-                           accept="image/*"
-                           onchange="previewImage(this)">
+                    <input type="file" id="gambar_banner" name="gambar_banner" class="d-none" accept="image/*" onchange="previewImage(this)">
                 </div>
-                
-                {{-- Preview (Javascript akan handle ini) --}}
+                {{-- Preview --}}
                 <div id="preview-container" class="mt-3 d-none">
                     <p class="text-light small mb-1">Preview:</p>
                     <img id="preview-img" src="#" alt="Preview" style="max-height: 150px; border-radius: 8px; border: 1px solid #444;">
                 </div>
-
                 @error('gambar_banner')
                     <div class="text-danger small mt-1">{{ $message }}</div>
                 @enderror
             </div>
 
-            {{-- Tanggal --}}
+            {{-- 4. Tanggal --}}
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label text-light small fw-bold mb-2">Tanggal Mulai</label>
+                    <input type="date" class="form-control form-control-dark" name="tanggal_mulai" value="{{ old('tanggal_mulai') }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-light small fw-bold mb-2">Tanggal Selesai</label>
+                    <input type="date" class="form-control form-control-dark" name="tanggal_selesai" value="{{ old('tanggal_selesai') }}" required>
+                </div>
+            </div>
+
+            <hr class="border-secondary my-4">
+            
+            {{-- 5. Detail Nilai & Poin (KOLOM BARU) --}}
+            <h5 class="text-white fw-bold mb-3">Detail Gamifikasi & Potongan</h5>
             <div class="row g-4 mb-5">
-                <div class="col-md-6">
-                    <label for="tanggal_mulai" class="form-label text-light small fw-bold mb-2">Tanggal Mulai</label>
-                    <input type="date" 
-                           class="form-control form-control-dark @error('tanggal_mulai') is-invalid @enderror" 
-                           id="tanggal_mulai" 
-                           name="tanggal_mulai"
-                           value="{{ old('tanggal_mulai') }}" required>
+                <div class="col-md-4">
+                    <label class="form-label text-light small fw-bold mb-2">Nilai Potongan (Rp)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-secondary border-secondary">Rp</span>
+                        <input type="number" 
+                               class="form-control form-control-dark" 
+                               name="nilai_potongan" 
+                               placeholder="50000" 
+                               value="{{ old('nilai_potongan', 0) }}" required>
+                    </div>
+                    <small class="text-secondary" style="font-size: 0.75rem">Nominal diskon yang didapat user.</small>
                 </div>
-                <div class="col-md-6">
-                    <label for="tanggal_selesai" class="form-label text-light small fw-bold mb-2">Tanggal Selesai</label>
-                    <input type="date" 
-                           class="form-control form-control-dark @error('tanggal_selesai') is-invalid @enderror" 
-                           id="tanggal_selesai" 
-                           name="tanggal_selesai"
-                           value="{{ old('tanggal_selesai') }}" required>
+
+                <div class="col-md-4">
+                    <label class="form-label text-light small fw-bold mb-2">Harga Tukar Poin</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-secondary border-secondary">Pts</span>
+                        <input type="number" 
+                               class="form-control form-control-dark" 
+                               name="harga_poin" 
+                               value="{{ old('harga_poin', 0) }}" required>
+                    </div>
+                    <small class="text-secondary" style="font-size: 0.75rem">Poin yang dibutuhkan. Isi 0 jika gratis.</small>
                 </div>
+
+                <div class="col-md-4">
+                    <label class="form-label text-light small fw-bold mb-2">Limit Per User</label>
+                    <input type="number" 
+                           class="form-control form-control-dark" 
+                           name="limit_per_user" 
+                           value="{{ old('limit_per_user', 1) }}" required>
+                    <small class="text-secondary" style="font-size: 0.75rem">Berapa kali user bisa klaim promo ini.</small>
+                </div>
+                </div>
+            </div>
+
+            {{-- 6. Target Transaksi --}}
+            <div class="mb-4">
+                 <label class="form-label text-light small fw-bold mb-2">Target Transaksi</label>
+                 <select name="target_transaksi" class="form-select form-control-dark">
+                     <option value="semua" {{ old('target_transaksi') == 'semua' ? 'selected' : '' }}>Semua Transaksi</option>
+                     <option value="booking" {{ old('target_transaksi') == 'booking' ? 'selected' : '' }}>Hanya Booking Homecare</option>
+                     <option value="pelunasan" {{ old('target_transaksi') == 'pelunasan' ? 'selected' : '' }}>Hanya Pelunasan Tindakan</option>
+                 </select>
+                 <div class="text-secondary small mt-1">Pilih di mana promo ini bisa digunakan.</div>
             </div>
 
             {{-- Action Buttons --}}
@@ -179,15 +205,12 @@
 
         </form>
     </div>
-
 </div>
 
 <script>
-    // Script sederhana untuk preview gambar sebelum upload
     function previewImage(input) {
         const container = document.getElementById('preview-container');
         const preview = document.getElementById('preview-img');
-        
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {

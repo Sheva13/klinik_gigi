@@ -43,11 +43,12 @@ class HomeCareController extends Controller
     {
         try {
             $tanggal = $request->query('tanggal'); // optional YYYY-MM-DD
+            $kodePoli = $request->query('kode_poli');
 
             if ($tanggal) {
-                $jadwal = $this->reservationService->getAvailableSchedulesForDate($tanggal);
+                $jadwal = $this->reservationService->getAvailableSchedulesForDate($tanggal, $kodePoli);
             } else {
-                $jadwal = $this->reservationService->getAvailableSchedules();
+                $jadwal = $this->reservationService->getAvailableSchedules($kodePoli);
             }
 
             return response()->json(['data' => $jadwal]);
@@ -117,9 +118,8 @@ class HomeCareController extends Controller
                 if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
                     // Update Status
                     $reservasi->status_booking = 'lunas';
-                    $reservasi->status = 'Menunggu Dokter';
-                    $reservasi->status_reservasi = 'menunggu';
-                    $reservasi->status_pembayaran = 'lunas'; // Legacy support
+                    $reservasi->status = 'Menunggu Konfirmasi'; // Fix: Jangan 'Menunggu Dokter' agar App tidak bilang OTW
+                    $reservasi->status_reservasi = 'menunggu_konfirmasi'; // Fix: Samakan dengan enum di Admin Panel
                     $reservasi->save();
 
                     // Tambah Poin Manual (Copy Logic from Webhook)
@@ -231,41 +231,7 @@ class HomeCareController extends Controller
     }
 
 
-    // --- FITUR BARU: API POIN & PROMO ---
 
-    public function getPromos(Request $request)
-    {
-        $type = $request->query('type', 'booking'); // booking | settlement
-
-        $dateNow = Carbon::now('Asia/Jakarta');
-        $query = MasterPromo::query()
-            ->whereDate('tanggal_mulai', '<=', $dateNow)
-            ->whereDate('tanggal_selesai', '>=', $dateNow);
-
-        if ($type == 'settlement') {
-            // Pelunasan hanya boleh potongan_total
-            $query->where('tipe', 'potongan_total');
-        }
-        // Booking boleh semua (inclusive free_transport)
-
-        $promos = $query->get();
-        return response()->json(['data' => $promos]);
-    }
-
-    public function getUserPoints(Request $request)
-    {
-        $userId = $request->query('user_id'); // Or via Auth::id() if authenticated
-        // Fallback checks
-        if (!$userId)
-            return response()->json(['poin' => 0]);
-
-        // Use Query Builder for consistency with Webhook and reliability with String IDs
-        $poin = \Illuminate\Support\Facades\DB::table('users')
-            ->where('user_id', $userId)
-            ->value('poin');
-
-        return response()->json(['poin' => (int) $poin]);
-    }
 
     // --- FITUR BARU: ENDPOINTS EXISTING ---
 
@@ -304,19 +270,17 @@ class HomeCareController extends Controller
         }
     }
 
-    public function getPointHistory(Request $request)
+        public function showImage($path)
     {
-        $userId = $request->query('user_id'); 
-        // Fallback checks
-        if (!$userId) return response()->json(['data' => []]);
+        $path = storage_path('app/public/' . $path);
 
-        $history = \App\Models\PointHistory::where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        if (!file_exists($path)) {
+            return response()->json(['message' => 'Image not found.'], 404);
+        }
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $history
-        ]);
+        $file = file_get_contents($path);
+        $type = mime_content_type($path);
+
+        return response($file, 200)->header("Content-Type", $type);
     }
 }

@@ -20,7 +20,7 @@ use Carbon\Carbon;
 interface ReservationServiceInterface
 {
     public function calculateCost($latitude, $longitude);
-    public function getAvailableSchedules();
+    public function getAvailableSchedules($kodePoli = null);
     public function createReservation(array $data);
     public function confirmPayment($reservationId);
     public function getPaymentHistory($reservationId);
@@ -125,17 +125,36 @@ class HomeCareService extends BaseReservationService
         ];
     }
 
-    public function getAvailableSchedules()
+    public function getAvailableSchedules($kodePoli = null)
     {
-        return MasterJadwal::with(['dokter.spesialis', 'poli'])
-            ->where('quota', '>', 0)
-            ->get()
-            ->toArray();
+        $query = MasterJadwal::with(['dokter.spesialis', 'poli'])
+            ->where('quota', '>', 0);
+
+        if ($kodePoli && strtolower($kodePoli) !== 'semua') {
+            $query->where(function($q) use ($kodePoli) {
+                $q->where('kode_poli', $kodePoli)
+                  ->orWhereHas('dokter', function ($dq) use ($kodePoli) {
+                      $dq->where('kode_poli', $kodePoli);
+                  });
+            });
+        }
+
+        return $query->get()->toArray();
     }
 
-    public function getAvailableSchedulesForDate($tanggal = null)
+    public function getAvailableSchedulesForDate($tanggal = null, $kodePoli = null)
     {
         $query = MasterJadwal::with(['dokter.spesialis', 'poli']);
+        
+        if ($kodePoli && strtolower($kodePoli) !== 'semua') {
+            $query->where(function($q) use ($kodePoli) {
+                $q->where('kode_poli', $kodePoli)
+                  ->orWhereHas('dokter', function ($dq) use ($kodePoli) {
+                      $dq->where('kode_poli', $kodePoli);
+                  });
+            });
+        }
+
         if ($tanggal) {
             $date = Carbon::parse($tanggal);
             $dayIso = $date->dayOfWeekIso;
@@ -300,7 +319,7 @@ class HomeCareService extends BaseReservationService
                 'no_pemeriksaan' => $orderId,
                 'pasien_id' => $userId,
                 'rekam_medis_id' => $pasien->id,
-                'dokter_id' => $masterJadwal->dokter_id,
+                'dokter_id' => $masterJadwal->kode_dokter, // FIX: master_jadwal uses kode_dokter
                 'jadwal_id' => $jadwalHarian->id,
                 'tanggal_pesan' => $data['tanggal'],
                 'waktu_pesan' => now()->toTimeString(),

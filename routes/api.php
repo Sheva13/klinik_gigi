@@ -12,6 +12,7 @@ use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UbahPasswordController;
 use App\Http\Controllers\MidtransWebhookController;
+use App\Http\Controllers\PointController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +28,8 @@ use App\Http\Controllers\MidtransWebhookController;
 // ========================================================================
 // 🟢 PUBLIC ROUTES (BISA DIAKSES TANPA LOGIN)
 // ========================================================================
+
+Route::get('/images/{path}', [HomeCareController::class, 'showImage'])->where('path', '.*');
 
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
@@ -114,9 +117,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/homecare/invoice/{id}', [HomeCareController::class, 'getInvoice']);
     Route::post('/homecare/pay-settlement/{id}', [HomeCareController::class, 'paySettlement']);
     Route::post('/homecare/settlement', [HomeCareController::class, 'createSettlement']); // NEW ROUTE
-    Route::get('/homecare/promos', [HomeCareController::class, 'getPromos']);
-    Route::get('/homecare/user-points', [HomeCareController::class, 'getUserPoints']);
-    Route::get('/homecare/point-history', [HomeCareController::class, 'getPointHistory']);
+    Route::get('/homecare/promos', [PromoController::class, 'index']);
+    Route::get('/homecare/user-points', [PointController::class, 'getUserPoints']);
+    Route::get('/homecare/point-history', [PointController::class, 'getPointHistory']);
 
     Route::get('/homecare/booking/{id}/status', [HomeCareController::class, 'checkPaymentStatus']);
 
