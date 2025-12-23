@@ -131,6 +131,20 @@ class MidtransWebhookController extends Controller
 
                     if ($affected) {
                         Log::info("🎁 [SUCCESS] User {$transaksi->pasien_id} mendapat {$poinDidapat} via DB Query.");
+                        
+                        // --- CATAT HISTORY POIN ---
+                        try {
+                            \App\Models\PointHistory::create([
+                                'user_id' => $transaksi->pasien_id,
+                                'amount' => $poinDidapat,
+                                'type' => 'earn',
+                                'description' => $keteranganLog,
+                                'reference_id' => $transaksi->no_pemeriksaan,
+                            ]);
+                        } catch (\Exception $e) {
+                            Log::error("❌ Gagal mencatat history poin: " . $e->getMessage());
+                        }
+
                     } else {
                         Log::info("❌ [ERROR] Failed to increment via DB Query. User ID not found: {$transaksi->pasien_id}");
                     }

@@ -9,23 +9,18 @@ class PointHistory extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     * Kolom yang diizinkan untuk diisi secara massal (mass-assignment).
-     *
-     * @var array<int, string>
-     */
+    protected $table = 'point_histories';
+
     protected $fillable = [
         'user_id',
-        'transaction_type', // 'credit' atau 'debit'
-        'amount',           // Jumlah poin
-        'description',      // Keterangan transaksi
+        'amount',
+        'type',        // earn, redeem, adjustment
+        'description',
+        'reference_id'
     ];
-    
-    // Hubungan (relationship) ke model User
+
     public function user()
     {
-        // Ganti 'User::class' jika nama Model pengguna utama Anda berbeda
-        return $this->belongsTo(User::class); 
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 }

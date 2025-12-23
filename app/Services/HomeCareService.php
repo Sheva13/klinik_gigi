@@ -262,6 +262,15 @@ class HomeCareService extends BaseReservationService
             if ($pointsToDeduct > 0) {
                 $user = User::find($userId);
                 $user->decrement('poin', $pointsToDeduct);
+
+                // --- CATAT HISTORY ---
+                \App\Models\PointHistory::create([
+                    'user_id' => $userId,
+                    'amount' => -$pointsToDeduct, // Negatif karena berkurang
+                    'type' => 'redeem',
+                    'description' => "Penukaran Poin untuk Promo: " . ($promo->judul_promo ?? 'Promo'),
+                    'reference_id' => "BOOKING-TEMP", // Nanti diupdate setelah dapat Order ID, atau biarkan generic
+                ]);
             }
 
             // 1. Setup Jadwal & Validasi Kuota
@@ -469,6 +478,15 @@ class HomeCareService extends BaseReservationService
             $user = User::find($pasienId);
             if ($user) {
                 $user->increment('poin', 10);
+                
+                // --- CATAT HISTORY ---
+                \App\Models\PointHistory::create([
+                    'user_id' => $user->user_id, // Pastikan pakai user_id yang string
+                    'amount' => 10,
+                    'type' => 'earn',
+                    'description' => "Bonus Poin Pelunasan Layanan",
+                    'reference_id' => $reservasi->no_pemeriksaan
+                ]);
             }
         }
 
@@ -585,6 +603,15 @@ class HomeCareService extends BaseReservationService
 
             // Deduct Points NOW (or should we wait? Usually deduct when link is generated to prevent double use, can refund if failed/cancelled - sticking to simple deduction now)
             $user->decrement('poin', $promo->harga_poin);
+            
+            // --- CATAT HISTORY ---
+            \App\Models\PointHistory::create([
+                'user_id' => $user->user_id,
+                'amount' => -$promo->harga_poin,
+                'type' => 'redeem',
+                'description' => "Penukaran Poin (Pelunasan): " . ($promo->judul_promo ?? 'Promo'),
+                'reference_id' => $reservasi->no_pemeriksaan 
+            ]);
 
             // Update Reservasi with used promo for settlement tracking (separate columns? or overwrite? User didn't specify separate promo columns for setttlement. I'll overwrite or assume `promo_id` is generic. 
             // Better: Since schema is shared, maybe I shouldn't overwrite if one was used in booking. 
