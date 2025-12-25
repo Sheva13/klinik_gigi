@@ -31,6 +31,42 @@ use App\Http\Controllers\PointController;
 
 Route::get('/images/{path}', [HomeCareController::class, 'showImage'])->where('path', '.*');
 
+// Proxy Route for Doctor Images (Fixes CORS on Flutter Web Localhost)
+Route::get('/dokter-image/{filename}', function ($filename) {
+    $path = storage_path('app/public/uploads/dokter/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path, [
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        'Content-Type' => mime_content_type($path),
+    ]);
+});
+
+// Proxy Route for Promo Images
+Route::get('/promo-image/{filename}', function ($filename) {
+    // Check in 'promos' folder first
+    $path = storage_path('app/public/promos/' . $filename);
+    
+    // Fallback: Check in 'uploads/promos' if mainly stored there
+    if (!file_exists($path)) {
+        $path = storage_path('app/public/uploads/promos/' . $filename);
+    }
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    
+    return response()->file($path, [
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        'Content-Type' => mime_content_type($path),
+    ]);
+});
+
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -44,6 +80,11 @@ Route::get('/jadwal-praktek', [DokterController::class, 'getJadwalPraktek']);
 Route::get('/dokter', [DokterController::class, 'index']);
 Route::get('/dokter/{id}', [DokterController::class, 'show']);
 Route::get('/promo', [PromoController::class, 'index']);
+
+// Point & Rewards Routes (Public for now to allow easier access from Flutter without Bearer Token)
+Route::get('/homecare/promos', [PromoController::class, 'index']);
+Route::get('/homecare/user-points', [PointController::class, 'getUserPoints']);
+Route::get('/homecare/point-history', [PointController::class, 'getPointHistory']);
 
 // OTP (Password Reset & Verifikasi)
 Route::post('/auth/request-otp', [AuthController::class, 'requestOtpEmail']);
@@ -117,9 +158,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/homecare/invoice/{id}', [HomeCareController::class, 'getInvoice']);
     Route::post('/homecare/pay-settlement/{id}', [HomeCareController::class, 'paySettlement']);
     Route::post('/homecare/settlement', [HomeCareController::class, 'createSettlement']); // NEW ROUTE
-    Route::get('/homecare/promos', [PromoController::class, 'index']);
-    Route::get('/homecare/user-points', [PointController::class, 'getUserPoints']);
-    Route::get('/homecare/point-history', [PointController::class, 'getPointHistory']);
+
 
     Route::get('/homecare/booking/{id}/status', [HomeCareController::class, 'checkPaymentStatus']);
 

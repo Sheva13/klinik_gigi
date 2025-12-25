@@ -44,13 +44,12 @@ class PromoController extends Controller
                 
                 $fotoUrl = null;
                 if (!empty($promo->gambar_banner)) {
-                    $path = trim($promo->gambar_banner);
+                    // Extract filename (clean from path)
+                    $filename = basename($promo->gambar_banner);
                     
-                    // Logika yang sama dengan DokterController untuk membuat URL lengkap
-                    if (!str_starts_with($path, 'uploads/')) {
-                         $path = 'uploads/' . $path;
-                    }
-                    $fotoUrl = $baseUrl . '/' . $path;
+                    // Use Proxy Route for robust access (Web & Mobile)
+                    // url() helper creates absolute URL: http://host/api/promo-image/filename
+                    $fotoUrl = url('/api/promo-image/' . $filename);
                 }
 
                 return [
