@@ -1,0 +1,288 @@
+/* public/dist/css/adminreservasi-custom.css */
+
+/* =========================================
+   1. VARIABLES & RESET
+   ========================================= */
+:root {
+    /* Color Palette */
+    --gold-primary: #D4AF37;
+    --gold-hover: #b89628;
+    --bg-dark: #121212;
+    --card-bg: #1A1A1A;
+    --border-color: #333333;
+    --text-muted: #a0a0a0;
+    --input-bg: #121212;
+    
+    /* Status Colors */
+    --status-warning: #ffc107;
+    --status-info: #17a2b8;
+    --status-success: #28a745;
+    --status-danger: #dc3545;
+}
+
+/* Typography & Base */
+h1, h2, h3, h4, h5, h6 { color: #fff !important; font-weight: 700 !important; }
+body { color: #fff !important; background-color: var(--bg-dark) !important; }
+.text-gold { color: var(--gold-primary) !important; }
+.text-muted { color: var(--text-muted) !important; }
+
+/* =========================================
+   2. BUTTONS
+   ========================================= */
+.btn-gold {
+    background-color: var(--gold-primary);
+    color: #000;
+    font-weight: 700;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    cursor: pointer;
+}
+.btn-gold:hover { 
+    background-color: var(--gold-hover); 
+    color: #000; 
+}
+
+.btn-secondary-dark, .btn-cancel {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+.btn-secondary-dark:hover, .btn-cancel:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #FFF;
+    border-color: #555;
+}
+
+/* Time Picker Radio Buttons (di Edit Page) */
+.btn-time-wrapper { position: relative; }
+.btn-check:checked + .btn-time {
+    background-color: var(--gold-primary);
+    color: #000;
+    border-color: var(--gold-primary);
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+.btn-time {
+    width: 100%;
+    background-color: var(--input-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+    padding: 10px 0;
+    border-radius: 8px;
+    transition: all 0.2s;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.btn-time:hover { border-color: var(--gold-primary); color: #FFF; }
+
+/* =========================================
+   3. CARDS & CONTAINERS
+   ========================================= */
+.edit-card, 
+.stat-card, 
+.form-group-section, 
+.filter-card, 
+.table-container,
+.card-dark-premium {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+}
+
+/* Stat Card Specifics */
+.stat-card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.stat-card:hover { 
+    transform: translateY(-3px); 
+    border-color: var(--gold-primary); 
+}
+.stat-icon {
+    position: absolute;
+    top: 15px; 
+    right: 15px;
+    font-size: 3rem !important; 
+    opacity: 0.1; 
+    color: #fff;
+}
+.stat-value {
+    font-size: 2.2rem; 
+    font-weight: 700; 
+    margin-top: 5px;
+    line-height: 1; 
+    color: var(--gold-primary);
+}
+.stat-label { 
+    font-size: 0.85rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    color: var(--text-muted); 
+}
+
+/* Icon Box for Detail Page */
+.icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+}
+
+/* =========================================
+   4. FORMS & INPUTS
+   ========================================= */
+.form-control, 
+.form-select, 
+.form-control-dark, 
+.form-select-dark, 
+.flatpickr-input,
+.form-control-pro, 
+.form-select-pro {
+    background-color: var(--input-bg) !important;
+    border: 1px solid var(--border-color) !important;
+    color: #E0E0E0 !important;
+    border-radius: 8px !important;
+    padding: 0.6rem 1rem !important;
+}
+
+.form-control:focus, 
+.form-select:focus,
+.form-control-dark:focus,
+.form-select-dark:focus,
+.form-control-pro:focus, 
+.form-select-pro:focus {
+    background-color: var(--input-bg) !important;
+    border-color: var(--gold-primary) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+}
+
+/* Input Groups */
+.input-group-text, 
+.input-group-text-dark, 
+.input-group-text-custom {
+    background-color: var(--input-bg) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-muted) !important;
+    border-right: none !important;
+}
+
+/* Fix Date Picker Icon Color */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator { 
+    filter: invert(1); 
+    cursor: pointer; 
+    opacity: 0.7;
+}
+
+/* =========================================
+   5. TABLES
+   ========================================= */
+.table-dark-custom { 
+    width: 100%; 
+    color: #E0E0E0; 
+    margin-bottom: 0; 
+    background-color: transparent; 
+}
+.table-dark-custom thead th {
+    background-color: #252525 !important;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    padding: 1rem 1.5rem;
+    white-space: nowrap;
+}
+.table-dark-custom tbody td {
+    padding: 1rem 1.5rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--card-bg) !important;
+    color: #E0E0E0 !important;
+}
+.table-dark-custom tbody tr:hover td { 
+    background-color: rgba(255, 255, 255, 0.05) !important; 
+}
+.table-dark-custom tr:last-child td { border-bottom: none; }
+
+/* =========================================
+   6. UTILITIES (Badges, Text Colors)
+   ========================================= */
+.badge { padding: 0.5em 0.8em; font-weight: 600; border-radius: 6px; }
+
+/* Soft Background Badges */
+.bg-warning-soft { background-color: rgba(255, 193, 7, 0.2) !important; color: #ffc107 !important; border: 1px solid #ffc107; }
+.bg-info-soft { background-color: rgba(23, 162, 184, 0.2) !important; color: #17a2b8 !important; border: 1px solid #17a2b8; }
+.bg-success-soft { background-color: rgba(40, 167, 69, 0.2) !important; color: #28a745 !important; border: 1px solid #28a745; }
+.bg-danger-soft { background-color: rgba(220, 53, 69, 0.2) !important; color: #dc3545 !important; border: 1px solid #dc3545; }
+
+/* Specific Text Colors override */
+.text-warning { color: #ffc107 !important; }
+.text-info { color: #17a2b8 !important; }
+.text-success { color: #28a745 !important; }
+.text-danger { color: #dc3545 !important; }
+
+/* =========================================
+   7. FILE UPLOAD & MODAL
+   ========================================= */
+.dropzone-dark {
+    background-color: var(--input-bg);
+    border: 2px dashed var(--border-color);
+    border-radius: 8px; 
+    padding: 3rem;
+    color: #fff; 
+    transition: all 0.2s;
+    cursor: pointer; 
+    display: block; 
+    text-align: center;
+}
+.dropzone-dark:hover { border-color: var(--gold-primary); }
+
+.modal-content-pro {
+    background-color: #181818;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    box-shadow: 0 0 50px rgba(0,0,0,0.9);
+}
+
+/* Tracking Dot (Antrian) */
+.tracking-dot {
+    width: 32px; 
+    height: 32px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    z-index: 2;
+    transition: all 0.3s ease;
+}

@@ -4,168 +4,8 @@
 
 @section('content')
 
-<style>
-    /* Config Warna */
-    :root {
-        --gold-primary: #D4AF37;
-        --gold-hover: #b89628;
-        --bg-dark: #121212;
-        --card-bg: #1A1A1A;
-        --border-color: #333333;
-        --text-muted: #a0a0a0;
-    }
-
-    /* Typography Overrides */
-    h1, h2, h3, h4, h5, h6 { color: #fff !important; }
-    .text-gold { color: var(--gold-primary) !important; }
-    .text-muted { color: var(--text-muted) !important; }
-
-    /* 1. STATS CARD */
-    .stat-card {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.5rem;
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.2s;
-        height: 100%; /* Agar tinggi kartu seragam */
-    }
-    .stat-card:hover {
-        border-color: var(--gold-primary);
-        transform: translateY(-3px);
-    }
-    .stat-icon {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 3rem !important;
-        opacity: 0.1;
-        color: #fff;
-    }
-    .stat-value {
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin-top: 5px;
-        line-height: 1;
-        color: var(--gold-primary); 
-    }
-    .stat-label {
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--text-muted);
-    }
-    
-    /* Warna Khusus Value Stats */
-    .text-warning { color: #ffc107 !important; }
-    .text-info { color: #17a2b8 !important; }
-    .text-success { color: #28a745 !important; }
-    .text-danger { color: #dc3545 !important; }
-
-    /* 2. FILTER SECTION */
-    .filter-card {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-    .form-control-dark, .form-select-dark {
-        background-color: #121212;
-        border: 1px solid var(--border-color);
-        color: #E0E0E0;
-        border-radius: 8px;
-        padding: 0.6rem 1rem;
-    }
-    .form-control-dark:focus, .form-select-dark:focus {
-        background-color: #121212;
-        border-color: var(--gold-primary);
-        color: #fff;
-        box-shadow: none;
-    }
-    .input-group-text-dark {
-        background-color: #121212;
-        border: 1px solid var(--border-color);
-        border-right: none;
-        color: var(--text-muted);
-    }
-    
-    /* Tombol Gold */
-    .btn-gold {
-        background-color: var(--gold-primary);
-        color: #000;
-        font-weight: 700;
-        border: none;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 0.6rem 1.2rem;
-        transition: all 0.2s;
-        text-decoration: none;
-    }
-    .btn-gold:hover {
-        background-color: var(--gold-hover);
-        color: #000;
-    }
-
-    /* 3. TABLE CUSTOM */
-    .table-container {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        overflow: hidden;
-        min-height: 300px;
-    }
-    .table-dark-custom {
-        width: 100%;
-        color: #E0E0E0;
-        margin-bottom: 0;
-        --bs-table-bg: transparent; 
-        background-color: transparent;
-    }
-    .table-dark-custom thead th {
-        background-color: #252525 !important;
-        border-bottom: 1px solid var(--border-color);
-        color: var(--text-muted);
-        font-weight: 600;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        padding: 1rem 1.5rem;
-        white-space: nowrap; /* Agar header tidak turun baris */
-    }
-    .table-dark-custom tbody td {
-        padding: 1rem 1.5rem;
-        vertical-align: middle;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 0.95rem;
-        background-color: var(--card-bg) !important;
-        color: #E0E0E0 !important; 
-    }
-    .table-dark-custom tr:last-child td {
-        border-bottom: none;
-    }
-    .table-dark-custom tbody tr:hover td {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-    }
-
-    /* Badge Status */
-    .badge {
-        font-weight: 600;
-        padding: 0.5em 0.8em;
-        border-radius: 6px;
-    }
-    .bg-warning { background-color: rgba(255, 193, 7, 0.2) !important; color: #ffc107 !important; border: 1px solid #ffc107; }
-    .bg-info { background-color: rgba(23, 162, 184, 0.2) !important; color: #17a2b8 !important; border: 1px solid #17a2b8; }
-    .bg-success { background-color: rgba(40, 167, 69, 0.2) !important; color: #28a745 !important; border: 1px solid #28a745; }
-    .bg-danger { background-color: rgba(220, 53, 69, 0.2) !important; color: #dc3545 !important; border: 1px solid #dc3545; }
-    .bg-secondary { background-color: rgba(108, 117, 125, 0.2) !important; color: #adb5bd !important; border: 1px solid #adb5bd; }
-</style>
-
 <div class="container-fluid px-0">
-    
+
     {{-- 1. HEADER HALAMAN --}}
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
@@ -173,7 +13,7 @@
             <p class="text-muted mb-0">Manajemen data reservasi pasien hari ini.</p>
         </div>
         <div class="d-flex align-items-center gap-3">
-            
+
             {{-- 🔥 TOMBOL LIHAT ANTRIAN (Route sudah benar) --}}
             <a href="{{ route('reservasi.admin.antrian') }}" class="btn btn-outline-light d-flex align-items-center gap-2 border-secondary">
                 <span class="material-symbols-outlined text-gold">groups</span>
@@ -184,9 +24,9 @@
                 <div class="fw-bold text-white">Basudewa</div>
                 <small class="text-muted">Administrator</small>
             </div>
-            <img src="{{ asset('assets/images/profile/wais.jpg') }}" 
-                 alt="Profile" 
-                 class="rounded-circle border border-secondary" 
+            <img src="{{ asset('assets/images/profile/wais.jpg') }}"
+                 alt="Profile"
+                 class="rounded-circle border border-secondary"
                  style="width: 45px; height: 45px; object-fit: cover;">
         </div>
     </div>
@@ -198,7 +38,7 @@
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">calendar_month</span>
                 <div class="stat-label">Total</div>
-                <div class="stat-value text-gold">{{ $stats['total'] }}</div> 
+                <div class="stat-value text-gold">{{ $stats['total'] }}</div>
             </div>
         </div>
 
@@ -210,13 +50,13 @@
                 <div class="stat-value text-warning">{{ $stats['menunggu'] }}</div>
             </div>
         </div>
-        
+
         {{-- 🔥 DIPROSES --}}
-        <div class="col-12 col-sm-6 col-md-4 col-xl"> 
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">stethoscope</span>
                 <div class="stat-label">Diproses</div>
-                <div class="stat-value text-info">{{ $stats['diproses'] ?? 0 }}</div> 
+                <div class="stat-value text-info">{{ $stats['diproses'] ?? 0 }}</div>
             </div>
         </div>
 
@@ -376,16 +216,16 @@
                             <td class="text-center">
                                 @php
                                     $s = $item->status_reservasi;
-                                    $cls = match($s) { 
-                                        'menunggu'      => 'bg-warning text-dark', 
-                                        'dalam_proses'  => 'bg-info text-dark', 
-                                        'selesai'       => 'bg-success', 
-                                        'batal'         => 'bg-danger', 
-                                        default         => 'bg-secondary' 
+                                    $cls = match($s) {
+                                        'menunggu'      => 'bg-warning-soft text-dark',
+                                        'dalam_proses'  => 'bg-info-soft text-dark',
+                                        'selesai'       => 'bg-success-soft',
+                                        'batal'         => 'bg-danger-soft',
+                                        default         => 'bg-secondary'
                                     };
-                                    $lbl = match($s) { 
-                                        'dalam_proses' => 'Diproses', 
-                                        default        => ucfirst($s) 
+                                    $lbl = match($s) {
+                                        'dalam_proses' => 'Diproses',
+                                        default        => ucfirst($s)
                                     };
                                 @endphp
                                 <span class="badge {{ $cls }}">{{ $lbl }}</span>
@@ -396,22 +236,22 @@
                                 @php
                                     $p = $item->status_pembayaran;
                                     // KOREKSI LIXA: Tambahkan status 'lunas' (dari Webhook)
-                                    $pcl = match($p) { 
-                                        'lunas'                 => 'bg-success', // Dari Midtrans Webhook
-                                        'terverifikasi'         => 'bg-success', // Dari Admin Manual
-                                        'menunggu_pembayaran'   => 'bg-secondary', 
-                                        'menunggu_verifikasi'   => 'bg-warning text-dark',
-                                        'gagal'                 => 'bg-danger',
-                                        default                 => 'bg-secondary' 
+                                    $pcl = match($p) {
+                                        'lunas'                 => 'bg-success-soft', // Dari Midtrans Webhook
+                                        'terverifikasi'         => 'bg-success-soft', // Dari Admin Manual
+                                        'menunggu_pembayaran'   => 'bg-secondary',
+                                        'menunggu_verifikasi'   => 'bg-warning-soft text-dark',
+                                        'gagal'                 => 'bg-danger-soft',
+                                        default                 => 'bg-secondary'
                                     };
                                     // KOREKSI LIXA: Tambahkan status 'lunas'
-                                    $plb = match($p) { 
-                                        'lunas'                 => 'Lunas (Online)', 
-                                        'terverifikasi'         => 'Lunas (Manual)', 
-                                        'menunggu_pembayaran'   => 'Belum Bayar', 
+                                    $plb = match($p) {
+                                        'lunas'                 => 'Lunas (Online)',
+                                        'terverifikasi'         => 'Lunas (Manual)',
+                                        'menunggu_pembayaran'   => 'Belum Bayar',
                                         'menunggu_verifikasi'   => 'Cek Bukti',
                                         'gagal'                 => 'Gagal',
-                                        default                 => $p 
+                                        default                 => $p
                                     };
                                 @endphp
                                 <span class="badge {{ $pcl }}">{{ $plb }}</span>
@@ -437,7 +277,7 @@
             </table>
         </div>
     </div>
-    
+
     {{-- Pagination --}}
     <div class="d-flex justify-content-end mt-4">
         <nav>
@@ -447,7 +287,7 @@
                         <li class="page-item disabled"><span class="page-link bg-transparent border-secondary text-muted">&laquo;</span></li>
                     @else
                         <li class="page-item">
-                            <a class="page-link bg-transparent border-secondary text-muted" 
+                            <a class="page-link bg-transparent border-secondary text-muted"
                                href="{{ $data->appends(request()->all())->previousPageUrl() }}">&laquo;</a>
                         </li>
                     @endif
@@ -456,7 +296,7 @@
 
                     @if ($data->hasMorePages())
                         <li class="page-item">
-                            <a class="page-link bg-transparent border-secondary text-muted" 
+                            <a class="page-link bg-transparent border-secondary text-muted"
                                href="{{ $data->appends(request()->all())->nextPageUrl() }}">&raquo;</a>
                         </li>
                     @else

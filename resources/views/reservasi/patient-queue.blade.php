@@ -4,146 +4,6 @@
 
 @section('content')
 
-{{-- 1. STYLE CSS CUSTOM --}}
-<style>
-    :root {
-        --gold-primary: #D4AF37;
-        --gold-hover: #b89628;
-        --bg-dark: #121212;
-        --card-bg: #1A1A1A;
-        --border-color: #333333;
-        --text-muted: #a0a0a0;
-    }
-
-    h1, h2, h3, h4, h5, h6 { color: #fff !important; }
-    .text-gold { color: var(--gold-primary) !important; }
-    .text-muted { color: var(--text-muted) !important; }
-
-    .stat-card {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.5rem;
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.2s;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    .stat-card:hover {
-        border-color: var(--gold-primary);
-        transform: translateY(-3px);
-    }
-    .stat-icon {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 3rem !important;
-        opacity: 0.1;
-        color: #fff;
-    }
-    .stat-value {
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin-top: 5px;
-        line-height: 1;
-        color: var(--gold-primary);
-    }
-    .stat-label {
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--text-muted);
-    }
-
-    .val-warning { color: #ffc107 !important; }
-    .val-info { color: #17a2b8 !important; }
-    .val-success { color: #28a745 !important; }
-    .val-danger { color: #dc3545 !important; }
-
-    .form-control-dark {
-        background-color: #121212;
-        border: 1px solid var(--border-color);
-        color: #E0E0E0;
-        border-radius: 8px;
-        padding: 0.6rem 1rem;
-    }
-    .form-control-dark:focus {
-        background-color: #121212;
-        border-color: var(--gold-primary);
-        color: #fff;
-        box-shadow: none;
-    }
-    .input-group-text-dark {
-        background-color: #121212;
-        border: 1px solid var(--border-color);
-        border-right: none;
-        color: var(--text-muted);
-    }
-
-    .queue-table-card {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        overflow: hidden;
-        min-height: 400px;
-    }
-
-    .table-dark-custom {
-        width: 100%;
-        color: #E0E0E0;
-        margin-bottom: 0;
-        background-color: transparent;
-    }
-    .table-dark-custom thead th {
-        background-color: #252525 !important;
-        border-bottom: 1px solid var(--border-color);
-        color: var(--text-muted);
-        font-weight: 600;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        padding: 1rem 1.5rem;
-        white-space: nowrap;
-    }
-    .table-dark-custom tbody td {
-        padding: 1rem 1.5rem;
-        vertical-align: middle;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 0.95rem;
-        background-color: var(--card-bg) !important;
-        color: #E0E0E0 !important;
-    }
-    .table-dark-custom tr:last-child td { border-bottom: none; }
-    .table-dark-custom tbody tr:hover td {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-    }
-
-    .no-antrian-text {
-        font-family: 'Courier New', monospace;
-        font-size: 1.2rem;
-        font-weight: 800;
-        color: var(--gold-primary);
-        letter-spacing: 1px;
-    }
-
-    .badge {
-        padding: 0.5em 0.8em;
-        font-weight: 600;
-        border-radius: 6px;
-    }
-    .bg-warning-soft { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; border: 1px solid #ffc107; }
-    .bg-info-soft { background-color: rgba(23, 162, 184, 0.2); color: #17a2b8; border: 1px solid #17a2b8; }
-    .bg-success-soft { background-color: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
-    .bg-danger-soft { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
-
-    .btn-link-gold { color: var(--gold-primary); text-decoration: none; }
-    .btn-link-gold:hover { color: var(--gold-hover); text-decoration: none; }
-
-    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-</style>
-
 <div class="container-fluid px-0">
 
     {{-- 2. HEADER HALAMAN --}}
@@ -178,7 +38,7 @@
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">hourglass_top</span>
                 <div class="stat-label">Menunggu</div>
-                <div class="stat-value val-warning">{{ $stats['menunggu'] ?? 0 }}</div>
+                <div class="stat-value text-warning">{{ $stats['menunggu'] ?? 0 }}</div>
             </div>
         </div>
 
@@ -186,7 +46,7 @@
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">stethoscope</span>
                 <div class="stat-label">Sedang Diperiksa</div>
-                <div class="stat-value val-info">{{ $stats['diproses'] ?? 0 }}</div>
+                <div class="stat-value text-info">{{ $stats['diproses'] ?? 0 }}</div>
             </div>
         </div>
 
@@ -194,7 +54,7 @@
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">check_circle</span>
                 <div class="stat-label">Selesai</div>
-                <div class="stat-value val-success">{{ $stats['selesai'] ?? 0 }}</div>
+                <div class="stat-value text-success">{{ $stats['selesai'] ?? 0 }}</div>
             </div>
         </div>
 
@@ -202,7 +62,7 @@
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">cancel</span>
                 <div class="stat-label">Batal</div>
-                <div class="stat-value val-danger">{{ $stats['batal'] ?? 0 }}</div>
+                <div class="stat-value text-danger">{{ $stats['batal'] ?? 0 }}</div>
             </div>
         </div>
     </div>

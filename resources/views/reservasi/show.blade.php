@@ -4,117 +4,6 @@
 
 @section('content')
 
-<style>
-    /* --- CSS UTAMA HALAMAN --- */
-    .info-label {
-        font-size: 0.75rem;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-        color: #888;
-        margin-bottom: 4px;
-        display: block;
-    }
-    .info-value {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #fff;
-    }
-    .icon-box {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 12px;
-    }
-    .card-dark-premium {
-        background-color: #1e1e1e;
-        border: 1px solid #333;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    .tracking-dot {
-        width: 32px; 
-        height: 32px; 
-        border-radius: 50%; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center;
-        z-index: 2;
-        transition: all 0.3s ease;
-    }
-
-    /* --- CSS KHUSUS MODAL (CLEAN & PROFESSIONAL) --- */
-    .modal-content-pro {
-        background-color: #181818; /* Lebih gelap dari card biasa */
-        border: 1px solid #333;
-        color: #e0e0e0;
-        box-shadow: 0 0 50px rgba(0,0,0,0.9);
-    }
-    
-    /* Container untuk setiap bagian form */
-    .control-panel-box {
-        background-color: #212121;
-        border: 1px solid #333;
-        border-radius: 8px;
-        padding: 20px;
-        height: 100%;
-        position: relative;
-    }
-    
-    /* Judul Section (misal: Edit Data) */
-    .panel-title {
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        font-weight: 700;
-        margin-bottom: 20px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #333;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    /* Style Input Form Gelap (Matte) */
-    .form-control-pro, .form-select-pro {
-        background-color: #121212 !important;
-        border: 1px solid #444 !important;
-        color: #fff !important;
-        font-size: 0.9rem;
-        padding: 10px 12px;
-        border-radius: 6px;
-        transition: border-color 0.2s;
-    }
-    .form-control-pro:focus, .form-select-pro:focus {
-        background-color: #000 !important;
-        border-color: #ffc107 !important; /* Aksen Kuning saat aktif */
-        box-shadow: none !important;
-        color: #fff !important;
-    }
-    
-    /* Label kecil di atas input */
-    .label-pro {
-        font-size: 0.75rem;
-        color: #888;
-        margin-bottom: 6px;
-        display: block;
-        font-weight: 500;
-    }
-
-    /* Tombol Action */
-    .btn-action-pro {
-        font-size: 0.85rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 10px 20px;
-        border-radius: 6px;
-        width: 100%;
-    }
-</style>
-
 <div class="container-fluid">
 
     <div class="d-flex align-items-center gap-3 mb-4">
@@ -232,7 +121,7 @@
                      </div>
                 </div>
             </div>
-            
+
             {{-- CARD TRACKING (Visualisasi Status) --}}
             <div class="card card-dark-premium border-0 mt-4">
                 <div class="card-body p-4">
@@ -252,7 +141,7 @@
                         elseif($status == 'dalam_proses') { $step = 2; }
                         elseif($status == 'selesai') { $step = 3; }
                         elseif($status == 'batal') { $step = 4; }
-                        
+
                         $line1Color = ($step > 1) ? ($step == 3 ? 'success' : 'primary') : $inactiveLine;
                         $line2Color = ($step > 2) ? 'success' : $inactiveLine;
                     @endphp
@@ -288,7 +177,7 @@
                                 <span class="position-absolute top-100 mt-2 small fw-bold text-nowrap {{ $step >= 3 ? 'text-success' : 'text-secondary' }}">Selesai</span>
                             </div>
                         </div>
-                        <div class="mb-4"></div> 
+                        <div class="mb-4"></div>
                     @endif
                 </div>
             </div>
@@ -310,7 +199,7 @@
                             <small class="text-uppercase text-secondary letter-spacing-1">Total Biaya</small>
                             <h2 class="text-warning fw-bold mb-0 mt-1">Rp {{ number_format($reservasi->pembayaran_total, 0, ',', '.') }}</h2>
                         </div>
-                        
+
                         @php
                             $pStatus = $reservasi->status_pembayaran;
                             $isLunas = in_array($pStatus, ['lunas', 'terverifikasi']);
@@ -346,7 +235,7 @@
 <div class="modal fade" id="modalKelolaReservasi" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content modal-content-pro">
-            
+
             <div class="modal-header border-secondary py-3">
                 <h5 class="modal-title fw-bold text-white">
                     <span class="material-symbols-outlined align-middle text-warning me-2">tune</span>
@@ -362,12 +251,12 @@
 
                 <div class="modal-body p-4">
                     <div class="row g-4">
-                        
+
                         {{-- KOLOM KIRI: EDIT DATA MEDIS --}}
                         <div class="col-lg-7">
                             <div class="p-3 rounded border border-secondary bg-dark">
                                 <h6 class="text-warning mb-3 fw-bold text-uppercase">Data Medis & Jadwal</h6>
-                                
+
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="small text-secondary">Dokter</label>
@@ -400,7 +289,7 @@
                         {{-- KOLOM KANAN: STATUS & PEMBAYARAN --}}
                         <div class="col-lg-5">
                             <div class="d-flex flex-column gap-3 h-100">
-                                
+
                                 {{-- Section Status --}}
                                 <div class="p-3 rounded border border-secondary bg-dark">
                                     <h6 class="text-info mb-3 fw-bold text-uppercase">Status Kunjungan</h6>
@@ -450,7 +339,7 @@
                 </div>
 
             </form> {{-- END FORM BESAR --}}
-            
+
         </div>
     </div>
 </div>
