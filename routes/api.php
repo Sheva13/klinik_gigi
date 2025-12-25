@@ -5,7 +5,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasienController;
 use App\Http\Controllers\DokterController;
 use App\Http\Controllers\HomeCareController;
-use App\Http\Controllers\ReservasiController;
+use App\Http\Controllers\UserReservasiController;
+use App\Http\Controllers\MasterReservasiController;
+use App\Http\Controllers\TransaksiReservasiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ProfilController;
@@ -49,9 +51,9 @@ Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtpEmail']);
 // 🦷 ROUTE RESERVASI KLINIK (PUBLIK - TANPA LOGIN)
 // ==============================
 // Endpoint yang bisa diakses sebelum login untuk menampilkan informasi dasar
-Route::get('/reservasi/poli', [ReservasiController::class, 'getDaftarPoli']);
-Route::post('/reservasi/dokter', [ReservasiController::class, 'getDokterByPoli']);
-Route::post('/reservasi/jadwal', [ReservasiController::class, 'getJadwalDenganKuota']);
+Route::get('/reservasi/poli', [MasterReservasiController::class, 'getDaftarPoli']);
+Route::post('/reservasi/dokter', [MasterReservasiController::class, 'getDokterByPoli']);
+Route::post('/reservasi/jadwal', [MasterReservasiController::class, 'getJadwalDenganKuota']);
 
 // ========================================================================
 // 🔒 PROTECTED ROUTES (WAJIB LOGIN / ADA TOKEN)
@@ -84,19 +86,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==============================
 
     // Helper: Ambil Data User untuk Form Reservasi
-    Route::get('/reservasi/user', [ReservasiController::class, 'getUserData']);
+    Route::get('/reservasi/user', [UserReservasiController::class, 'getUserData']);
 
     // Langkah 4: Create Booking (Submit) - Butuh login karena melibatkan pembayaran
-    Route::post('/reservasi/create', [ReservasiController::class, 'createReservasi']);
+    Route::post('/reservasi/create', [TransaksiReservasiController::class, 'createReservasi']);
 
     // Langkah 5: Cek Status Pembayaran
-    Route::get('/reservasi/cek-status/{no_pemeriksaan}', [ReservasiController::class, 'cekStatusPembayaran']);
+    Route::get('/reservasi/cek-status/{no_pemeriksaan}', [TransaksiReservasiController::class, 'cekStatusPembayaran']);
 
     // Langkah 6: Update Pembayaran (Opsional via API jika User upload bukti)
-    Route::put('/reservasi/pembayaran/{no_pemeriksaan}', [ReservasiController::class, 'updatePembayaran']);
+    Route::put('/reservasi/pembayaran/{no_pemeriksaan}', [TransaksiReservasiController::class, 'updatePembayaran']);
 
     // Langkah 7: Riwayat Reservasi Spesifik
-    Route::get('/reservasi/riwayat/{rekam_medis_id}', [ReservasiController::class, 'riwayatReservasi']);
+    Route::get('/reservasi/riwayat/{rekam_medis_id}', [UserReservasiController::class, 'riwayatReservasi']);
 
 
     // ==============================
