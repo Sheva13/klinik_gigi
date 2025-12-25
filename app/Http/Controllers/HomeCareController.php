@@ -118,42 +118,119 @@ class HomeCareController extends Controller
                 if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
                     // Update Status
                     $reservasi->status_booking = 'lunas';
-                    $reservasi->status = 'Menunggu Konfirmasi'; // Fix: Jangan 'Menunggu Dokter' agar App tidak bilang OTW
-                    $reservasi->status_reservasi = 'menunggu_konfirmasi'; // Fix: Samakan dengan enum di Admin Panel
+                    $reservasi->status = 'Menunggu Konfirmasi';
+                    $reservasi->status_reservasi = 'menunggu_konfirmasi';
                     $reservasi->save();
 
-                    // Tambah Poin Manual (Copy Logic from Webhook)
+                    // Tambah Poin Manual (Booking)
                     $poinDidapat = floor(($midtransStatus['gross_amount'] ?? 0) / 10000);
+                    
+                    // Point Logic
                     if ($reservasi->pasien_id && $poinDidapat > 0) {
-                        \Illuminate\Support\Facades\DB::table('users')
-                            ->where('user_id', $reservasi->pasien_id)
-                            ->increment('poin', $poinDidapat);
+                        try {
+                            $user = User::where('user_id', $reservasi->pasien_id)->first();
+                            if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
+                            if ($user) {
+                                $user->increment('poin', $poinDidapat);
+                                \App\Models\PointHistory::create([
+                                     'user_id' => $user->user_id,
+                                     'amount' => $poinDidapat,
+                                     'type' => 'earn',
+                                     'description' => "Pembayaran Booking HomeCare",
+                                     'reference_id' => $reservasi->no_pemeriksaan,
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                             Log::error("Point Error: " . $e->getMessage());
+                        }
                     }
                 }
             } else if ($reservasi->status_pelunasan !== 'lunas') {
                 // Cek pelunasan (PL-)
-                // Deterministic ID logic:
                 $settlementOrderId = 'PL-' . $reservasi->no_pemeriksaan;
                 $midtransStatus = $this->midtransService->getTransactionStatus($settlementOrderId);
 
                 if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
                     // Update Status Pelunasan
                     $reservasi->status_pelunasan = 'lunas';
-                    // status_booking tetap 'lunas'
-                    // status_reservasi bisa 'selesai' atau tetap?
-                    // Biasanya setelah lunas jadi 'selesai'
                     $reservasi->status = 'Selesai';
                     $reservasi->status_reservasi = 'selesai';
                     $reservasi->save();
 
                     // Tambah Poin Manual (Pelunasan)
                     $poinDidapat = floor(($midtransStatus['gross_amount'] ?? 0) / 10000);
+                    
+                    $debugPointMsg = "";
                     if ($reservasi->pasien_id && $poinDidapat > 0) {
-                        \Illuminate\Support\Facades\DB::table('users')
-                            ->where('user_id', $reservasi->pasien_id)
-                            ->increment('poin', $poinDidapat);
+                        try {
+                            $user = User::where('user_id', $reservasi->pasien_id)->first();
+                            if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
+
+                            if ($user) {
+                                $user->increment('poin', $poinDidapat);
+                                $debugPointMsg = "Success: Added $poinDidapat pts";
+                                \App\Models\PointHistory::create([
+                                     'user_id' => $user->user_id,
+                                     'amount' => $poinDidapat,
+                                     'type' => 'earn',
+                                     'description' => "Pelunasan tagihan via Manual",
+                                     'reference_id' => $reservasi->no_pemeriksaan,
+                                ]);
+                            } else {
+                                $debugPointMsg = "User not found";
+                                Log::error("Point Error: User not found ID: " . $reservasi->pasien_id);
+                            }
+                        } catch (\Exception $e) {
+                             $debugPointMsg = "Error: " . $e->getMessage();
+                             Log::error("Point Error: " . $e->getMessage());
+                        }
                     }
                 }
+            }
+
+            // --- RECOVERY LOGIC: Cek jika sudah Lunas tapi Poin Belum Masuk ---
+            // (Untuk menangani kasus dimana status update via Webhook sebelum logic poin diperbaiki)
+            if ($reservasi->status_pelunasan === 'lunas') {
+                 // Cek apakah history poin sudah ada untuk transaksi ini
+                 $historyExists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
+                                    ->where('description', 'LIKE', '%Pelunasan%')
+                                    ->exists();
+                 
+                 if (!$historyExists) {
+                     // Hitung poin seharusnya (perlu fetch gross_amount dari midtrans atau hitung dari total_biaya_tindakan)
+                     // Kita gunakan total_biaya_tindakan dari DB agar tidak perlu call Midtrans lagi jika memungkinkan
+                     $grossAmount = $reservasi->total_biaya_tindakan > 0 ? $reservasi->total_biaya_tindakan : 0;
+                     
+                     // Fallback charge Midtrans if 0 (mungkin data lama belum ada total_biaya)
+                     if ($grossAmount <= 0) {
+                         $settlementOrderId = 'PL-' . $reservasi->no_pemeriksaan;
+                         $midtransStatus = $this->midtransService->getTransactionStatus($settlementOrderId);
+                         $grossAmount = $midtransStatus['gross_amount'] ?? 0;
+                     }
+
+                     $poinDidapat = floor($grossAmount / 10000);
+
+                     if ($reservasi->pasien_id && $poinDidapat > 0) {
+                        try {
+                            $user = User::where('user_id', $reservasi->pasien_id)->first();
+                            if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
+                            
+                            if ($user) {
+                                $user->increment('poin', $poinDidapat);
+                                $debugPointMsg = "Recovered: Added $poinDidapat pts";
+                                \App\Models\PointHistory::create([
+                                     'user_id' => $user->user_id,
+                                     'amount' => $poinDidapat,
+                                     'type' => 'earn',
+                                     'description' => "Pelunasan tagihan via Manual (Recovery)",
+                                     'reference_id' => $reservasi->no_pemeriksaan,
+                                ]);
+                            }
+                        } catch (\Exception $e) {
+                             Log::error("Point Recovery Error: " . $e->getMessage());
+                        }
+                     }
+                 }
             }
 
             return response()->json([
@@ -165,13 +242,14 @@ class HomeCareController extends Controller
                     'status_reservasi' => $reservasi->status_reservasi,
                     'status_pelunasan' => $reservasi->status_pelunasan,
                     'total_biaya_tindakan' => $reservasi->total_biaya_tindakan ?? 0,
-                    // Additional Info for Tracking Screen
                     'nama_dokter' => $reservasi->jadwalHarian->masterJadwal->dokter->nama ?? 'Dokter HomeCare',
                     'jadwal_tanggal' => $reservasi->jadwalHarian->tanggal ?? $reservasi->tanggal_pesan,
                     'jadwal_jam' => $reservasi->jadwalHarian->masterJadwal->jam_mulai ?? '-',
                     'estimasi_tiba' => '15 menit',
+                    'last_point_debug' => $debugPointMsg ?? 'Check Logs'
                 ]
             ]);
+
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
