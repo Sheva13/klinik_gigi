@@ -63,11 +63,11 @@ class MidtransWebhookController extends Controller
             $transaksi = Reservasi::where('no_pemeriksaan', $orderId)->first();
             $tipeTransaksi = 'KLINIK';
         } elseif (Str::startsWith($orderId, 'PL-')) {
-            if (preg_match('/^PL-(.+)-(\d+)$/', $orderId, $matches)) {
-                $noPemeriksaanAsli = $matches[1];
-                $transaksi = HomeCareReservasi::where('no_pemeriksaan', $noPemeriksaanAsli)->first();
-                $tipeTransaksi = 'HOME_CARE_PELUNASAN';
-            }
+            // --- LOGIC PELUNASAN HOME CARE ---
+            // Format: PL-{NO_PEMERIKSAAN_ASLI}
+            $noPemeriksaanAsli = substr($orderId, 3); // Remove 'PL-' prefix
+            $transaksi = HomeCareReservasi::where('no_pemeriksaan', $noPemeriksaanAsli)->first();
+            $tipeTransaksi = 'HOME_CARE_PELUNASAN';
         }
 
         if (!$transaksi) {
@@ -116,16 +116,37 @@ class MidtransWebhookController extends Controller
                 // Tambah Poin User
                 Log::info("🔍 [DEBUG POINT] Transaction ID: {$transaksi->no_pemeriksaan}, Pasien ID: {$transaksi->pasien_id}");
                 if ($transaksi->pasien_id && $poinDidapat > 0) {
-                    $affected = DB::table('users')
-                        ->where('user_id', $transaksi->pasien_id)
-                        ->increment('poin', $poinDidapat);
-                    if ($affected) {
-                        Log::info("🎁 [SUCCESS] User {$transaksi->pasien_id} mendapat {$poinDidapat} via DB Query.");
-                    } else {
-                        Log::info("❌ [ERROR] Failed to increment via DB Query. User ID not found: {$transaksi->pasien_id}");
+                    try {
+                        // ROBUST LOGIC: Prioritas user_id (string), lalu id (integer)
+                        $user = \App\Models\User::where('user_id', $transaksi->pasien_id)->first();
+                        if (!$user) {
+                            $user = \App\Models\User::where('id', $transaksi->pasien_id)->first();
+                        }
+
+                        if ($user) {
+                             $user->increment('poin', $poinDidapat);
+                             Log::info("🎁 [SUCCESS] User {$user->user_id} mendapat {$poinDidapat} poin.");
+                             
+                             // --- CATAT HISTORY POIN ---
+                             try {
+                                 \App\Models\PointHistory::create([
+                                     'user_id' => $user->user_id,
+                                     'amount' => $poinDidapat,
+                                     'type' => 'earn',
+                                     'description' => $keteranganLog,
+                                     'reference_id' => $transaksi->no_pemeriksaan,
+                                 ]);
+                             } catch (\Exception $e) {
+                                 Log::error("❌ Gagal mencatat history poin: " . $e->getMessage());
+                             }
+                        } else {
+                            Log::error("❌ [ERROR] Failed to add points. User ID not found in DB: {$transaksi->pasien_id}");
+                        }
+                    } catch (\Exception $e) {
+                        Log::error("❌ Critical Point Error: " . $e->getMessage());
                     }
                 } else {
-                    Log::info("⚠️ [WARNING] No User ID or 0 Points.");
+                    Log::info("⚠️ [WARNING] No User ID or 0 Points to add.");
                 }
 
             } else if ($transactionStatus == 'expire' || $transactionStatus == 'cancel' || $transactionStatus == 'deny') {

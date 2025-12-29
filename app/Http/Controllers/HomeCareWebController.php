@@ -11,7 +11,8 @@ class HomeCareWebController extends Controller
     {
         // PERBAIKAN: Menggunakan 'rekam_medis.hp' (sesuai database simklinik)
         $query = DB::table('homecare_reservasi')
-            ->join('rekam_medis', 'homecare_reservasi.pasien_id', '=', 'rekam_medis.id')
+            ->leftJoin('users', 'homecare_reservasi.pasien_id', '=', 'users.user_id')
+            ->leftJoin('rekam_medis', 'users.rekam_medis_id', '=', 'rekam_medis.id')
             ->leftJoin('master_dokter', 'homecare_reservasi.dokter_id', '=', 'master_dokter.kode_dokter')
             ->select(
                 'homecare_reservasi.*',
@@ -34,8 +35,14 @@ class HomeCareWebController extends Controller
         }
 
         // Filter Tanggal
-        if ($request->has('start_date') && $request->start_date != '' && $request->has('end_date') && $request->end_date != '') {
-            $query->whereBetween('homecare_reservasi.tanggal_pesan', [$request->start_date, $request->end_date]);
+        if ($request->has('start_date') && $request->start_date != '') {
+            if ($request->has('end_date') && $request->end_date != '') {
+                // Range
+                $query->whereBetween('homecare_reservasi.tanggal_pesan', [$request->start_date, $request->end_date]);
+            } else {
+                // Single Date
+                $query->whereDate('homecare_reservasi.tanggal_pesan', $request->start_date);
+            }
         }
 
         $riwayat = $query->orderBy('homecare_reservasi.created_at', 'desc')
@@ -48,13 +55,19 @@ class HomeCareWebController extends Controller
     public function show($id)
     {
         $item = DB::table('homecare_reservasi')
-            ->join('rekam_medis', 'homecare_reservasi.pasien_id', '=', 'rekam_medis.id')
+            ->leftJoin('users', 'homecare_reservasi.pasien_id', '=', 'users.user_id')
+            ->leftJoin('rekam_medis', 'users.rekam_medis_id', '=', 'rekam_medis.id')
             ->leftJoin('master_dokter', 'homecare_reservasi.dokter_id', '=', 'master_dokter.kode_dokter')
             ->where('homecare_reservasi.id', $id)
             ->select(
                 'homecare_reservasi.*',
                 'rekam_medis.nama as nama_pasien',
+                'users.nama_pengguna as nama_user',
                 'rekam_medis.hp as no_hp_pasien', // PERBAIKAN DI SINI JUGA
+                'rekam_medis.rekam_medis as no_rm',
+                'users.nama_pengguna as nama_user',
+                'rekam_medis.tanggal_lahir',
+                'rekam_medis.jenis_kelamin',
                 'rekam_medis.alamat as alamat_ktp',
                 'master_dokter.nama as nama_dokter'
             )
@@ -115,7 +128,45 @@ class HomeCareWebController extends Controller
             ->where('id', $id)
             ->update($dataUpdate);
 
-        // 4. Log Tracking (Opsional)
+        // --- 4. LOGIC POIN (Perbaikan Integrasi) ---
+        // Jika status diubah menjadi 'Selesai' (Lunas), berikan poin ke user
+        if (
+            ($dataUpdate['status'] === 'Selesai' || $dataUpdate['status'] === 'Lunas') ||
+            ($request->status === 'lunas' || $request->status === 'menunggu_pelunasan' /* 'menunggu_pelunasan' belum lunas */)
+        ) {
+             // Cek jika status akhir benar-benar lunas/selesai
+             // Note: Mapping $readableStatus di atas mengubah 'lunas' -> 'Selesai'
+             if ($dataUpdate['status'] === 'Selesai') {
+                $reservasi = DB::table('homecare_reservasi')->where('id', $id)->first();
+                
+                // Pastikan belum pernah diberi poin untuk transaksi ini (Cek duplicate entry di history)
+                // ATAU kita percaya admin. Untuk safety, kita cek jika belum ada log 'earn' untuk ref ini
+                $exists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
+                            ->where('type', 'earn')
+                            ->exists();
+
+                if (!$exists && $reservasi->pasien_id) {
+                    $totalBayar = ($reservasi->pembayaran_total ?? 0) + ($reservasi->total_biaya_tindakan ?? 0);
+                    $poinDidapat = floor($totalBayar / 10000);
+
+                    if ($poinDidapat > 0) {
+                        // 1. Tambah Poin User
+                        DB::table('users')->where('user_id', $reservasi->pasien_id)->increment('poin', $poinDidapat);
+                        
+                        // 2. Catat History
+                        \App\Models\PointHistory::create([
+                            'user_id' => $reservasi->pasien_id,
+                            'amount' => $poinDidapat,
+                            'type' => 'earn',
+                            'description' => 'Poin dari HomeCare (Update Admin)',
+                            'reference_id' => $reservasi->no_pemeriksaan
+                        ]);
+                    }
+                }
+             }
+        }
+
+        // 5. Log Tracking (Opsional)
         try {
             DB::table('home_care_tracking')->insert([
                 'id_periksa' => $id,

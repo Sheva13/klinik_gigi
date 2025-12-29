@@ -99,7 +99,17 @@
             <h1 class="fw-bold mb-1" style="font-size: 2.5rem; letter-spacing: -1px;">Daftar Promo</h1>
             <p class="text-secondary mb-0">Kelola promo dan gamifikasi yang aktif untuk pasien 3K Dental Care.</p>
         </div>
-        <div class="d-flex align-items-center gap-4">
+        <div class="d-flex align-items-center gap-3">
+            {{-- Filter --}}
+            <form action="{{ route('promo.index') }}" method="GET" class="d-flex align-items-center">
+                <select name="target" class="form-select bg-dark text-white border-secondary" style="width: 200px;" onchange="this.form.submit()">
+                    <option value="">Semua Target</option>
+                    <option value="semua" {{ request('target') == 'semua' ? 'selected' : '' }}>Semua Transaksi</option>
+                    <option value="booking" {{ request('target') == 'booking' ? 'selected' : '' }}>Booking Only</option>
+                    <option value="pelunasan" {{ request('target') == 'pelunasan' ? 'selected' : '' }}>Pelunasan Only</option>
+                </select>
+            </form>
+
             <a href="{{ route('promo.create') }}" class="btn btn-gold">
                 <span class="material-symbols-outlined" style="font-size: 20px;">add</span>
                 Tambah Promo Baru
@@ -128,6 +138,7 @@
                         <th scope="col">Potongan</th>
                         <th scope="col">Poin</th>
                         <th scope="col">Limit</th>
+                        <th scope="col">Target</th>
                         <th scope="col" class="text-end">Aksi</th>
                     </tr>
                 </thead>
@@ -159,6 +170,15 @@
                         </td>
                         <td>
                             <span class="text-white">{{ $promo->limit_per_user }}x</span> <span class="text-secondary small">/user</span>
+                        </td>
+                        <td>
+                            @if($promo->target_transaksi == 'booking')
+                                <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">Booking</span>
+                            @elseif($promo->target_transaksi == 'pelunasan')
+                                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">Pelunasan</span>
+                            @else
+                                <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25">Semua</span>
+                            @endif
                         </td>
                         <td class="text-end">
                             <div class="d-flex gap-2 justify-content-end">

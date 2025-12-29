@@ -111,10 +111,12 @@
                                     
                                     {{-- LOGIKA BARU UNTUK MEMUAT FOTO (List Kiri) --}}
                                     @php
-                                        // Tentukan sumber foto yang akan digunakan
-                                        $fotoUrl = null;
-                                        if ($dokter->file_foto && Storage::disk('public')->exists($dokter->file_foto)) {
-                                            $fotoUrl = asset('storage/'.$dokter->file_foto); // Foto di storage lokal
+                                    // [FIX] Removed illegal use statement
+                                    // Tentukan sumber foto yang akan digunakan
+                                    $fotoUrl = null;
+                                    if ($dokter->file_foto && \Illuminate\Support\Facades\Storage::disk('public')->exists($dokter->file_foto)) {
+                                        $fotoUrl = asset('storage/'.$dokter->file_foto); // Foto di storage lokal
+
                                         } elseif ($dokter->foto_dokter) {
                                             $fotoUrl = $dokter->foto_dokter; // URL jaringan dari database
                                         }
@@ -158,10 +160,10 @@
                                 
                                 {{-- LOGIKA BARU UNTUK MEMUAT FOTO (Header Kanan) --}}
                                 @php
-                                use Illuminate\Support\Facades\Storage;
+                                    // [FIX] Removed illegal use statement
                                     // Tentukan sumber foto yang akan digunakan
                                     $fotoUrlHeader = null;
-                                    if ($selectedDokter->file_foto && Storage::disk('public')->exists($selectedDokter->file_foto)) {
+                                    if ($selectedDokter->file_foto && \Illuminate\Support\Facades\Storage::disk('public')->exists($selectedDokter->file_foto)) {
                                         $fotoUrlHeader = asset('storage/'.$selectedDokter->file_foto); // Foto di storage lokal
                                     } elseif ($selectedDokter->foto_dokter) {
                                         $fotoUrlHeader = $selectedDokter->foto_dokter; // URL jaringan dari database

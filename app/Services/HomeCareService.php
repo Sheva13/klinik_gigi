@@ -20,7 +20,7 @@ use Carbon\Carbon;
 interface ReservationServiceInterface
 {
     public function calculateCost($latitude, $longitude);
-    public function getAvailableSchedules();
+    public function getAvailableSchedules($kodePoli = null);
     public function createReservation(array $data);
     public function confirmPayment($reservationId);
     public function getPaymentHistory($reservationId);
@@ -125,17 +125,36 @@ class HomeCareService extends BaseReservationService
         ];
     }
 
-    public function getAvailableSchedules()
+    public function getAvailableSchedules($kodePoli = null)
     {
-        return MasterJadwal::with(['dokter.spesialis', 'poli'])
-            ->where('quota', '>', 0)
-            ->get()
-            ->toArray();
+        $query = MasterJadwal::with(['dokter.spesialis', 'poli'])
+            ->where('quota', '>', 0);
+
+        if ($kodePoli && strtolower($kodePoli) !== 'semua') {
+            $query->where(function($q) use ($kodePoli) {
+                $q->where('kode_poli', $kodePoli)
+                  ->orWhereHas('dokter', function ($dq) use ($kodePoli) {
+                      $dq->where('kode_poli', $kodePoli);
+                  });
+            });
+        }
+
+        return $query->get()->toArray();
     }
 
-    public function getAvailableSchedulesForDate($tanggal = null)
+    public function getAvailableSchedulesForDate($tanggal = null, $kodePoli = null)
     {
         $query = MasterJadwal::with(['dokter.spesialis', 'poli']);
+        
+        if ($kodePoli && strtolower($kodePoli) !== 'semua') {
+            $query->where(function($q) use ($kodePoli) {
+                $q->where('kode_poli', $kodePoli)
+                  ->orWhereHas('dokter', function ($dq) use ($kodePoli) {
+                      $dq->where('kode_poli', $kodePoli);
+                  });
+            });
+        }
+
         if ($tanggal) {
             $date = Carbon::parse($tanggal);
             $dayIso = $date->dayOfWeekIso;
@@ -262,6 +281,15 @@ class HomeCareService extends BaseReservationService
             if ($pointsToDeduct > 0) {
                 $user = User::find($userId);
                 $user->decrement('poin', $pointsToDeduct);
+
+                // --- CATAT HISTORY ---
+                \App\Models\PointHistory::create([
+                    'user_id' => $userId,
+                    'amount' => -$pointsToDeduct, // Negatif karena berkurang
+                    'type' => 'redeem',
+                    'description' => "Penukaran Poin untuk Promo: " . ($promo->judul_promo ?? 'Promo'),
+                    'reference_id' => "BOOKING-TEMP", // Nanti diupdate setelah dapat Order ID, atau biarkan generic
+                ]);
             }
 
             // 1. Setup Jadwal & Validasi Kuota
@@ -291,7 +319,7 @@ class HomeCareService extends BaseReservationService
                 'no_pemeriksaan' => $orderId,
                 'pasien_id' => $userId,
                 'rekam_medis_id' => $pasien->id,
-                'dokter_id' => $masterJadwal->dokter_id,
+                'dokter_id' => $masterJadwal->kode_dokter, // FIX: master_jadwal uses kode_dokter
                 'jadwal_id' => $jadwalHarian->id,
                 'tanggal_pesan' => $data['tanggal'],
                 'waktu_pesan' => now()->toTimeString(),
@@ -469,6 +497,15 @@ class HomeCareService extends BaseReservationService
             $user = User::find($pasienId);
             if ($user) {
                 $user->increment('poin', 10);
+                
+                // --- CATAT HISTORY ---
+                \App\Models\PointHistory::create([
+                    'user_id' => $user->user_id, // Pastikan pakai user_id yang string
+                    'amount' => 10,
+                    'type' => 'earn',
+                    'description' => "Bonus Poin Pelunasan Layanan",
+                    'reference_id' => $reservasi->no_pemeriksaan
+                ]);
             }
         }
 
@@ -585,6 +622,15 @@ class HomeCareService extends BaseReservationService
 
             // Deduct Points NOW (or should we wait? Usually deduct when link is generated to prevent double use, can refund if failed/cancelled - sticking to simple deduction now)
             $user->decrement('poin', $promo->harga_poin);
+            
+            // --- CATAT HISTORY ---
+            \App\Models\PointHistory::create([
+                'user_id' => $user->user_id,
+                'amount' => -$promo->harga_poin,
+                'type' => 'redeem',
+                'description' => "Penukaran Poin (Pelunasan): " . ($promo->judul_promo ?? 'Promo'),
+                'reference_id' => $reservasi->no_pemeriksaan 
+            ]);
 
             // Update Reservasi with used promo for settlement tracking (separate columns? or overwrite? User didn't specify separate promo columns for setttlement. I'll overwrite or assume `promo_id` is generic. 
             // Better: Since schema is shared, maybe I shouldn't overwrite if one was used in booking. 

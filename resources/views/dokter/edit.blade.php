@@ -160,8 +160,8 @@
                     <h5 class="section-title">Foto Profil</h5>
                     
                     <div class="upload-area mb-4" onclick="document.getElementById('file_foto').click()">
-                        @if($dokter->file_foto && Storage::disk('public')->exists($dokter->file_foto))
-                            <img id="preview_foto" src="{{ asset('storage/' . $dokter->file_foto) }}" alt="Foto Dokter">
+                        @if($dokter->foto_profil && Storage::disk('public')->exists($dokter->foto_profil))
+                            <img id="preview_foto" src="{{ asset('storage/' . $dokter->foto_profil) }}" alt="Foto Dokter">
                         @else
                             <img id="preview_foto" src="" style="display: none;" alt="Preview Foto">
                             <div class="upload-placeholder" id="placeholder_content">

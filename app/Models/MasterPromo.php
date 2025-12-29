@@ -21,10 +21,18 @@ class MasterPromo extends Model
         'harga_poin',
         'nilai_potongan',
         'limit_per_user',
-        // Tambahan baru
-        'harga_poin',
-        'nilai_potongan',
-        'limit_per_user'
+        'target_transaksi',
     ];
     public $timestamps = true;
+
+    protected $appends = ['gambar_banner_url'];
+
+    public function getGambarBannerUrlAttribute()
+    {
+        if ($this->gambar_banner) {
+            // Menggunakan API Route khusus agar CORS Headers otomatis ditambahkan (fix untuk php artisan serve)
+            return url('api/images/' . $this->gambar_banner);
+        }
+        return null;
+    }
 }
