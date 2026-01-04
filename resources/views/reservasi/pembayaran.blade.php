@@ -4,95 +4,6 @@
 
 @section('content')
 
-{{-- PASTIKAN BLOCK STYLE INI ADA AGAR TEMA DARK MODE & WARNA GOLD KONSISTEN --}}
-<style>
-    /* DEFINISI VARIABEL WARNA (Dari edit.blade.php) */
-    :root {
-        --gold-primary: #D4AF37;
-        --gold-hover: #b89628;
-        --bg-dark: #121212;
-        --card-bg: #1A1A1A;
-        --border-color: #333333;
-        --text-muted: #a0a0a0;
-        --input-bg: #121212;
-        --warning-status: #ffc107; /* Untuk status 'Belum Lunas' */
-    }
-
-    /* PENGATURAN FONT DAN WARNA DASAR UNTUK KERAPIHAN */
-    h1, h2, h3, h4, h5, h6 { color: #fff !important; font-weight: 700 !important; }
-    body { color: #fff; } /* Memastikan body default color putih */
-    .text-gold { color: var(--gold-primary) !important; }
-    .text-muted { color: var(--text-muted) !important; }
-     
-    /* Kelas Kustom untuk Badge Warning */
-    .bg-warning-custom { background-color: var(--warning-status) !important; color: #000; } 
-
-    /* Kelas Edit Card Utama (Wadah Konten) */
-    .edit-card {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-    }
-
-    /* Tombol Gold/Emas (Selesai) */
-    .btn-gold {
-        background-color: var(--gold-primary);
-        color: #000;
-        font-weight: 700;
-        border: none;
-        border-radius: 8px;
-        padding: 0.75rem 2rem;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .btn-gold:hover { background-color: var(--gold-hover); color: #000; }
-
-    /* Tombol Secondary (Batal) */
-    .btn-secondary-dark {
-        background-color: transparent;
-        border: 1px solid var(--border-color);
-        color: var(--text-muted);
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 0.75rem 2rem;
-        text-decoration: none;
-        transition: all 0.2s;
-        display: inline-block;
-    }
-
-    .btn-secondary-dark:hover {
-        background-color: rgba(255, 255, 255, 0.05);
-        color: #FFF;
-        border-color: #555;
-    }
-
-    /* Dropzone Styling */
-    .dropzone-dark {
-        background-color: var(--input-bg);
-        border: 2px dashed var(--border-color) !important;
-        border-radius: 8px;
-        padding: 3rem;
-        color: #fff;
-        transition: all 0.2s;
-        cursor: pointer;
-        display: block; /* <<< FIX INI AGAR LEBARNYA 100% */
-    }
-    .dropzone-dark:hover {
-        border-color: var(--gold-primary) !important;
-    }
-     
-    /* Style untuk daftar deskripsi (dl) agar rapi */
-    .dl-horizontal dt {
-        text-align: left;
-        padding-right: 15px;
-    }
-</style>
-
 <div class="container-fluid px-0">
 
     {{-- HEADER WITH ADMIN INFO --}}
@@ -126,23 +37,29 @@
             {{-- 1. RINGKASAN RESERVASI --}}
             <div class="mb-5">
                 <h4 class="fw-bold mb-3 text-white">Ringkasan Reservasi</h4>
-                 
+
                 <div class="row text-white g-3">
                     <div class="col-md-6">
                         <dl class="row">
                             <dt class="col-sm-4 text-muted">Nama Pasien</dt>
-                            <dd class="col-sm-8 fw-bold">{{ $reservasi->rekamMedis->nama ?? 'Farel Sheva' }}</dd>
+                            <dd class="col-sm-8 fw-bold">{{ $reservasi->rekamMedis->nama ?? 'Nama Pasien' }}</dd>
 
-                            <dt class="col-sm-4 text-muted">Layanan</dt>
-                            <dd class="col-sm-8">{{ $reservasi->layanan ?? 'Periksa Gigi' }}</dd>
+                            <dt class="col-sm-4 text-muted">Dokter</dt>
+                            <dd class="col-sm-8">{{ $reservasi->dokter->nama ?? '-' }}</dd>
 
                             <dt class="col-sm-4 text-muted">Status Pembayaran</dt>
                             <dd class="col-sm-8">
                                 @php
-                                    $status = $reservasi->status_pembayaran ?? 'Belum Lunas';
-                                    $class = ($status == 'Lunas') ? 'bg-success' : 'bg-warning-custom';
+                                    // KOREKSI LIXA: Ambil status dari model yang benar
+                                    $status = $reservasi->status_pembayaran ?? 'menunggu_verifikasi';
+                                    $label = match($status) {
+                                        'lunas', 'terverifikasi' => 'Lunas',
+                                        'gagal' => 'Gagal',
+                                        default => 'Belum Lunas'
+                                    };
+                                    $class = ($label == 'Lunas') ? 'bg-success-soft' : 'bg-warning-soft text-dark';
                                 @endphp
-                                <span class="badge {{ $class }} py-2 px-3 fw-bold">{{ $status }}</span>
+                                <span class="badge {{ $class }} py-2 px-3 fw-bold">{{ $label }}</span>
                             </dd>
                         </dl>
                     </div>
@@ -152,11 +69,12 @@
                             <dd class="col-sm-8 fw-bold text-gold">{{ $reservasi->rekamMedis->rekam_medis ?? 'RM002' }}</dd>
 
                             <dt class="col-sm-4 text-muted">Tanggal & Waktu</dt>
-                            <dd class="col-sm-8">{{ \Carbon\Carbon::parse($reservasi->tanggal_waktu ?? '2025-11-25 09:00:00')->format('d F Y') }}</dd>
+                            <dd class="col-sm-8">{{ \Carbon\Carbon::parse($reservasi->tanggal_pesan)->format('d F Y') }}</dd>
 
                             <dt class="col-sm-4 text-muted">Jumlah Total</dt>
                             <dd class="col-sm-8">
-                                <h4 class="text-white fw-bold">Rp {{ number_format($reservasi->jumlah_total ?? 25000, 0, ',', '.') }}</h4>
+                                {{-- KOREKSI LIXA: Ambil pembayaran_total yang benar --}}
+                                <h4 class="text-white fw-bold">Rp {{ number_format($reservasi->pembayaran_total ?? 0, 0, ',', '.') }}</h4>
                             </dd>
                         </dl>
                     </div>
@@ -171,7 +89,7 @@
                         <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-gold"></i>
                         <p class="text-white fw-bold">Tarik lepas file atau cari</p>
                         <small class="text-muted">Format yang didukung: JPEG PNG PDF</small>
-                         
+
                         {{-- DISPLAY FILE YANG SUDAH ADA / PREVIEW --}}
                         <div class="mt-4 text-left px-4">
                             @if($reservasi->bukti_pembayaran_file_name ?? null)
@@ -192,16 +110,15 @@
 
             {{-- FOOTER ACTION BUTTONS --}}
             <div class="d-flex justify-content-end gap-3 pt-4 border-top border-secondary">
-                 
+
                 {{-- Tombol BATAL (Kembali ke Page Show/Detail) --}}
-                {{-- 🔥 PERBAIKAN ROUTING: Kembali ke Detail Reservasi, bukan Edit Jadwal --}}
                 <a href="{{ route('reservasi.admin.show', $reservasi->id) }}" class="btn btn-secondary-dark">
                     Batal
                 </a>
-                 
+
                 {{-- Tombol SELESAI (Submit Form) --}}
                 <button type="submit" class="btn btn-gold">
-                    <i class="fas fa-check-circle"></i> Selesai
+                    <i class="fas fa-check-circle"></i> Tandai Lunas
                 </button>
             </div>
 
@@ -209,11 +126,11 @@
     </div>
 
 </div>
-{{-- Script untuk menampilkan nama file yang dipilih --}}
+{{-- Script untuk menampilkan nama file yang dipilih (TIDAK DIUBAH) --}}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const fileInput = document.getElementById('bukti_pembayaran_input');
-         
+
         if (fileInput) {
             fileInput.addEventListener('change', function() {
                 const fileNameDisplay = document.getElementById('file_name_display');

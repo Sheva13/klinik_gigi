@@ -219,8 +219,18 @@
                            class="form-control form-control-dark" 
                            name="limit_per_user" 
                            value="{{ old('limit_per_user', $promo->limit_per_user ?? 1) }}" required>
-                    <small class="text-secondary" style="font-size: 0.75rem">Berapa kali user bisa klaim promo ini.</small>
                 </div>
+            </div>
+
+            {{-- 6. Target Transaksi (Added) --}}
+            <div class="mb-4">
+                 <label class="form-label text-light small fw-bold mb-2">Target Transaksi</label>
+                 <select name="target_transaksi" class="form-select form-control-dark">
+                     <option value="semua" {{ old('target_transaksi', $promo->target_transaksi ?? 'semua') == 'semua' ? 'selected' : '' }}>Semua Transaksi</option>
+                     <option value="booking" {{ old('target_transaksi', $promo->target_transaksi ?? 'semua') == 'booking' ? 'selected' : '' }}>Hanya Booking Homecare</option>
+                     <option value="pelunasan" {{ old('target_transaksi', $promo->target_transaksi ?? 'semua') == 'pelunasan' ? 'selected' : '' }}>Hanya Pelunasan Tindakan</option>
+                 </select>
+                 <div class="text-secondary small mt-1">Pilih di mana promo ini bisa digunakan.</div>
             </div>
 
             {{-- Action Buttons --}}

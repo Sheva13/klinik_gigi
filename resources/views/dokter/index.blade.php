@@ -178,8 +178,8 @@
             <div class="card card-dokter p-4 text-center">
                 
                 {{-- Foto Profil --}}
-                @if($dokter->file_foto && Storage::disk('public')->exists($dokter->file_foto))
-                    <img src="{{ asset('storage/' . $dokter->file_foto) }}" 
+                @if($dokter->foto_profil && Storage::disk('public')->exists($dokter->foto_profil))
+                    <img src="{{ asset('storage/' . $dokter->foto_profil) }}" 
                          alt="Foto {{ $dokter->nama }}" 
                          class="dokter-avatar">
                 @else

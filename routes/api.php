@@ -5,13 +5,16 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PasienController;
 use App\Http\Controllers\DokterController;
 use App\Http\Controllers\HomeCareController;
-use App\Http\Controllers\ReservasiController;
+use App\Http\Controllers\UserReservasiController;
+use App\Http\Controllers\MasterReservasiController;
+use App\Http\Controllers\TransaksiReservasiController;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PromoController;
 use App\Http\Controllers\ProfilController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UbahPasswordController;
 use App\Http\Controllers\MidtransWebhookController;
+use App\Http\Controllers\PointController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,23 +31,73 @@ use App\Http\Controllers\MidtransWebhookController;
 // 🟢 PUBLIC ROUTES (BISA DIAKSES TANPA LOGIN)
 // ========================================================================
 
+Route::get('/images/{path}', [HomeCareController::class, 'showImage'])->where('path', '.*');
+
+// Proxy Route for Doctor Images (Fixes CORS on Flutter Web Localhost)
+Route::get('/dokter-image/{filename}', function ($filename) {
+    $path = storage_path('app/public/uploads/dokter/' . $filename);
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    return response()->file($path, [
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        'Content-Type' => mime_content_type($path),
+    ]);
+});
+
+// Proxy Route for Promo Images
+Route::get('/promo-image/{filename}', function ($filename) {
+    // Check in 'promos' folder first
+    $path = storage_path('app/public/promos/' . $filename);
+    
+    // Fallback: Check in 'uploads/promos' if mainly stored there
+    if (!file_exists($path)) {
+        $path = storage_path('app/public/uploads/promos/' . $filename);
+    }
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+    
+    return response()->file($path, [
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        'Cache-Control' => 'no-store, no-cache, must-revalidate',
+        'Content-Type' => mime_content_type($path),
+    ]);
+});
+
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Route Callback Midtrans 
+// Route Callback Midtrans
 Route::post('payment/midtrans-callback', [MidtransWebhookController::class, 'handle']);
 
 // ROUTE — Jadwal Praktek
-// Informasi Umum (Dokter & Jadwal Umum)
 Route::get('/jadwal-praktek', [DokterController::class, 'getJadwalPraktek']);
 Route::get('/dokter', [DokterController::class, 'index']);
 Route::get('/dokter/{id}', [DokterController::class, 'show']);
 Route::get('/promo', [PromoController::class, 'index']);
 
+// Point & Rewards Routes (Public for now to allow easier access from Flutter without Bearer Token)
+Route::get('/homecare/promos', [PromoController::class, 'index']);
+Route::get('/homecare/user-points', [PointController::class, 'getUserPoints']);
+Route::get('/homecare/point-history', [PointController::class, 'getPointHistory']);
+
 // OTP (Password Reset & Verifikasi)
 Route::post('/auth/request-otp', [AuthController::class, 'requestOtpEmail']);
-Route::post('/auth/verify-otp',  [AuthController::class, 'verifyOtpEmail']);
+Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtpEmail']);
+
+// ==============================
+// 🦷 ROUTE RESERVASI KLINIK (PUBLIK - TANPA LOGIN)
+// ==============================
+// Endpoint yang bisa diakses sebelum login untuk menampilkan informasi dasar
+Route::get('/reservasi/poli', [MasterReservasiController::class, 'getDaftarPoli']);
+Route::post('/reservasi/dokter', [MasterReservasiController::class, 'getDokterByPoli']);
+Route::post('/reservasi/jadwal', [MasterReservasiController::class, 'getJadwalDenganKuota']);
 
 // ========================================================================
 // 🔒 PROTECTED ROUTES (WAJIB LOGIN / ADA TOKEN)
@@ -55,7 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/password/request-change', [UbahPasswordController::class, 'requestOtpForPasswordChange']);
     Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtpAndChangePassword']);
-    
+
     // --- PROFIL & PASIEN ---
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);
@@ -73,30 +126,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
 
     // ==============================
-    // 🦷 ROUTE RESERVASI KLINIK (FLUTTER)
+    // 🦷 ROUTE RESERVASI KLINIK (FLUTTER) - SETELAH LOGIN
     // ==============================
-    // Kita amankan di sini agar hanya user login yang bisa booking
-    
+
     // Helper: Ambil Data User untuk Form Reservasi
-    Route::get('/reservasi/user', [ReservasiController::class, 'getUserData']);
+    Route::get('/reservasi/user', [UserReservasiController::class, 'getUserData']);
 
-    // Langkah 1: Ambil Poli
-    Route::get('/reservasi/poli', [ReservasiController::class, 'getDaftarPoli']);
+    // Langkah 4: Create Booking (Submit) - Butuh login karena melibatkan pembayaran
+    Route::post('/reservasi/create', [TransaksiReservasiController::class, 'createReservasi']);
 
-    // Langkah 2: Filter Dokter (POST karena mungkin nanti butuh kirim param banyak)
-    Route::post('/reservasi/dokter', [ReservasiController::class, 'getDokterByPoli']);
+    // Langkah 5: Cek Status Pembayaran
+    Route::get('/reservasi/cek-status/{no_pemeriksaan}', [TransaksiReservasiController::class, 'cekStatusPembayaran']);
 
-    // Langkah 3: Cek Jadwal & Kuota (PENTING: Cek Libur juga ada di sini)
-    Route::post('/reservasi/jadwal', [ReservasiController::class, 'getJadwalDenganKuota']);
+    // Langkah 6: Update Pembayaran (Opsional via API jika User upload bukti)
+    Route::put('/reservasi/pembayaran/{no_pemeriksaan}', [TransaksiReservasiController::class, 'updatePembayaran']);
 
-    // Langkah 4: Create Booking (Submit)
-    Route::post('/reservasi/create', [ReservasiController::class, 'createReservasi']);
-
-    // Langkah 5: Update Pembayaran (Opsional via API jika User upload bukti)
-    Route::put('/reservasi/pembayaran/{no_pemeriksaan}', [ReservasiController::class, 'updatePembayaran']);
-
-    // Langkah 6: Riwayat Reservasi Spesifik
-    Route::get('/reservasi/riwayat/{rekam_medis_id}', [ReservasiController::class, 'riwayatReservasi']);
+    // Langkah 7: Riwayat Reservasi Spesifik
+    Route::get('/reservasi/riwayat/{rekam_medis_id}', [UserReservasiController::class, 'riwayatReservasi']);
 
 
     // ==============================
@@ -106,16 +152,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/homecare/calculate', [HomeCareController::class, 'calculateCost']);
     Route::post('/homecare/book', [HomeCareController::class, 'store']); // Alias lama
     Route::post('/homecare/booking', [HomeCareController::class, 'storeBooking']); // Alias baru
-    
+
     Route::post('/homecare/booking/{id}/konfirmasi-bayar', [HomeCareController::class, 'confirmPayment']);
     Route::get('/homecare/booking/{id}/tracking', [HomeCareController::class, 'getTrackingHistory']);
     Route::post('/homecare/update-status', [HomeCareController::class, 'updateStatus']);
     Route::post('/homecare/finish-treatment/{id}', [HomeCareController::class, 'finishTreatment']);
     Route::get('/homecare/invoice/{id}', [HomeCareController::class, 'getInvoice']);
     Route::post('/homecare/pay-settlement/{id}', [HomeCareController::class, 'paySettlement']);
+    Route::post('/homecare/settlement', [HomeCareController::class, 'createSettlement']); // NEW ROUTE
+
+
     Route::get('/homecare/booking/{id}/status', [HomeCareController::class, 'checkPaymentStatus']);
-    Route::get('/profil', [ProfilController::class, 'show']);
-    Route::post('/profil/update', [ProfilController::class, 'update']);
 
     // --- UPLOAD FOTO DOKTER ---
     Route::post('/dokter/upload-foto/{id}', [DokterController::class, 'uploadFotoProfil']);

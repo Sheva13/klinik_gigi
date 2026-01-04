@@ -80,7 +80,7 @@ public function index(Request $request)
             // Nama file: doc_TIMESTAMP.jpg
             $filename = 'doc_' . time() . '.' . $file->getClientOriginalExtension();
             $file->storeAs('uploads/dokter', $filename, 'public');
-            $data['file_foto'] = 'uploads/dokter/' . $filename;
+            $data['foto_profil'] = 'uploads/dokter/' . $filename;
         }
 
         // 4. Set Default Value untuk data kosong
@@ -115,8 +115,8 @@ public function index(Request $request)
     }
 
     // 3. Hapus File Foto Fisik jika ada
-    if ($dokter->file_foto && Storage::disk('public')->exists($dokter->file_foto)) {
-        Storage::disk('public')->delete($dokter->file_foto);
+    if ($dokter->foto_profil && Storage::disk('public')->exists($dokter->foto_profil)) {
+        Storage::disk('public')->delete($dokter->foto_profil);
     }
 
     // 4. Hapus data dari database
@@ -173,14 +173,14 @@ public function index(Request $request)
             $file = $request->file('file_foto');
             
             // Hapus foto lama jika ada & bukan default
-            if ($dokter->file_foto && Storage::disk('public')->exists($dokter->file_foto)) {
-                Storage::disk('public')->delete($dokter->file_foto);
+            if ($dokter->foto_profil && Storage::disk('public')->exists($dokter->foto_profil)) {
+                Storage::disk('public')->delete($dokter->foto_profil);
             }
 
             // Upload foto baru
             $filename = 'doc_' . time() . '.' . $file->getClientOriginalExtension();
             $file->storeAs('uploads/dokter', $filename, 'public');
-            $data['file_foto'] = 'uploads/dokter/' . $filename;
+            $data['foto_profil'] = 'uploads/dokter/' . $filename;
         }
 
         // Handle Date Defaults (Jika null di form, pakai value lama atau default)

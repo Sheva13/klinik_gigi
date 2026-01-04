@@ -38,9 +38,4 @@ class MasterJadwal extends Model
     {
         return $this->hasMany(Reservasi::class, 'jadwal_id', 'id');
     }
-
-    public function homeCareReservasi()
-    {
-        return $this->hasMany(HomeCareReservasi::class, 'jadwal_id', 'id');
-    }   
 }

@@ -75,9 +75,17 @@
                 
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="text-secondary small">Nama Pasien</label>
-                        <p class="text-white fw-bold fs-5 mb-1">{{ $item->nama_pasien }}</p>
-                        <small class="text-secondary"><i class="fas fa-phone me-1"></i> {{ $item->no_hp_pasien ?? '-' }}</small>
+                        <label class="text-secondary small">Nama Pasien & No RM</label>
+                        <p class="text-white fw-bold fs-5 mb-0">{{ $item->nama_pasien ?? $item->nama_user ?? 'Nama Tidak Diketahui' }}</p>
+                        <span class="badge bg-secondary font-monospace mb-2">{{ $item->no_rm ?? $item->pasien_id }}</span>
+                        
+                        <div class="small text-secondary mb-1">
+                            <i class="fas fa-phone me-1"></i> {{ $item->no_hp_pasien ?? '-' }}
+                        </div>
+                        
+                        <a href="{{ route('homecare.index', ['search' => $item->pasien_id]) }}" class="btn btn-sm btn-outline-warning py-0 px-2" style="font-size: 0.8rem; border-color: #f5c542; color: #f5c542;">
+                            <i class="fas fa-history me-1"></i> Lihat Riwayat
+                        </a>
                     </div>
                     <div class="col-md-6">
                         <label class="text-secondary small">Jadwal Kunjungan</label>
@@ -118,24 +126,43 @@
                 </div>
             </div>
 
-            {{-- Card Dokter --}}
-            <div class="card card-dark p-4">
-                <h5 class="text-gold fw-bold mb-4 border-bottom border-secondary pb-2">
-                    <i class="fas fa-user-md me-2"></i> Dokter Bertugas
-                </h5>
-                <div class="d-flex align-items-center gap-3">
-                    <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                        <i class="fas fa-user-md fs-2 text-white"></i>
-                    </div>
-                    <div>
-                        @if($item->nama_dokter)
-                            <h5 class="text-white mb-0">{{ $item->nama_dokter }}</h5>
-                            <small class="text-secondary">Dokter Gigi Umum</small>
-                        @else
-                            <h5 class="text-danger mb-0">Belum Ada Dokter</h5>
-                            <small class="text-secondary">Silakan assign dokter di menu Jadwal/Edit</small>
-                        @endif
-                    </div>
+            <!-- Dokter Information -->
+            <div class="card bg-dark border-secondary mb-3">
+                <div class="card-header border-secondary">
+                    <h5 class="card-title mb-0 text-white">Dokter</h5>
+                </div>
+                <div class="card-body">
+                    @if($item->nama_dokter)
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                                {{ substr($item->nama_dokter, 0, 1) }}
+                            </div>
+                            <div>
+                                <h5 class="mb-0 text-white">{{ $item->nama_dokter }}</h5>
+                                <div class="text-secondary small">Dokter Gigi Umum</div>
+                            </div>
+                        </div>
+                    @elseif($item->dokter_id)
+                         <div class="d-flex align-items-center">
+                            <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                                ?
+                            </div>
+                            <div>
+                                <h5 class="mb-0 text-white">Kode: {{ $item->dokter_id }}</h5>
+                                <div class="text-warning small fw-bold">Nama Tidak Ditemukan</div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="d-flex align-items-center">
+                            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                <i class="fas fa-user-md fs-4"></i>
+                            </div>
+                            <div>
+                                <p class="text-danger mb-0 fw-bold">Belum Ada Dokter</p>
+                                <div class="small text-secondary">Silakan assign dokter di menu Jadwal.</div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -165,22 +192,22 @@
                             
                             {{-- Mapping status database ke flow aplikasi --}}
                             <option value="menunggu_konfirmasi" {{ $item->status_reservasi == 'menunggu_konfirmasi' ? 'selected' : '' }}>
-                                1. Konfirmasi Pesanan (Baru)
+                                1. Menunggu Konfirmasi Admin
                             </option>
                             <option value="dokter_menuju_lokasi" {{ $item->status_reservasi == 'dokter_menuju_lokasi' ? 'selected' : '' }}>
-                                2. Dokter OTW
+                                2. Dokter Sedang Menuju Lokasi
                             </option>
                             <option value="sedang_diperiksa" {{ $item->status_reservasi == 'sedang_diperiksa' ? 'selected' : '' }}>
-                                3. Sedang Diperiksa
+                                3. Sedang Dalam Pemeriksaan
                             </option>
                             <option value="menunggu_pelunasan" {{ $item->status_reservasi == 'menunggu_pelunasan' ? 'selected' : '' }}>
-                                4. Selesai (Input Tagihan)
+                                4. Pemeriksaan Selesai (Menunggu Pembayaran)
                             </option>
                             <option value="lunas" {{ $item->status_reservasi == 'lunas' ? 'selected' : '' }}>
-                                5. Lunas / Selesai
+                                5. Layanan Selesai & Lunas
                             </option>
                             <option value="dibatalkan" {{ $item->status_reservasi == 'dibatalkan' ? 'selected' : '' }} class="text-danger fw-bold">
-                                X. Batalkan Pesanan
+                                X. Batalkan Reservasi
                             </option>
                         </select>
                     </div>
@@ -211,21 +238,21 @@
 
             {{-- Card Rincian Biaya --}}
             <div class="card card-dark p-4">
-                <h5 class="text-white fw-bold mb-3">Rincian Tagihan</h5>
+                <h5 class="text-white fw-bold mb-3 border-bottom border-secondary pb-2">Rincian Tagihan</h5>
                 <ul class="list-group list-group-flush bg-transparent">
-                    <li class="list-group-item bg-transparent text-secondary d-flex justify-content-between px-0">
+                    <li class="list-group-item bg-transparent text-secondary d-flex justify-content-between align-items-center px-0 py-2">
                         <span>Biaya Booking (DP)</span>
-                        <span class="text-white">Rp {{ number_format($item->biaya_reservasi ?? 0, 0, ',', '.') }}</span>
+                        <span class="text-white text-end">Rp {{ number_format($item->biaya_reservasi ?? 0, 0, ',', '.') }}</span>
                     </li>
-                    <li class="list-group-item bg-transparent text-secondary d-flex justify-content-between px-0">
+                    <li class="list-group-item bg-transparent text-secondary d-flex justify-content-between align-items-center px-0 py-2">
                         <span>Biaya Transport</span>
-                        <span class="text-white">Rp {{ number_format($item->biaya_transport ?? 0, 0, ',', '.') }}</span>
+                        <span class="text-white text-end">Rp {{ number_format($item->biaya_transport ?? 0, 0, ',', '.') }}</span>
                     </li>
                     
                     {{-- Tampilkan Biaya Tindakan jika sudah diinput --}}
-                    <li class="list-group-item bg-transparent text-gold d-flex justify-content-between px-0 border-top border-secondary mt-2 pt-2">
+                    <li class="list-group-item bg-transparent text-gold d-flex justify-content-between align-items-center px-0 border-top border-secondary mt-2 pt-2">
                         <span>+ Biaya Tindakan</span>
-                        <span class="fw-bold">
+                        <span class="fw-bold text-end">
                             @if($item->total_biaya_tindakan > 0)
                                 Rp {{ number_format($item->total_biaya_tindakan, 0, ',', '.') }}
                             @else
@@ -235,30 +262,38 @@
                     </li>
 
                     @if($item->potongan_promo > 0)
-                    <li class="list-group-item bg-transparent text-success d-flex justify-content-between px-0">
+                    <li class="list-group-item bg-transparent text-success d-flex justify-content-between align-items-center px-0">
                         <span>- Potongan Promo</span>
-                        <span>- Rp {{ number_format($item->potongan_promo, 0, ',', '.') }}</span>
+                        <span class="text-end">- Rp {{ number_format($item->potongan_promo, 0, ',', '.') }}</span>
                     </li>
                     @endif
 
-                    <li class="list-group-item bg-transparent text-white fw-bold d-flex justify-content-between px-0 border-top border-secondary mt-3 pt-3" style="font-size: 1.1rem;">
-                        <span>Grand Total</span>
-                        <span>
-                            @php
-                                $grandTotal = ($item->biaya_reservasi ?? 0) + 
-                                              ($item->biaya_transport ?? 0) + 
-                                              ($item->total_biaya_tindakan ?? 0) - 
-                                              ($item->potongan_promo ?? 0);
-                            @endphp
+                    @php
+                        $grandTotal = ($item->biaya_reservasi ?? 0) + 
+                                      ($item->biaya_transport ?? 0) + 
+                                      ($item->total_biaya_tindakan ?? 0) - 
+                                      ($item->potongan_promo ?? 0);
+                    @endphp
+
+                    <li class="list-group-item bg-transparent text-white fw-bold d-flex justify-content-between align-items-center px-0 border-top border-secondary mt-3 pt-3">
+                        <span class="fs-5">Grand Total</span>
+                        <span class="fs-5 text-end text-gold">
                             Rp {{ number_format($grandTotal, 0, ',', '.') }}
                         </span>
                     </li>
                 </ul>
                 
-                <div class="mt-3">
-                    <span class="badge {{ $item->status_booking == 'lunas' || $item->status_pelunasan == 'lunas' ? 'bg-success' : 'bg-danger' }} w-100 py-2">
-                        Status Pembayaran: {{ strtoupper($item->status_booking == 'lunas' && $item->status_pelunasan == 'lunas' ? 'LUNAS' : 'BELUM LUNAS') }}
-                    </span>
+                <div class="mt-4 text-center">
+                    <small class="text-secondary d-block mb-1">Status Pembayaran</small>
+                    @if($item->status_booking == 'lunas' || $item->status_pelunasan == 'lunas')
+                        <span class="badge bg-success fs-6 px-4 py-2 rounded-pill">
+                            <i class="fas fa-check-circle me-1"></i> LUNAS
+                        </span>
+                    @else
+                        <span class="badge bg-danger fs-6 px-4 py-2 rounded-pill">
+                            <i class="fas fa-times-circle me-1"></i> BELUM LUNAS
+                        </span>
+                    @endif
                 </div>
             </div>
 

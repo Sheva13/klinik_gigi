@@ -15,7 +15,7 @@ class MasterDokter extends Model
         'nama',
         'gelar',
         'spesialisasi',
-        'file_foto',
+        'foto_profil',
         'alamat',
         'hp',
         'tipe',
@@ -47,6 +47,10 @@ class MasterDokter extends Model
 
     public function spesialis()
     {
+        
         return $this->belongsTo(MasterSpesialis::class, 'spesialisasi', 'id');
     }
+
+    
+
 }

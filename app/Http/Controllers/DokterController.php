@@ -14,7 +14,7 @@ class DokterController extends Controller
     public function index(Request $request) 
     {
         try {
-            $query = MasterDokter::with('spesialis');
+            $query = MasterDokter::with(['spesialis', 'masterPoli']);
 
             $query->when($request->input('search'), function ($q, $search) {
                 $q->where('nama', 'LIKE', "%{$search}%")
@@ -31,10 +31,17 @@ class DokterController extends Controller
                     $fotoUrl = asset(Storage::url($dokter->foto_profil));
                 }
 
+                // Robust check for Poli Name
+                $poliNama = $dokter->masterPoli->nama_poli ?? $dokter->masterPoli->nama ?? '';
+                
+                // Robust check for Spesialisasi
+                $spesialisasi = $dokter->spesialis?->nama ?? $dokter->spesialisasi ?? '';
+
                 return [
                     'dokter_id' => $dokter->id,
                     'nama_dokter' => $dokter->nama ?? '',
-                    'spesialisasi' => $dokter->spesialis?->nama ?? '',
+                    'spesialisasi' => $spesialisasi,
+                    'poli_nama' => $poliNama,
                     'foto_profil' => $fotoUrl,
                 ];
             });

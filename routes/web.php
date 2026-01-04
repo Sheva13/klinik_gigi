@@ -6,15 +6,20 @@ use App\Http\Controllers\PromoControllerWeb;
 use App\Http\Controllers\DokterControllerWeb;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\AdminAuthController;
-use App\Http\Controllers\AdminReservasiController;
-use App\Http\Controllers\HomeCareWebController; // [PENTING] Jangan lupa import ini
+use App\Http\Controllers\HomeCareWebController;
+use App\Http\Controllers\AdminReservasiController;  
+use App\Http\Controllers\AdminAntrianReservasiController; 
+use App\Http\Controllers\AdminPembayaranReservasiController; 
 
 /*
 |--------------------------------------------------------------------------
 | 1. PUBLIC ROUTES
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () { return redirect()->route('auth.login'); })->name('home');
+Route::get('/', function () {
+    return redirect()->route('auth.login'); 
+})->name('home');
+
 Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('auth.login');
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('login');
 
@@ -33,33 +38,24 @@ Route::middleware('auth:admin')->group(function () {
     Route::prefix('admin/reservasi')->group(function () {
         Route::get('/', [AdminReservasiController::class, 'index'])->name('reservasi.admin.index');
         Route::get('/create', [AdminReservasiController::class, 'create'])->name('reservasi.admin.create');
-        Route::post('/', [AdminReservasiController::class, 'createManual'])->name('reservasi.admin.store');
+        Route::post('/', [AdminReservasiController::class, 'createManual'])->name('reservasi.admin.createManual');
         Route::get('/cari-pasien', [AdminReservasiController::class, 'cariPasien'])->name('reservasi.admin.cariPasien');
-        
-        // Antrian Pasien
-        Route::get('/antrian', [AdminReservasiController::class, 'antrianIndex'])->name('reservasi.admin.antrian');
-
-        // CRUD & Aksi Reservasi
+        Route::get('/antrian', [AdminAntrianReservasiController::class, 'antrianIndex'])->name('reservasi.admin.antrian');
         Route::get('/{id}/edit', [AdminReservasiController::class, 'edit'])->name('reservasi.admin.edit');
-        Route::put('/{id}', [AdminReservasiController::class, 'update'])->name('reservasi.admin.update');
-        Route::get('/{id}/pembayaran', [AdminReservasiController::class, 'showPayment'])->name('admin.reservasi.pembayaran');
-        Route::post('/{id}/tandai-lunas', [AdminReservasiController::class, 'tandaiLunas'])->name('reservasi.admin.tandaiLunas');
+        Route::put('/{id}', [AdminReservasiController::class, 'update'])->name('reservasi.admin.update'); 
         Route::get('/{id}', [AdminReservasiController::class, 'show'])->name('reservasi.admin.show');
-        Route::post('/{id}/status', [AdminReservasiController::class, 'updateStatusReservasi'])->name('reservasi.admin.status');
-        Route::post('/{id}/verify-payment', [AdminReservasiController::class, 'updatePembayaran'])->name('reservasi.admin.verifyPayment');
+        Route::put('/{id}/status', [AdminReservasiController::class, 'updateStatusReservasi'])->name('reservasi.admin.status');
+        Route::get('/{id}/pembayaran', [AdminPembayaranReservasiController::class, 'showPayment'])->name('reservasi.admin.showPayment');
+        Route::post('/{id}/tandai-lunas', [AdminPembayaranReservasiController::class, 'tandaiLunas'])->name('reservasi.admin.tandaiLunas');
+        Route::put('/{id}/verify-payment', [AdminPembayaranReservasiController::class, 'verifyPayment'])->name('reservasi.admin.updatePembayaran'); 
     });
 
     // --- ROUTES HOME CARE WEB ADMIN ---
-Route::middleware(['auth'])->group(function () {
-    // Halaman List
-    Route::get('/homecare', [HomeCareWebController::class, 'index'])->name('homecare.index');
-    
-    // Halaman Detail
-    Route::get('/homecare/{id}', [HomeCareWebController::class, 'show'])->name('homecare.show');
-    
-    // Action Update Status (Ini yang menyebabkan error sebelumnya)
-    Route::post('/homecare/{id}/status', [HomeCareWebController::class, 'updateStatus'])->name('homecare.updateStatus');
-});
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/homecare', [HomeCareWebController::class, 'index'])->name('homecare.index');
+        Route::get('/homecare/{id}', [HomeCareWebController::class, 'show'])->name('homecare.show');
+        Route::post('/homecare/{id}/status', [HomeCareWebController::class, 'updateStatus'])->name('homecare.updateStatus');
+    });
 
     // --- PROMO ---
     Route::prefix('promo')->group(function () {
