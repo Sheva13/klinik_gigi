@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
+use App\Models\HomeCareTracking;
+use Illuminate\Support\Facades\Log;
+
 class HomeCareController extends Controller
 {
     private $midtransService;
@@ -24,29 +27,19 @@ class HomeCareController extends Controller
     }
 
     // 1. API untuk Cek Ongkir
-    public function calculateCost()
+    public function calculateCost(Request $request)
     {
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
         ]);
 
-        $calculation = $this->calculateDistanceAndCost(
+        $result = $this->reservationService->calculateCost(
             $request->latitude,
             $request->longitude
         );
-        
-        $biayaLayanan = env('HOMECARE_BIAYA_DASAR', $this->biayaDasar); 
 
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'jarak_km' => round($calculation['jarakDalamKm'], 2),
-                'biaya_transport' => $calculation['biayaJarak'],
-                'biaya_layanan' => $biayaLayanan,
-                'estimasi_total' => $calculation['biayaJarak'] + $biayaLayanan
-            ]
-        ]);
+        return response()->json($result);
     }
 
     // 2. API Get Jadwal
