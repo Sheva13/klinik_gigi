@@ -10,19 +10,17 @@ return new class extends Migration
     {
         Schema::create('master_jadwal', function (Blueprint $table) {
             $table->id();
-            
-            $table->foreignId('dokter_id')->constrained('master_dokter')->onDelete('cascade'); 
-            $table->foreignId('poli_id')->constrained('master_poli')->onDelete('cascade');
-            
+            $table->string('kode_dokter', 15);
+            $table->string('kode_poli', 15);
             $table->integer('hari');
             $table->time('jam_mulai');
             $table->time('jam_selesai');
             $table->string('keterangan', 25)->nullable();
             $table->integer('quota')->nullable();
-            
             $table->timestamps();
-            
-            $table->unique(['dokter_id', 'hari']);
+            $table->foreign('kode_dokter')->references('kode_dokter')->on('master_dokter')->onDelete('cascade');
+            $table->foreign('kode_poli')->references('kode_poli')->on('master_poli')->onDelete('cascade');
+            $table->unique(['kode_dokter', 'hari']);
         });
     }
 
