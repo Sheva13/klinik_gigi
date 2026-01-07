@@ -13,20 +13,23 @@ return new class extends Migration
     {
         Schema::create('biaya_tambahan', function (Blueprint $table) {
             $table->id();
-
-            // Kolom ID yang mungkin direferensikan oleh file ALTER di proyek Anda:
-            $table->bigInteger('id_periksa')->nullable(); // Kolom ini ada di file ALTER yang gagal sebelumnya
+            // SQL: `id_periksa` int NOT NULL
+            $table->integer('id_periksa'); 
             
-            // Kolom yang akan ditambahkan oleh file ALTER (kita pindahkan ke sini untuk mencegah error):
-            $table->foreignId('reservasi_id')->nullable()->constrained('reservasi')->onDelete('cascade');
+            // SQL: `reservasi_id` bigint UNSIGNED DEFAULT NULL
+            $table->unsignedBigInteger('reservasi_id')->nullable();
             
-            // Data Biaya Tambahan
-            $table->string('nama_biaya', 255);
-            $table->text('deskripsi')->nullable();
-            $table->decimal('jumlah_biaya', 10, 2);
-            $table->integer('qty')->default(1); // Kuantitas (misalnya, jumlah obat)
+            // SQL: `homecare_reservasi_id` bigint UNSIGNED DEFAULT NULL
+            $table->unsignedBigInteger('homecare_reservasi_id')->nullable();
+            
+            // Data Biaya Tambahan (Match SQL Dump)
+            $table->text('komponen');
+            $table->integer('biaya');
+            $table->integer('qty');
+            $table->integer('jumlah_kali');
 
-            $table->timestamps();
+            // SQL dump does NOT have timestamps for `biaya_tambahan`
+            // $table->timestamps(); 
         });
     }
 

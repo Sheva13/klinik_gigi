@@ -35,6 +35,10 @@ class MidtransWebhookController extends Controller
 
         Log::info(" Webhook Midtrans Masuk: {$orderId}", ['status' => $payload['transaction_status'] ?? '-']);
 
+        // EMERGENCY DEBUG LOG
+        file_put_contents(storage_path('logs/midtrans_debug.log'), date('Y-m-d H:i:s') . " - Payload: " . json_encode($payload) . PHP_EOL, FILE_APPEND);
+
+
         if (!$orderId) {
             return response()->json(['message' => 'Invalid Payload'], 400);
         }
@@ -80,7 +84,7 @@ class MidtransWebhookController extends Controller
 
         DB::transaction(function () use ($transaksi, $transactionStatus, $tipeTransaksi, $payload) {
             $statusAwal = ($tipeTransaksi === 'HOME_CARE')
-                ? $transaksi->status_booking
+                ? $transaksi->status_pembayaran
                 : $transaksi->status_pembayaran;
 
             $keteranganLog = '';
@@ -100,6 +104,7 @@ class MidtransWebhookController extends Controller
                         $transaksi->status_booking = 'lunas';
                         $transaksi->status = 'Menunggu Dokter';
                         $transaksi->status_reservasi = 'menunggu';
+                        file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> Logic settlement HOME_CARE executed for {$transaksi->no_pemeriksaan}" . PHP_EOL, FILE_APPEND);
                     } else {
                         // KLINIK
                         $transaksi->status_pembayaran = 'lunas';
@@ -184,6 +189,7 @@ class MidtransWebhookController extends Controller
 
             // --- B. Simpan Perubahan jika ada update ---
             if ($transaksi->isDirty()) {
+                file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> Saving transaction. Dirty: " . json_encode($transaksi->getDirty()) . PHP_EOL, FILE_APPEND);
                 $transaksi->save();
                 $newStatus = ($tipeTransaksi === 'HOME_CARE') ? $transaksi->status_booking : $transaksi->status_pembayaran;
                 Log::info("✅ Status {$tipeTransaksi} {$transaksi->no_pemeriksaan} diupdate menjadi: " . $newStatus);

@@ -123,6 +123,13 @@ class HomeCareWebController extends Controller
             $dataUpdate['total_biaya_tindakan'] = $request->total_biaya_tindakan;
         }
 
+        // Logic Sinkronisasi status_booking (Payment Status)
+        if ($request->status === 'lunas' || $request->status === 'selesai' || $dataUpdate['status'] === 'Selesai') {
+            $dataUpdate['status_booking'] = 'lunas';
+        } elseif ($request->status === 'dibatalkan') {
+            $dataUpdate['status_booking'] = 'gagal';
+        }
+
         // 3. Eksekusi Update
         DB::table('homecare_reservasi')
             ->where('id', $id)

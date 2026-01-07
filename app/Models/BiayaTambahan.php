@@ -11,7 +11,8 @@ class BiayaTambahan extends Model
 {
     use HasFactory;
     protected $table = 'biaya_tambahan';
-    protected $fillable = ['id_periksa', 'komponen', 'biaya', 'reservasi_id', 'homecare_reservasi_id'];
+    public $timestamps = false;
+    protected $fillable = ['id_periksa', 'komponen', 'biaya', 'jumlah_kali', 'qty', 'reservasi_id', 'homecare_reservasi_id'];
 
     // Relasi kembali ke booking/kunjungan
     public function dataPasien()

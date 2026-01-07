@@ -13,7 +13,8 @@ return new class extends Migration
             $table->id();
             $table->string('no_pemeriksaan')->unique();
             $table->string('no_antrian')->nullable();
-            $table->string('pasien_id'); // keep same semantics as reservasi (could be numeric id or code)
+            $table->string('pasien_id'); 
+            $table->string('rekam_medis_id')->nullable();
             $table->string('dokter_id')->nullable();
             $table->unsignedBigInteger('jadwal_id')->nullable();
             $table->date('tanggal_pesan');
@@ -21,17 +22,37 @@ return new class extends Migration
             $table->time('jam_mulai')->nullable();
             $table->time('jam_selesai')->nullable();
             $table->text('keluhan')->nullable();
+            
+            // Financials
             $table->decimal('biaya_reservasi', 12, 2)->default(0);
             $table->decimal('biaya_transport', 12, 2)->default(0);
+            $table->decimal('total_biaya_tindakan', 12, 0)->default(0); // Matches SQL decimal(12,0)
             $table->decimal('pembayaran_total', 12, 2)->default(0);
+            
+            // Statuses
             $table->string('metode_pembayaran')->nullable();
             $table->string('status')->nullable();
             $table->string('status_reservasi')->nullable();
-            $table->string('status_pembayaran')->nullable();
+            $table->enum('status_pembayaran', ['belum_lunas', 'lunas', 'gagal'])->default('belum_lunas');
+            $table->enum('status_pelunasan', ['belum_lunas', 'lunas', 'gagal'])->default('belum_lunas');
+
+            // Tokens & URLs
+            $table->string('snap_token')->nullable();
+            $table->string('redirect_url')->nullable();
+            $table->string('snap_token_pelunasan')->nullable();
+
+            // Additional Info
             $table->string('jenis_pasien')->nullable();
             $table->text('alamat_lengkap')->nullable();
             $table->decimal('latitude', 15, 10)->nullable();
             $table->decimal('longitude', 15, 10)->nullable();
+            
+            // Promos & Complaints
+            $table->string('jenis_keluhan')->nullable();
+            $table->string('jenis_keluhan_lainnya')->nullable();
+            $table->unsignedInteger('promo_id')->nullable();
+            $table->decimal('potongan_promo', 15, 2)->default(0);
+
             $table->timestamps();
 
             $table->index('pasien_id');
@@ -39,10 +60,13 @@ return new class extends Migration
             $table->index('jadwal_id');
         });
 
-        // migrate existing reservasi rows with tipe_layanan = 'home_care' into the new table
+        // Migrate existing data if available
         if (Schema::hasTable('reservasi')) {
             $rows = DB::table('reservasi')->where('tipe_layanan', 'home_care')->get();
             foreach ($rows as $row) {
+                // Ensure columns exist in source before reading
+                $statusPembayaran = property_exists($row, 'status_pembayaran') ? $row->status_pembayaran : $row->status_booking ?? 'belum_lunas';
+                
                 DB::table('homecare_reservasi')->insert([
                     'id' => $row->id,
                     'no_pemeriksaan' => $row->no_pemeriksaan,
@@ -61,7 +85,7 @@ return new class extends Migration
                     'metode_pembayaran' => $row->metode_pembayaran,
                     'status' => $row->status,
                     'status_reservasi' => $row->status_reservasi,
-                    'status_pembayaran' => $row->status_pembayaran,
+                    'status_booking' => $statusPembayaran,
                     'jenis_pasien' => $row->jenis_pasien,
                     'alamat_lengkap' => $row->alamat_lengkap,
                     'latitude' => $row->latitude,

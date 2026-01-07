@@ -143,7 +143,7 @@ class RiwayatController extends Controller
                         'metode_pembayaran' => $item->metode_pembayaran ?? null,
                         'status_booking' => $item->status_booking ?? null,
                         'status' => $item->status ?? null,
-                        'status_pembayaran' => $item->status_pembayaran ?? null,
+                        'status_pembayaran' => ($item->status_booking === 'belum_lunas') ? 'menunggu_pembayaran' : $item->status_booking,
 
                         'nama' => $item->pasien?->nama ?? '-',
                         'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
@@ -151,7 +151,7 @@ class RiwayatController extends Controller
                         'foto' => $item->pasien?->file_foto ?? '',
 
                         'no_antrian' => $item->no_antrian,
-                        'status_pembayaran' => $item->status_pembayaran,
+                        // 'status_pembayaran' => ... (Removed duplicate)
                         'keluhan' => $item->keluhan,
                         'alamat_lengkap' => $item->alamat_lengkap,
                         'latitude' => $item->latitude,
