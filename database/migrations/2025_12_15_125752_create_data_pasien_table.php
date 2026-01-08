@@ -16,13 +16,13 @@ return new class extends Migration
             $table->string('rekam_medis', 15)->unique(); 
             $table->integer('no_antri');
             $table->integer('status');
-            $table->integer('pasien_baru');
-            $table->integer('rujukan');
+            $table->integer('pasien_baru')->default(0);
+            $table->integer('rujukan')->default(0);
             $table->integer('id_rujukan')->nullable();
             $table->integer('id_calon')->nullable();
             $table->text('tindak_lanjut')->nullable();
-            $table->text('followup')->nullable();
-            $table->string('no_sip', 50)->nullable();
+            $table->integer('followup')->nullable();
+            $table->string('no_sjp', 100)->nullable();
             $table->integer('biaya_admin');
             $table->integer('biaya_admin_managecare')->nullable();
             $table->text('keluhan')->nullable();

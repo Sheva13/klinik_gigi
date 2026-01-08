@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             JadwalHarianSeeder::class,
             RekamMedisSeeder::class,
             UsersSeeder::class,
+            MasterTindakanSeeder::class,
             PromoSeeder::class,
         ]);
         // User::factory(10)->create();

@@ -33,7 +33,8 @@ return new class extends Migration
             $table->string('metode_pembayaran')->nullable();
             $table->string('status')->nullable();
             $table->string('status_reservasi')->nullable();
-            $table->enum('status_pembayaran', ['belum_lunas', 'lunas', 'gagal'])->default('belum_lunas');
+            $table->string('status_booking')->default('belum_lunas');
+            $table->enum('tipe_layanan', ['home_care'])->default('home_care');
             $table->enum('status_pelunasan', ['belum_lunas', 'lunas', 'gagal'])->default('belum_lunas');
 
             // Tokens & URLs
