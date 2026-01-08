@@ -32,10 +32,11 @@ class DokterController extends Controller
                 }
 
                 // Robust check for Poli Name
-                $poliNama = $dokter->masterPoli->nama_poli ?? $dokter->masterPoli->nama ?? '';
-                
-                // Robust check for Spesialisasi
-                $spesialisasi = $dokter->spesialis?->nama ?? $dokter->spesialisasi ?? '';
+                $poliNama = $dokter->masterPoli->nama_poli ?? $dokter->masterPoli->nama ?? 'Poli Gigi';
+
+                // Robust check for Spesialisasi Name (ensure we get the name, not ID)
+                $spesialisasiName = $dokter->spesialis->nama ?? null;
+                $spesialisasi = $spesialisasiName ?? $this->getSpesialisasiName($dokter->spesialisasi);
 
                 return [
                     'dokter_id' => $dokter->id,
@@ -66,7 +67,7 @@ class DokterController extends Controller
     public function show($id)
     {
         try {
-            $dokter = MasterDokter::with(['masterPoli', 'masterJadwal'])
+            $dokter = MasterDokter::with(['masterPoli', 'masterJadwal', 'spesialis'])
                         ->find($id);
 
             if (!$dokter) {
@@ -85,7 +86,7 @@ class DokterController extends Controller
                 'id' => $dokter->id, 
                 'nama' => $dokter->nama,
                 'foto' => $fotoUrl,
-                'spesialisasi' => $dokter->spesialisasi,
+                'spesialisasi' => $dokter->spesialis->nama ?? $this->getSpesialisasiName($dokter->spesialisasi), 
                 'masterPoli' => $dokter->masterPoli,
                 'masterJadwal' => $dokter->masterJadwal,
             ];
@@ -143,6 +144,28 @@ class DokterController extends Controller
     // =========================================
     // 🔹 KONVERSI ANGKA HARI → NAMA HARI
     // =========================================
+    private function getSpesialisasiName($val)
+    {
+        // Jika sudah berupa nama (bukan angka), kembalikan langsung
+        if (!is_numeric($val)) {
+            return $val;
+        }
+
+        // Map Fallback jika relasi database gagal detailnya
+        $map = [
+            1 => 'Dokter Gigi Umum',
+            2 => 'Spesialis Ortodonti',
+            3 => 'Spesialis Bedah Mulut',
+            4 => 'Spesialis Konservasi Gigi', 
+            5 => 'Spesialis Periodonsia',
+            6 => 'Spesialis Prostodonsia',
+            7 => 'Spesialis Penyakit Mulut',
+            8 => 'Spesialis Kedokteran Gigi Anak'
+        ];
+
+        return $map[$val] ?? 'Dokter Spesialis';
+    }
+
     private function convertHari($angka)
     {
         $hariMap = [
