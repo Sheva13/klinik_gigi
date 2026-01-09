@@ -44,10 +44,24 @@ class ReservasiService
             throw new Exception('Jadwal tidak ditemukan');
         }
 
-        // Validasi Hari
-        $hariPilihan = Carbon::parse($tanggal_pesan)->dayOfWeekIso;
-        if ($hariPilihan != $jadwal->hari) {
-            throw new Exception("Jadwal tidak tersedia di hari tersebut.");
+        // Validasi Hari - Convert ke ISO weekday (1=Mon, 7=Sun)
+        $hariPilihan = (int) Carbon::parse($tanggal_pesan)->dayOfWeekIso;
+        $hariJadwal = (int) $jadwal->hari;
+        
+        // Log untuk debugging
+        Log::info("Validasi Jadwal: ", [
+            'tanggal_pesan' => $tanggal_pesan,
+            'jadwal_id' => $jadwal_id,
+            'hari_pilihan_iso' => $hariPilihan,
+            'hari_jadwal_raw' => $jadwal->hari,
+            'hari_jadwal_normalized' => $this->normalizeHari($jadwal->hari),
+        ]);
+        
+        // Normalize hari jadwal untuk handle berbagai format
+        $hariJadwalNormalized = $this->normalizeHari($jadwal->hari);
+        
+        if ($hariPilihan != $hariJadwalNormalized) {
+            throw new Exception("Jadwal tidak tersedia di hari tersebut. (Tanggal: $tanggal_pesan, Hari pilihan: $hariPilihan, Jadwal hari: $hariJadwalNormalized)");
         }
 
         // Validasi Libur
@@ -202,5 +216,66 @@ class ReservasiService
             Log::error('Get Jadwal Error: ' . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * ✅ HELPER: Normalize berbagai format hari ke ISO Weekday (1-7)
+     * 
+     * Converts:
+     * - 0-6 (Sunday-Saturday) → 1-7 (Monday-Sunday)
+     * - 1-7 (Monday-Sunday ISO) → 1-7 (unchanged)
+     * - String nama hari (ID/EN) → 1-7
+     * 
+     * @param mixed $hariValue Integer atau String
+     * @return int ISO Weekday (1=Monday, 7=Sunday)
+     */
+    private function normalizeHari($hariValue)
+    {
+        // Jika numeric
+        if (is_numeric($hariValue)) {
+            $hari = (int) $hariValue;
+            
+            // Format: 0-6 (Sunday=0, Monday=1, ..., Saturday=6)
+            // Convert to ISO (Monday=1, ..., Sunday=7)
+            if ($hari === 0) return 7; // Sunday -> 7
+            if ($hari >= 1 && $hari <= 6) return $hari; // Mon-Sat unchanged
+            if ($hari >= 1 && $hari <= 7) return $hari; // Already ISO format
+        }
+        
+        // Jika string nama hari
+        if (is_string($hariValue)) {
+            $hariNama = strtolower(trim($hariValue));
+            
+            // Mapping: String hari → ISO Weekday (1-7)
+            $mapping = [
+                // Indonesia
+                'senin' => 1,
+                'selasa' => 2,
+                'rabu' => 3,
+                'kamis' => 4,
+                'jumat' => 5,
+                'sabtu' => 6,
+                'minggu' => 7,
+                
+                // English
+                'monday' => 1,
+                'tuesday' => 2,
+                'wednesday' => 3,
+                'thursday' => 4,
+                'friday' => 5,
+                'saturday' => 6,
+                'sunday' => 7,
+                
+                // Abbreviations
+                'sen' => 1, 'sel' => 2, 'rab' => 3, 'kam' => 4,
+                'jum' => 5, 'sab' => 6, 'min' => 7,
+                'mon' => 1, 'tue' => 2, 'wed' => 3, 'thu' => 4,
+                'fri' => 5, 'sat' => 6, 'sun' => 7,
+            ];
+            
+            return $mapping[$hariNama] ?? 1;
+        }
+        
+        return 1; // Default: Monday
     }
 }
