@@ -33,11 +33,12 @@ class TransaksiReservasiController extends ReservasiController
     {
         DB::beginTransaction();
         try {
-            $validated = $request->validate([
+            // Validasi input dasar terlebih dahulu
+            $request->validate([
                 'rekam_medis_id'    => 'required|exists:rekam_medis,id',
                 'dokter_id'         => 'required|string|exists:master_dokter,kode_dokter',
                 'jadwal_id'         => 'required|integer|exists:master_jadwal,id',
-                'tanggal_pesan'     => 'required|date_format:Y-m-d',
+                'tanggal_pesan'     => 'required|string', // Ubah validasi untuk menerima string
                 'keluhan'           => 'nullable|string|max:100',
                 'metode_pembayaran' => 'required|string|in:Midtrans,Umum',
                 'jenis_pasien'      => 'required|string|in:Umum,BPJS,Asuransi',
@@ -45,6 +46,22 @@ class TransaksiReservasiController extends ReservasiController
                 'user_email'        => 'required|email',
                 'user_phone'        => 'required|string',
             ]);
+
+            // Konversi tanggal dari format Indonesia ke Y-m-d
+            $tanggalPesan = $this->convertTanggalIndonesiaToYMD($request->tanggal_pesan);
+
+            $validated = [
+                'rekam_medis_id'    => $request->rekam_medis_id,
+                'dokter_id'         => $request->dokter_id,
+                'jadwal_id'         => $request->jadwal_id,
+                'tanggal_pesan'     => $tanggalPesan,
+                'keluhan'           => $request->keluhan,
+                'metode_pembayaran' => $request->metode_pembayaran,
+                'jenis_pasien'      => $request->jenis_pasien,
+                'user_name'         => $request->user_name,
+                'user_email'        => $request->user_email,
+                'user_phone'        => $request->user_phone,
+            ];
 
             $pasien = RekamMedis::find($validated['rekam_medis_id']);
             $dokter = MasterDokter::where('kode_dokter', $validated['dokter_id'])->firstOrFail();
@@ -100,7 +117,7 @@ class TransaksiReservasiController extends ReservasiController
 
             return $this->successResponse('Reservasi berhasil dibuat.', [
                 'no_pemeriksaan'    => $reservasi->no_pemeriksaan,
-                'total_bayar'       => number_format($reservasi->pembayaran_total, 0, ',', '.'),
+                'total_bayar'       => 'Rp ' . number_format($reservasi->pembayaran_total, 0, ',', '.'),
                 'redirect_url'      => $redirectUrl, // Mengirim URL ke Flutter
                 'metode_pembayaran' => $reservasi->metode_pembayaran,
                 'status_pembayaran' => $reservasi->status_pembayaran,
@@ -131,7 +148,7 @@ class TransaksiReservasiController extends ReservasiController
                 'is_pending'        => ($status === 'menunggu_pembayaran'),
                 'is_failed'         => ($status === 'gagal'),
                 'detail_status'     => $reservasi->status,
-                'total_bayar'       => number_format($reservasi->pembayaran_total, 0, ',', '.'),
+                'total_bayar'       => 'Rp ' . number_format($reservasi->pembayaran_total, 0, ',', '.'),
                 'no_antrian'        => $reservasi->no_antrian ?? '-',
             ]);
         } catch (Exception $e) {
@@ -161,5 +178,45 @@ class TransaksiReservasiController extends ReservasiController
             DB::rollBack();
             return $this->errorResponse('Gagal update', $e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Konversi tanggal dari format Indonesia ke format Y-m-d
+     * Contoh: "10 Januari 2026" -> "2026-01-10"
+     */
+    private function convertTanggalIndonesiaToYMD($tanggalString)
+    {
+        // Array mapping nama bulan Indonesia ke angka
+        $bulanMap = [
+            'januari' => '01', 'februari' => '02', 'maret' => '03', 'april' => '04',
+            'mei' => '05', 'juni' => '06', 'juli' => '07', 'agustus' => '08',
+            'september' => '09', 'oktober' => '10', 'november' => '11', 'desember' => '12'
+        ];
+
+        // Ubah ke lowercase dan pisahkan berdasarkan spasi
+        $parts = explode(' ', strtolower(trim($tanggalString)));
+
+        if (count($parts) !== 3) {
+            throw new Exception("Format tanggal tidak valid: $tanggalString");
+        }
+
+        $hari = $parts[0];
+        $bulanNama = $parts[1];
+        $tahun = $parts[2];
+
+        // Validasi dan konversi bulan
+        if (!isset($bulanMap[$bulanNama])) {
+            throw new Exception("Nama bulan tidak valid: $bulanNama");
+        }
+
+        $bulan = $bulanMap[$bulanNama];
+
+        // Validasi format tanggal
+        $tanggal = Carbon::createFromFormat('Y-m-d', "$tahun-$bulan-$hari");
+        if (!$tanggal) {
+            throw new Exception("Tanggal tidak valid: $tanggalString");
+        }
+
+        return $tanggal->format('Y-m-d');
     }
 }

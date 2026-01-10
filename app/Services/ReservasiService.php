@@ -69,7 +69,7 @@ class ReservasiService
                                 ->where('tanggal', $tanggal_pesan)
                                 ->where('validasi', 0)->exists();
         if ($cekLibur) {
-            throw new Exception('Dokter sedang libur.');
+            throw new Exception('Jadwal tidak tersedia karena dokter sedang libur.');
         }
 
         // Validasi Kuota
@@ -83,6 +83,94 @@ class ReservasiService
         }
 
         return true;
+    }
+
+    // Mendapatkan daftar tanggal yang memiliki jadwal dokter
+    public function getTanggalDenganJadwal($request)
+    {
+        $request->validate([
+            'kode_poli' => 'nullable|string',
+            'kode_dokter' => 'nullable|string',
+        ]);
+
+        $query = MasterJadwal::query();
+
+        // Filter berdasarkan poli jika disediakan dan bukan 'semua'
+        if ($request->filled('kode_poli') && strtolower($request->kode_poli) !== 'semua') {
+            $kodePoli = $request->kode_poli;
+            $query->where(function($q) use ($kodePoli) {
+                $q->where('kode_poli', $kodePoli)
+                  ->orWhereHas('dokter', function ($dq) use ($kodePoli) {
+                      $dq->where('kode_poli', $kodePoli);
+                  });
+            });
+        }
+
+        // Filter berdasarkan dokter jika disediakan dan bukan 'semua'
+        if ($request->filled('kode_dokter') && strtolower($request->kode_dokter) !== 'semua') {
+            $query->where('kode_dokter', $request->kode_dokter);
+        }
+
+        $jadwalList = $query->get();
+
+        if ($jadwalList->isEmpty()) {
+            return collect([]);
+        }
+
+        $tanggalDenganJadwal = collect();
+
+        // Ambil rentang 7 hari ke depan
+        $tanggalMulai = Carbon::today();
+        $tanggalAkhir = Carbon::today()->addDays(7);
+
+        // Ambil semua jadwal harian yang cocok dengan filter dan dalam rentang waktu
+        $jadwalHarians = JadwalHarian::whereIn('kode_jadwal', $jadwalList->pluck('id'))
+                              ->whereBetween('tanggal', [$tanggalMulai, $tanggalAkhir])
+                              ->where('validasi', '!=', 0) // Hanya yang bukan libur
+                              ->get();
+
+        // Kelompokkan berdasarkan tanggal
+        $groupedByDate = $jadwalHarians->groupBy('tanggal');
+
+        foreach ($groupedByDate as $tanggalFormatted => $jadwalHarianGroup) {
+            $tanggalObj = Carbon::parse($tanggalFormatted);
+
+            // Cek apakah ada jadwal aktif dengan kuota tersedia untuk tanggal ini
+            $adaJadwalAktif = false;
+
+            foreach ($jadwalHarianGroup as $jadwalHarian) {
+                // Dapatkan master jadwal terkait
+                $jadwal = $jadwalList->firstWhere('id', $jadwalHarian->kode_jadwal);
+
+                if ($jadwal) {
+                    // Cek apakah masih ada kuota tersedia
+                    $kuotaTerpakai = Reservasi::where('jadwal_id', $jadwal->id)
+                        ->where('tanggal_pesan', $tanggalFormatted)
+                        ->whereIn('status_pembayaran', [
+                            'menunggu_pembayaran', 'menunggu_verifikasi', 'terverifikasi', 'lunas'
+                        ])
+                        ->count();
+
+                    if ($kuotaTerpakai < $jadwal->quota) {
+                        $adaJadwalAktif = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($adaJadwalAktif) {
+                $tanggalDenganJadwal->push([
+                    'tanggal' => $tanggalFormatted,
+                    'nama_hari' => $tanggalObj->translatedFormat('l'), // Gunakan translatedFormat untuk nama hari dalam bahasa Indonesia
+                    'tanggal_indonesia' => $tanggalObj->translatedFormat('d F Y')
+                ]);
+            }
+        }
+
+        // Urutkan tanggal dari yang terdekat ke terjauh
+        $tanggalDenganJadwal = $tanggalDenganJadwal->sortBy('tanggal')->values();
+
+        return $tanggalDenganJadwal;
     }
 
     // Simpan reservasi ke database
@@ -113,7 +201,7 @@ class ReservasiService
     public function getJadwalDenganKuota($request)
     {
         $request->validate([
-            'kode_poli'         => 'required|string',
+            'kode_poli'         => 'nullable|string',
             'kode_dokter'       => 'nullable|string',
             'tanggal_reservasi' => 'nullable|date_format:Y-m-d',
         ]);
@@ -129,87 +217,140 @@ class ReservasiService
                     'status'            => 'Dibatalkan (Waktu Habis)'
                 ]);
 
+            $isDateSelected = $request->filled('tanggal_reservasi');
+            $tanggalReservasi = $request->tanggal_reservasi;
+
+            // Bangun query dasar untuk MasterJadwal
             $query = MasterJadwal::query();
-            $kodePoli = $request->kode_poli;
 
-            $query->where(function($q) use ($kodePoli) {
-                $q->where('kode_poli', $kodePoli)
-                  ->orWhereHas('dokter', function ($dq) use ($kodePoli) {
-                      $dq->where('kode_poli', $kodePoli);
-                  });
-            });
+            // Filter berdasarkan poli jika disediakan dan bukan 'semua'
+            if ($request->filled('kode_poli') && strtolower($request->kode_poli) !== 'semua') {
+                $kodePoli = $request->kode_poli;
+                $query->where(function($q) use ($kodePoli) {
+                    $q->where('kode_poli', $kodePoli)
+                      ->orWhereHas('dokter', function ($dq) use ($kodePoli) {
+                          $dq->where('kode_poli', $kodePoli);
+                      });
+                });
+            }
 
+            // Filter berdasarkan dokter jika disediakan
             if ($request->filled('kode_dokter') && strtolower($request->kode_dokter) !== 'semua') {
                 $query->where('kode_dokter', $request->kode_dokter);
             }
 
-            $isDateSelected = $request->filled('tanggal_reservasi');
-            $tanggalReservasi = $request->tanggal_reservasi;
+            $masterJadwalList = $query->with(['dokter', 'poli'])->get();
 
-            if ($isDateSelected) {
-                $hariInggris = Carbon::parse($tanggalReservasi)->format('l');
-                $hariMapping = [
-                    'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3,
-                    'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6, 'Sunday' => 7,
-                ];
-                $query->where('hari', $hariMapping[$hariInggris]);
-            }
-
-            $jadwalList = $query->with(['dokter', 'poli'])->get();
-
-            if ($jadwalList->isEmpty()) {
+            if ($masterJadwalList->isEmpty()) {
                 return collect([]);
             }
 
-            $hasil = $jadwalList->map(function ($jadwal) use ($isDateSelected, $tanggalReservasi) {
-                $sisaKuota = $jadwal->quota;
-                $kuotaTerpakai = 0;
-                $statusJadwal = 'Tersedia';
+            $hasil = collect();
 
-                if ($isDateSelected) {
-                    $cekLibur = JadwalHarian::where('kode_jadwal', $jadwal->id)
+            // Jika tanggal dipilih, hanya cari jadwal untuk tanggal tersebut
+            if ($isDateSelected) {
+                foreach ($masterJadwalList as $jadwal) {
+                    // Cari entri di jadwal_harian untuk tanggal yang dipilih
+                    $jadwalHarian = JadwalHarian::where('kode_jadwal', $jadwal->id)
                                          ->where('tanggal', $tanggalReservasi)
-                                         ->where('validasi', 0)
-                                         ->exists();
+                                         ->first();
 
-                    if ($cekLibur) {
-                        $statusJadwal = 'Libur';
-                        $sisaKuota = 0;
-                    } else {
+                    // Jika dokter libur di tanggal tersebut, lewati
+                    if ($jadwalHarian && $jadwalHarian->validasi == 0) {
+                        continue;
+                    }
+
+                    // Hitung kuota terpakai
+                    $kuotaTerpakai = Reservasi::where('jadwal_id', $jadwal->id)
+                        ->where('tanggal_pesan', $tanggalReservasi)
+                        ->whereIn('status_pembayaran', [
+                            'menunggu_pembayaran', 'menunggu_verifikasi', 'terverifikasi', 'lunas'
+                        ])
+                        ->count();
+
+                    $sisaKuota = $jadwal->quota - $kuotaTerpakai;
+                    $statusJadwal = ($sisaKuota <= 0) ? 'Penuh' : 'Tersedia';
+
+                    if ($jadwalHarian) {
+                        $namaHari = match ($jadwal->hari) {
+                            1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu',
+                            4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu',
+                            default => '-'
+                        };
+
+                        $hasil->push([
+                            'jadwal_id'       => $jadwal->id,
+                            'kode_dokter'     => $jadwal->kode_dokter,
+                            'nama_dokter'     => $jadwal->dokter->nama ?? 'Dokter Umum',
+                            'kode_poli'       => $jadwal->kode_poli,
+                            'nama_poli'       => $jadwal->poli->nama_poli ?? '-',
+                            'hari'            => $namaHari,
+                            'jam_mulai'       => $jadwal->jam_mulai,
+                            'jam_selesai'     => $jadwal->jam_selesai,
+                            'kuota_total'     => $jadwal->quota,
+                            'kuota_terpakai'  => $kuotaTerpakai,
+                            'sisa_kuota'      => $sisaKuota,
+                            'status_jadwal'   => $statusJadwal,
+                            'tanggal_pilih'   => $tanggalReservasi,
+                            'tanggal_jadwal_harian' => $jadwalHarian->tanggal
+                        ]);
+                    }
+                }
+            } else {
+                // Jika tidak ada tanggal yang dipilih, cari semua jadwal dari jadwal_harian dalam 7 hari ke depan
+                $tanggalMulai = Carbon::today();
+                $tanggalAkhir = Carbon::today()->addDays(7);
+
+                foreach ($masterJadwalList as $jadwal) {
+                    // Ambil semua jadwal harian untuk jadwal ini dalam 7 hari ke depan
+                    $jadwalHarians = JadwalHarian::where('kode_jadwal', $jadwal->id)
+                                          ->whereBetween('tanggal', [$tanggalMulai, $tanggalAkhir])
+                                          ->where('validasi', '!=', 0) // Hanya ambil yang bukan libur
+                                          ->get();
+
+                    foreach ($jadwalHarians as $jadwalHarian) {
+                        // Hitung kuota terpakai untuk tanggal ini
                         $kuotaTerpakai = Reservasi::where('jadwal_id', $jadwal->id)
-                            ->where('tanggal_pesan', $tanggalReservasi)
+                            ->where('tanggal_pesan', $jadwalHarian->tanggal)
                             ->whereIn('status_pembayaran', [
                                 'menunggu_pembayaran', 'menunggu_verifikasi', 'terverifikasi', 'lunas'
                             ])
                             ->count();
 
                         $sisaKuota = $jadwal->quota - $kuotaTerpakai;
-                        if ($sisaKuota <= 0) $statusJadwal = 'Penuh';
+                        $statusJadwal = ($sisaKuota <= 0) ? 'Penuh' : 'Tersedia';
+
+                        $namaHari = match ($jadwal->hari) {
+                            1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu',
+                            4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu',
+                            default => '-'
+                        };
+
+                        $hasil->push([
+                            'jadwal_id'       => $jadwal->id,
+                            'kode_dokter'     => $jadwal->kode_dokter,
+                            'nama_dokter'     => $jadwal->dokter->nama ?? 'Dokter Umum',
+                            'kode_poli'       => $jadwal->kode_poli,
+                            'nama_poli'       => $jadwal->poli->nama_poli ?? '-',
+                            'hari'            => $namaHari,
+                            'jam_mulai'       => $jadwal->jam_mulai,
+                            'jam_selesai'     => $jadwal->jam_selesai,
+                            'kuota_total'     => $jadwal->quota,
+                            'kuota_terpakai'  => $kuotaTerpakai,
+                            'sisa_kuota'      => $sisaKuota,
+                            'status_jadwal'   => $statusJadwal,
+                            'tanggal_pilih'   => $jadwalHarian->tanggal,
+                            'tanggal_jadwal_harian' => $jadwalHarian->tanggal
+                        ]);
                     }
                 }
+            }
 
-                $namaHari = match ($jadwal->hari) {
-                    1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu',
-                    4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu',
-                    default => '-'
-                };
-
-                return [
-                    'jadwal_id'       => $jadwal->id,
-                    'kode_dokter'     => $jadwal->kode_dokter,
-                    'nama_dokter'     => $jadwal->dokter->nama ?? 'Dokter Umum',
-                    'kode_poli'       => $jadwal->kode_poli,
-                    'nama_poli'       => $jadwal->poli->nama_poli ?? '-',
-                    'hari'            => $namaHari,
-                    'jam_mulai'       => $jadwal->jam_mulai,
-                    'jam_selesai'     => $jadwal->jam_selesai,
-                    'kuota_total'     => $jadwal->quota,
-                    'kuota_terpakai'  => $isDateSelected ? $kuotaTerpakai : 0,
-                    'sisa_kuota'      => $sisaKuota,
-                    'status_jadwal'   => $statusJadwal,
-                    'tanggal_pilih'   => $isDateSelected ? $tanggalReservasi : null
-                ];
-            });
+            // Urutkan hasil berdasarkan tanggal dan jam mulai
+            $hasil = $hasil->sortBy([
+                ['tanggal_pilih', 'asc'],
+                ['jam_mulai', 'asc']
+            ])->values();
 
             return $hasil;
         } catch (Exception $e) {
@@ -277,5 +418,100 @@ class ReservasiService
         }
         
         return 1; // Default: Monday
+    }
+
+    // Ambil daftar dokter yang tersedia pada tanggal tertentu (untuk kasus memilih poli tanpa dokter)
+    public function getDokterDenganJadwal($request)
+    {
+        $request->validate([
+            'kode_poli'         => 'required|string',
+            'tanggal_reservasi' => 'required|date_format:Y-m-d',
+        ]);
+
+        try {
+            // Auto Cancel Expired (> 60 menit)
+            $batasWaktu = Carbon::now()->subMinutes(60);
+            Reservasi::where('status_pembayaran', 'menunggu_pembayaran')
+                ->where('created_at', '<', $batasWaktu)
+                ->update([
+                    'status_reservasi'  => 'batal',
+                    'status_pembayaran' => 'gagal',
+                    'status'            => 'Dibatalkan (Waktu Habis)'
+                ]);
+
+            $tanggalReservasi = $request->tanggal_reservasi;
+
+            // Query langsung dari MasterJadwal berdasarkan poli
+            $query = MasterJadwal::query();
+
+            // Filter berdasarkan poli jika bukan 'semua'
+            if (strtolower($request->kode_poli) !== 'semua') {
+                $query->where(function($q) use ($request) {
+                    $q->where('kode_poli', $request->kode_poli)
+                      ->orWhereHas('dokter', function ($dq) use ($request) {
+                          $dq->where('kode_poli', $request->kode_poli);
+                      });
+                });
+            }
+
+            $jadwalList = $query->with(['dokter', 'poli'])->get();
+
+            if ($jadwalList->isEmpty()) {
+                return collect([]); // Tetap kembalikan collection kosong
+            }
+
+            $dokterTersedia = collect();
+
+            foreach ($jadwalList as $jadwal) {
+                // Cek apakah dokter ini libur di tanggal tersebut
+                $jadwalHarian = JadwalHarian::where('kode_jadwal', $jadwal->id)
+                                     ->where('tanggal', $tanggalReservasi)
+                                     ->first();
+
+                // Jika dokter libur di tanggal tersebut, lewati
+                if ($jadwalHarian && $jadwalHarian->validasi == 0) {
+                    continue; // Lewati jadwal ini karena dokter libur
+                }
+
+                // Cek apakah masih ada kuota tersedia
+                $kuotaTerpakai = Reservasi::where('jadwal_id', $jadwal->id)
+                    ->where('tanggal_pesan', $tanggalReservasi)
+                    ->whereIn('status_pembayaran', [
+                        'menunggu_pembayaran', 'menunggu_verifikasi', 'terverifikasi', 'lunas'
+                    ])
+                    ->count();
+
+                $sisaKuota = $jadwal->quota - $kuotaTerpakai;
+
+                if ($sisaKuota > 0) {
+                    // Gunakan tanggal dari jadwal_harian jika ada
+                    $tanggalAktual = $jadwalHarian ? $jadwalHarian->tanggal : $tanggalReservasi;
+
+                    $dokterTersedia->push([
+                        'kode_dokter'     => $jadwal->kode_dokter,
+                        'nama_dokter'     => $jadwal->dokter->nama ?? 'Dokter Umum',
+                        'gelar'           => $jadwal->dokter->gelar ?? '',
+                        'kode_poli'       => $jadwal->kode_poli,
+                        'nama_poli'       => $jadwal->poli->nama_poli ?? '-',
+                        'jadwal_id'       => $jadwal->id,
+                        'jam_mulai'       => $jadwal->jam_mulai,
+                        'jam_selesai'     => $jadwal->jam_selesai,
+                        'sisa_kuota'      => $sisaKuota,
+                        'tanggal_praktik' => $tanggalAktual,
+                        'tanggal_jadwal_harian' => $tanggalAktual
+                    ]);
+                }
+                // Jika dokter libur atau kuota penuh, tidak ada yang ditambahkan ke koleksi
+            }
+
+            // Hapus duplikasi dokter (jika dokter memiliki lebih dari satu jadwal di hari yang sama)
+            $dokterTersedia = $dokterTersedia->unique('kode_dokter');
+
+            // Konversi ke array untuk memastikan Flutter menerima list
+            return $dokterTersedia->values(); // values() untuk reset key numerik
+        } catch (Exception $e) {
+            Log::error('Get Dokter Dengan Jadwal Error: ' . $e->getMessage());
+            throw $e;
+        }
     }
 }

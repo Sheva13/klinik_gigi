@@ -41,7 +41,7 @@ class JadwalHarianSeeder extends Seeder
                         $data_harian[] = [
                             'kode_jadwal' => $master_jadwal->id, // Foreign Key
                             'tanggal'     => $tanggal->toDateString(),
-                            'validasi'    => 'valid', // Atau sesuaikan (misal: 'buka', 1, true)
+                            'validasi'    => '1', // dokter 1 hadir jika 0 maka libur
                         ];
                     }
                 }

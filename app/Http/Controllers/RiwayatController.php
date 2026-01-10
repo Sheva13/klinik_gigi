@@ -88,8 +88,8 @@ class RiwayatController extends Controller
                         'status_reservasi' => $item->status_reservasi,
                         'jam_mulai' => $item->jam_mulai ?? '-',
                         'jam_selesai' => $item->jam_selesai ?? '-',
-                        'biaya' => $item->pembayaran_total ?? '0',
-                        'total_biaya_tindakan' => $item->total_biaya_tindakan ?? '0',
+                        'biaya' => 'Rp ' . number_format($item->pembayaran_total ?? 0, 0, ',', '.'),
+                        'total_biaya_tindakan' => 'Rp ' . number_format($item->total_biaya_tindakan ?? 0, 0, ',', '.'),
 
                         'nama' => $item->pasien?->nama ?? '-',
                         'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
@@ -103,14 +103,14 @@ class RiwayatController extends Controller
                         'status_pembayaran' => $item->status_pembayaran ?? null,
                         'metode_pembayaran' => $item->metode_pembayaran ?? null,
                         'jenis_pasien' => $item->jenis_pasien ?? null,
-                        'pembayaran_total' => $item->pembayaran_total ?? null,
+                        'pembayaran_total' => 'Rp ' . number_format($item->pembayaran_total ?? 0, 0, ',', '.'),
                         'keluhan' => $item->keluhan ?? null,
                         'created_at' => $item->created_at?->toDateTimeString() ?? null,
                         'updated_at' => $item->updated_at?->toDateTimeString() ?? null,
                         'full_reservasi' => $item->toArray(),
                     ];
                 });
-
+                
             // Build homecare list
             $riwayatHomeCare = HomeCareReservasi::with([
                 'pasien',

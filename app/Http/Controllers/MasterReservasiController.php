@@ -8,8 +8,9 @@ use App\Models\MasterDokter;
 use App\Models\MasterJadwal;
 use App\Services\ReservasiService;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
-class MasterReservasiController extends ReservasiController
+class MasterReservasiController extends Controller
 {
     protected $reservasiService;
 
@@ -17,15 +18,15 @@ class MasterReservasiController extends ReservasiController
     {
         $this->reservasiService = $reservasiService;
     }
-    
+
     public function getDaftarPoli()
     {
         try {
             $poli = MasterPoli::select('kode_poli', 'nama_poli')->get();
-            return $this->successResponse('Daftar poli berhasil diambil', $poli);
+            return response()->json(['success' => true, 'message' => 'Daftar poli berhasil diambil', 'data' => $poli]);
         } catch (Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Get Daftar Poli Error: ' . $e->getMessage());
-            return $this->errorResponse('Gagal mengambil data poli', null, 500);
+            Log::error('Get Daftar Poli Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil data poli'], 500);
         }
     }
 
@@ -40,10 +41,10 @@ class MasterReservasiController extends ReservasiController
             }
 
             $dokter = $query->get();
-            return $this->successResponse('Daftar dokter berhasil diambil', $dokter);
+            return response()->json(['success' => true, 'message' => 'Daftar dokter berhasil diambil', 'data' => $dokter]);
         } catch (Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Get Dokter Error: '.$e->getMessage());
-            return $this->errorResponse('Gagal mengambil data dokter', null, 500);
+            Log::error('Get Dokter Error: '.$e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil data dokter'], 500);
         }
     }
 
@@ -51,10 +52,40 @@ class MasterReservasiController extends ReservasiController
     {
         try {
             $hasil = $this->reservasiService->getJadwalDenganKuota($request);
-            return $this->successResponse('Data jadwal berhasil diambil', $hasil);
+            return response()->json(['success' => true, 'message' => 'Data jadwal berhasil diambil', 'data' => $hasil]);
         } catch (Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Get Jadwal Error: ' . $e->getMessage());
-            return $this->errorResponse('Gagal mengambil data jadwal', null, 500);
+            Log::error('Get Jadwal Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil data jadwal'], 500);
+        }
+    }
+
+    // Mendapatkan daftar tanggal yang memiliki jadwal dokter
+    public function getTanggalDenganJadwal(Request $request)
+    {
+        // Validasi input jika diperlukan
+        $request->validate([
+            'kode_poli' => 'nullable|string',
+            'kode_dokter' => 'nullable|string',
+        ]);
+
+        try {
+            $hasil = $this->reservasiService->getTanggalDenganJadwal($request);
+            return response()->json(['success' => true, 'message' => 'Daftar tanggal dengan jadwal berhasil diambil', 'data' => $hasil]);
+        } catch (Exception $e) {
+            Log::error('Get Tanggal Jadwal Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil data tanggal jadwal'], 500);
+        }
+    }
+
+    // Mendapatkan daftar dokter yang tersedia pada tanggal tertentu
+    public function getDokterDenganJadwal(Request $request)
+    {
+        try {
+            $hasil = $this->reservasiService->getDokterDenganJadwal($request);
+            return response()->json(['success' => true, 'message' => 'Daftar dokter dengan jadwal berhasil diambil', 'data' => $hasil]);
+        } catch (Exception $e) {
+            Log::error('Get Dokter Dengan Jadwal Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil data dokter dengan jadwal'], 500);
         }
     }
 }
