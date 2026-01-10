@@ -34,7 +34,8 @@ abstract class BaseReservationService implements ReservationServiceInterface
 {
     protected $clinicLat = -7.0005141;
     protected $clinicLng = 110.4250683;
-    protected $hargaPerKm = 5000;
+    protected $hargaPerKm = 1750; // 1750 * 2 (PP) = 3500 per km
+
     protected $biayaDasar = 35000;
     protected $uangMuka = 25000;
 
@@ -325,7 +326,6 @@ class HomeCareService extends BaseReservationService
                 'waktu_pesan' => now()->toTimeString(),
                 'jam_mulai' => $masterJadwal->jam_mulai,
                 'jam_selesai' => $masterJadwal->jam_selesai,
-                'tipe_layanan' => 'home_care',
                 'jenis_pasien' => 'Umum',
                 'status' => 'Menunggu Pembayaran',
                 'status_reservasi' => 'menunggu',
@@ -340,6 +340,7 @@ class HomeCareService extends BaseReservationService
                 'pembayaran_total' => $totalBayar,
                 'metode_pembayaran' => $data['metode_pembayaran'],
                 'status_booking' => 'belum_lunas',
+                'tipe_layanan' => 'home_care', // Added matches SQL default
                 'promo_id' => $promo ? $promo->id : null,
                 'potongan_promo' => $discountAmount,
             ]);

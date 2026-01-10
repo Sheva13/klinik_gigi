@@ -10,10 +10,9 @@ return new class extends Migration
     {
         Schema::create('master_poli', function (Blueprint $table) {
             $table->id(); 
-            
+            $table->string('kode_poli', 15)->unique();       
             $table->string('nama_poli', 100)->unique();
-            $table->string('kode_poli', 10)->unique();
-            $table->text('deskripsi')->nullable(); 
+            $table->text('keterangan')->nullable(); 
             
             $table->timestamps();
         });

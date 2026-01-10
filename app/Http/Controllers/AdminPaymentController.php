@@ -46,7 +46,7 @@ class AdminPaymentController extends Controller
         $reservasiHomeCare = HomeCareReservasi::whereIn('status_booking', ['lunas', 'gagal', 'belum_lunas'])
             ->select(
                 'no_pemeriksaan', 
-                'total_biaya_booking AS pembayaran_total', 
+                'pembayaran_total', 
                 'status_booking AS status_pembayaran', 
                 'metode_pembayaran',
                 'created_at'

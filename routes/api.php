@@ -51,16 +51,21 @@ Route::get('/dokter-image/{filename}', function ($filename) {
 Route::get('/promo-image/{filename}', function ($filename) {
     // Check in 'promos' folder first
     $path = storage_path('app/public/promos/' . $filename);
-    
+
     // Fallback: Check in 'uploads/promos' if mainly stored there
     if (!file_exists($path)) {
         $path = storage_path('app/public/uploads/promos/' . $filename);
     }
 
     if (!file_exists($path)) {
-        abort(404);
+        // Return a default image or empty response instead of 404
+        // This prevents client-side errors when image is missing
+        return response()->json([
+            'error' => 'Image not found',
+            'filename' => $filename
+        ], 404);
     }
-    
+
     return response()->file($path, [
         'Access-Control-Allow-Origin' => '*',
         'Access-Control-Allow-Methods' => 'GET, OPTIONS',
@@ -98,6 +103,8 @@ Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtpEmail']);
 Route::get('/reservasi/poli', [MasterReservasiController::class, 'getDaftarPoli']);
 Route::post('/reservasi/dokter', [MasterReservasiController::class, 'getDokterByPoli']);
 Route::post('/reservasi/jadwal', [MasterReservasiController::class, 'getJadwalDenganKuota']);
+Route::post('/reservasi/tanggal-dengan-jadwal', [MasterReservasiController::class, 'getTanggalDenganJadwal']);
+Route::post('/reservasi/dokter-dengan-jadwal', [MasterReservasiController::class, 'getDokterDenganJadwal']);
 
 // ========================================================================
 // 🔒 PROTECTED ROUTES (WAJIB LOGIN / ADA TOKEN)

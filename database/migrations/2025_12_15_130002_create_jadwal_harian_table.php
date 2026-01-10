@@ -10,14 +10,9 @@ return new class extends Migration
     {
         Schema::create('jadwal_harian', function (Blueprint $table) {
             $table->id();
-            
-            // Contoh struktur yang dibutuhkan
-            $table->foreignId('master_jadwal_id')->constrained('master_jadwal')->onDelete('cascade');
+            $table->string('kode_jadwal', 10);
             $table->date('tanggal');
-            $table->boolean('is_libur')->default(false);
-            
-            // Kolom timestamps yang coba ditambahkan oleh ALTER yang gagal
-            $table->timestamps(); 
+            $table->integer('validasi');
         });
     }
 

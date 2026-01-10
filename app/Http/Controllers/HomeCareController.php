@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
+use App\Models\HomeCareTracking;
+use Illuminate\Support\Facades\Log;
+
 class HomeCareController extends Controller
 {
     private $midtransService;
@@ -24,29 +27,19 @@ class HomeCareController extends Controller
     }
 
     // 1. API untuk Cek Ongkir
-    public function calculateCost()
+    public function calculateCost(Request $request)
     {
         $request->validate([
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
         ]);
 
-        $calculation = $this->calculateDistanceAndCost(
+        $result = $this->reservationService->calculateCost(
             $request->latitude,
             $request->longitude
         );
-        
-        $biayaLayanan = env('HOMECARE_BIAYA_DASAR', $this->biayaDasar); 
 
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'jarak_km' => round($calculation['jarakDalamKm'], 2),
-                'biaya_transport' => $calculation['biayaJarak'],
-                'biaya_layanan' => $biayaLayanan,
-                'estimasi_total' => $calculation['biayaJarak'] + $biayaLayanan
-            ]
-        ]);
+        return response()->json($result);
     }
 
     // 2. API Get Jadwal
@@ -123,11 +116,15 @@ class HomeCareController extends Controller
             }
 
             // --- ACTIVE CHECK (FOR LOCALHOST / WEBHOOK FAILURES) ---
+            Log::info("🔍 Polling Check for {$reservasi->no_pemeriksaan}. DB Status: {$reservasi->status_booking}");
+
             // Jika status di DB masih belum lunas, coba tanya langsung ke Midtrans
             if ($reservasi->status_booking === 'belum_lunas') {
                 $midtransStatus = $this->midtransService->getTransactionStatus($reservasi->no_pemeriksaan);
+                Log::info("🔍 Midtrans Response: " . json_encode($midtransStatus));
 
                 if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
+                    Log::info("✅ Payment Success Detected via Polling!");
                     // Update Status
                     $reservasi->status_booking = 'lunas';
                     $reservasi->status = 'Menunggu Konfirmasi';
@@ -254,11 +251,13 @@ class HomeCareController extends Controller
                     'status_reservasi' => $reservasi->status_reservasi,
                     'status_pelunasan' => $reservasi->status_pelunasan,
                     'total_biaya_tindakan' => $reservasi->total_biaya_tindakan ?? 0,
-                    'nama_dokter' => $reservasi->jadwalHarian->masterJadwal->dokter->nama ?? 'Dokter HomeCare',
-                    'jadwal_tanggal' => $reservasi->jadwalHarian->tanggal ?? $reservasi->tanggal_pesan,
-                    'jadwal_jam' => $reservasi->jadwalHarian->masterJadwal->jam_mulai ?? '-',
+                    'nama_dokter' => $reservasi->dokter->nama ?? 'Dokter HomeCare',
+                    'jadwal_tanggal' => $reservasi->tanggal_pesan, 
+                    'jadwal_jam' => ($reservasi->jam_mulai && $reservasi->jam_selesai) 
+                                    ? "{$reservasi->jam_mulai} - {$reservasi->jam_selesai}" 
+                                    : ($reservasi->jam_mulai ?? '-'),
                     'estimasi_tiba' => '15 menit',
-                    'last_point_debug' => $debugPointMsg ?? 'Check Logs'
+
                 ]
             ]);
 

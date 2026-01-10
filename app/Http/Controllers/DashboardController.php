@@ -6,7 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\MasterDokter;
 use App\Models\MasterPromo;
 use App\Models\MasterJadwal;
-use App\Models\Reservasi; // Asumsi ada model Reservasi
+use App\Models\Reservasi; 
+use App\Models\HomeCareReservasi; // 1. TAMBAHKAN IMPORT MODEL INI
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -17,25 +18,28 @@ class DashboardController extends Controller
         $totalDokter = MasterDokter::count();
         $totalPromo = MasterPromo::count();
         
-        // Contoh data dummy/real lainnya
-        $reservasiHariIni = Reservasi::whereDate('tanggal_pesan', now())->count(); // Ganti dengan Reservasi::whereDate('tgl_reservasi', now())->count();
-        $homeCare = 5; // Ganti dengan logic Home Care kamu
+        $reservasiHariIni = Reservasi::whereDate('tanggal_pesan', now())->count();
 
-        // 2. Data Grafik: Dokter dengan Jadwal Terbanyak
-        // Mengambil Nama Dokter dan Jumlah Jadwalnya
-        $chartData = MasterDokter::withCount('masterJadwal') // Pastikan relasi di model MasterDokter bernama 'masterJadwal'
-                    ->orderBy('master_jadwal_count', 'desc') // Urutkan dari yang terbanyak
-                    ->limit(10) // Ambil top 10 saja biar grafik rapi
+        // 2. PERBAIKAN LOGIC HOME CARE
+        // Mengambil jumlah data Home Care khusus "Bulan Ini" sesuai label di dashboard
+        $homeCare = HomeCareReservasi::whereMonth('tanggal_pesan', now()->month)
+                        ->whereYear('tanggal_pesan', now()->year)
+                        ->count();
+
+        // 3. Data Grafik: Dokter dengan Jadwal Terbanyak
+        $chartData = MasterDokter::withCount('masterJadwal') 
+                    ->orderBy('master_jadwal_count', 'desc') 
+                    ->limit(10) 
                     ->get();
 
-        $chartLabels = $chartData->pluck('nama'); // Nama dokter untuk Label X
-        $chartValues = $chartData->pluck('master_jadwal_count'); // Jumlah jadwal untuk Data Y
+        $chartLabels = $chartData->pluck('nama'); 
+        $chartValues = $chartData->pluck('master_jadwal_count'); 
 
         return view('dashboard', compact(
             'totalDokter', 
             'totalPromo', 
             'reservasiHariIni', 
-            'homeCare',
+            'homeCare', // Variabel ini sekarang sudah dinamis
             'chartLabels',
             'chartValues'
         ));

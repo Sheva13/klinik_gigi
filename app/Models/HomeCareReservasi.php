@@ -36,24 +36,27 @@ class HomeCareReservasi extends Model
         'status_reservasi',
         'jenis_keluhan',
         'jenis_keluhan_lainnya',
-        'status_booking',
+        'status_booking', // Renamed back from status_pembayaran
         'snap_token',
         'redirect_url',
-        'status_booking', // Renamed from status_pembayaran
         'jenis_pasien',
+        'tipe_layanan', // Added back
         'alamat_lengkap',
         'latitude',
         'longitude',
-        'tipe_layanan',
-        'snap_token',
-        'redirect_url',
         'status_pelunasan',
         'snap_token_pelunasan',
-
         'total_biaya_tindakan',
         'promo_id',
         'potongan_promo',
     ];
+
+    protected $appends = ['status_pembayaran'];
+
+    public function getStatusPembayaranAttribute()
+    {
+        return $this->attributes['status_booking'] ?? null;
+    }
 
     public function rekamMedis()
     {
@@ -82,7 +85,6 @@ class HomeCareReservasi extends Model
 
     public function tindakanPemeriksaan()
     {
-        // After migration this will use 'homecare_reservasi_id'
         return $this->hasMany(TindakanPemeriksaan::class, 'homecare_reservasi_id', 'id');
     }
 
@@ -101,7 +103,6 @@ class HomeCareReservasi extends Model
         return $this->belongsTo(MasterPromo::class, 'promo_id', 'id');
     }
 
-    // Trait methods implemented (migrated from consolidated HomeCareService)
     public function isPaid(): bool
     {
         return $this->status_booking === 'lunas';
@@ -112,13 +113,11 @@ class HomeCareReservasi extends Model
         return $this->status_booking === 'belum_lunas';
     }
 
-    // Deprecated in new schema, mapped to 'belum_lunas' check
     public function isAwaitingVerification(): bool
     {
         return $this->status_booking === 'belum_lunas';
     }
 
-    // Deprecated in new schema
     public function isVerified(): bool
     {
         return $this->status_booking === 'lunas';
@@ -165,7 +164,6 @@ class HomeCareReservasi extends Model
 
     public function markAsAwaitingVerification(): void
     {
-        // No longer distinct status, keep as belum_lunas
         $this->status_booking = 'belum_lunas';
         $this->save();
     }
