@@ -112,16 +112,35 @@ class RiwayatController extends Controller
                 });
                 
             // Build homecare list
-            $riwayatHomeCare = HomeCareReservasi::with([
+            // NOTE: some records use pasien_id (string, rekam_medis) while others may populate rekam_medis_id (numeric)
+            // Be permissive: match either pasien_id == rekam_medis OR rekam_medis_id == id
+            $homecareQuery = HomeCareReservasi::with([
                 'pasien',
                 'dokter',
                 'jadwalHarian',
             ])
-                // pasien_id menyimpan nomor rekam_medis (string), bukan id numeric
-                ->where('pasien_id', $rekamMedis->id)
+                ->where(function ($q) use ($rekamMedis) {
+                    $q->where('pasien_id', $rekamMedis->rekam_medis)
+                      ->orWhere('rekam_medis_id', $rekamMedis->id);
+                });
+
+            Log::info('RiwayatController - HomeCare query built', [
+                'rekam_medis' => $rekamMedis->rekam_medis,
+                'rekam_medis_id' => $rekamMedis->id,
+                'sql' => $homecareQuery->toSql(),
+            ]);
+
+            $homecareCount = $homecareQuery->count();
+            Log::info('RiwayatController - HomeCare count', ['count' => $homecareCount]);
+
+            $riwayatHomeCare = $homecareQuery
                 ->orderBy('tanggal_pesan', 'desc')
                 ->get()
                 ->map(function ($item) {
+                    // Local fallbacks: try pasien relation -> rekamMedis relation -> direct pasien_id lookup
+                    $pasienNama = $item->pasien?->nama ?? $item->rekamMedis?->nama ?? RekamMedis::where('rekam_medis', $item->pasien_id)->value('nama');
+                    $pasienRm = $item->pasien?->rekam_medis ?? $item->rekamMedis?->rekam_medis ?? $item->pasien_id;
+
                     return [
                         'jenis_layanan' => 'homecare',
 
@@ -143,15 +162,13 @@ class RiwayatController extends Controller
                         'metode_pembayaran' => $item->metode_pembayaran ?? null,
                         'status_booking' => $item->status_booking ?? null,
                         'status' => $item->status ?? null,
-                        'status_pembayaran' => ($item->status_booking === 'belum_lunas') ? 'menunggu_pembayaran' : $item->status_booking,
+                        // Normalize status_pembayaran: prefer status_booking, fallback to status_pelunasan or status
+                        'status_pembayaran' => $item->status_booking ?? $item->status_pelunasan ?? $item->status ?? null,
 
-                        'nama' => $item->pasien?->nama ?? '-',
-                        'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
-                        'no_rekam_medis' => $item->pasien?->rekam_medis ?? '-',
-                        'foto' => $item->pasien?->file_foto ?? '',
-
-                        'no_antrian' => $item->no_antrian,
-                        // 'status_pembayaran' => ... (Removed duplicate)
+                        // Nama & Rekam Medis: gunakan beberapa fallback sehingga detail HomeCare menampilkan data
+                        'nama' => $pasienNama ?? ($item->pasien_id ?? '-'),
+                        'rekam_medis' => $pasienRm ?? ($item->pasien_id ?? '-'),
+                        'no_rekam_medis' => $pasienRm ?? ($item->pasien_id ?? '-'),
                         'keluhan' => $item->keluhan,
                         'alamat_lengkap' => $item->alamat_lengkap,
                         'latitude' => $item->latitude,
