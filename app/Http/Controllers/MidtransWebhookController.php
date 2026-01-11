@@ -128,43 +128,53 @@ class MidtransWebhookController extends Controller
                     $poinDidapat = floor($amountPaid / 10000);
                 }
 
-                // Tambah Poin User
+                // Tambah Poin User - WITH DUPLICATE CHECK
                 Log::info("🔍 [DEBUG POINT] Transaction ID: {$transaksi->no_pemeriksaan}, Pasien ID: {$transaksi->pasien_id}");
                 file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> 🔍 POINTS LOGIC: pasien_id={$transaksi->pasien_id}, poinDidapat={$poinDidapat}" . PHP_EOL, FILE_APPEND);
                 if ($transaksi->pasien_id && $poinDidapat > 0) {
-                    try {
-                        // ROBUST LOGIC: Prioritas user_id (string), lalu id (integer)
-                        $user = \App\Models\User::where('user_id', $transaksi->pasien_id)->first();
-                        if (!$user) {
-                            $user = \App\Models\User::where('id', $transaksi->pasien_id)->first();
-                        }
+                    // Check if points already added for this transaction (use type + reference_id for reliable check)
+                    $historyExists = \App\Models\PointHistory::where('reference_id', $transaksi->no_pemeriksaan)
+                                        ->where('type', 'earn')
+                                        ->exists();
+                    
+                    if (!$historyExists) {
+                        try {
+                            // ROBUST LOGIC: Prioritas user_id (string), lalu id (integer)
+                            $user = \App\Models\User::where('user_id', $transaksi->pasien_id)->first();
+                            if (!$user) {
+                                $user = \App\Models\User::where('id', $transaksi->pasien_id)->first();
+                            }
 
-                        if ($user) {
-                             $user->increment('poin', $poinDidapat);
-                             Log::info("🎁 [SUCCESS] User {$user->user_id} mendapat {$poinDidapat} poin.");
-                             file_put_contents(storage_path('logs/midtrans_debug.log'), "    ✅ POINTS ADDED: {$poinDidapat} to user {$user->user_id}" . PHP_EOL, FILE_APPEND);
-                             
-                             // --- CATAT HISTORY POIN ---
-                             try {
-                                 \App\Models\PointHistory::create([
-                                     'user_id' => $user->user_id,
-                                     'amount' => $poinDidapat,
-                                     'type' => 'earn',
-                                     'description' => $keteranganLog,
-                                     'reference_id' => $transaksi->no_pemeriksaan,
-                                 ]);
-                                 file_put_contents(storage_path('logs/midtrans_debug.log'), "    ✅ POINT HISTORY RECORDED" . PHP_EOL, FILE_APPEND);
-                             } catch (\Exception $e) {
-                                 Log::error("❌ Gagal mencatat history poin: " . $e->getMessage());
-                                 file_put_contents(storage_path('logs/midtrans_debug.log'), "    ❌ POINT HISTORY FAILED: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
-                             }
-                        } else {
-                            Log::error("❌ [ERROR] Failed to add points. User ID not found in DB: {$transaksi->pasien_id}");
-                            file_put_contents(storage_path('logs/midtrans_debug.log'), "    ❌ USER NOT FOUND: {$transaksi->pasien_id}" . PHP_EOL, FILE_APPEND);
+                            if ($user) {
+                                 $user->increment('poin', $poinDidapat);
+                                 Log::info("🎁 [SUCCESS] User {$user->user_id} mendapat {$poinDidapat} poin.");
+                                 file_put_contents(storage_path('logs/midtrans_debug.log'), "    ✅ POINTS ADDED: {$poinDidapat} to user {$user->user_id}" . PHP_EOL, FILE_APPEND);
+                                 
+                                 // --- CATAT HISTORY POIN ---
+                                 try {
+                                     \App\Models\PointHistory::create([
+                                         'user_id' => $user->user_id,
+                                         'amount' => $poinDidapat,
+                                         'type' => 'earn',
+                                         'description' => $keteranganLog,
+                                         'reference_id' => $transaksi->no_pemeriksaan,
+                                     ]);
+                                     file_put_contents(storage_path('logs/midtrans_debug.log'), "    ✅ POINT HISTORY RECORDED" . PHP_EOL, FILE_APPEND);
+                                 } catch (\Exception $e) {
+                                     Log::error("❌ Gagal mencatat history poin: " . $e->getMessage());
+                                     file_put_contents(storage_path('logs/midtrans_debug.log'), "    ❌ POINT HISTORY FAILED: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
+                                 }
+                            } else {
+                                Log::error("❌ [ERROR] Failed to add points. User ID not found in DB: {$transaksi->pasien_id}");
+                                file_put_contents(storage_path('logs/midtrans_debug.log'), "    ❌ USER NOT FOUND: {$transaksi->pasien_id}" . PHP_EOL, FILE_APPEND);
+                            }
+                        } catch (\Exception $e) {
+                            Log::error("❌ Critical Point Error: " . $e->getMessage());
+                            file_put_contents(storage_path('logs/midtrans_debug.log'), "    ❌ POINTS ERROR: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString() . PHP_EOL, FILE_APPEND);
                         }
-                    } catch (\Exception $e) {
-                        Log::error("❌ Critical Point Error: " . $e->getMessage());
-                        file_put_contents(storage_path('logs/midtrans_debug.log'), "    ❌ POINTS ERROR: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString() . PHP_EOL, FILE_APPEND);
+                    } else {
+                        Log::info("⚠️ [DUPLICATE] Points already added for {$transaksi->no_pemeriksaan}, skipping.");
+                        file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> ⚠️ POINTS ALREADY ADDED (duplicate prevented)" . PHP_EOL, FILE_APPEND);
                     }
                 } else {
                     Log::info("⚠️ [WARNING] No User ID or 0 Points to add.");

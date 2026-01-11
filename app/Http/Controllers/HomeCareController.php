@@ -131,26 +131,36 @@ class HomeCareController extends Controller
                     $reservasi->status_reservasi = 'menunggu_konfirmasi';
                     $reservasi->save();
 
-                    // Tambah Poin Manual (Booking)
+                    // Tambah Poin Manual (Booking) - WITH DUPLICATE CHECK
                     $poinDidapat = floor(($midtransStatus['gross_amount'] ?? 0) / 10000);
                     
-                    // Point Logic
+                    // Point Logic - CHECK IF ALREADY ADDED
                     if ($reservasi->pasien_id && $poinDidapat > 0) {
-                        try {
-                            $user = User::where('user_id', $reservasi->pasien_id)->first();
-                            if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
-                            if ($user) {
-                                $user->increment('poin', $poinDidapat);
-                                \App\Models\PointHistory::create([
-                                     'user_id' => $user->user_id,
-                                     'amount' => $poinDidapat,
-                                     'type' => 'earn',
-                                     'description' => "Pembayaran Booking HomeCare",
-                                     'reference_id' => $reservasi->no_pemeriksaan,
-                                ]);
+                        // Check if points already added for this transaction (use type='earn' for reliable check)
+                        $historyExists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
+                                            ->where('type', 'earn')
+                                            ->exists();
+                        
+                        if (!$historyExists) {
+                            try {
+                                $user = User::where('user_id', $reservasi->pasien_id)->first();
+                                if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
+                                if ($user) {
+                                    $user->increment('poin', $poinDidapat);
+                                    \App\Models\PointHistory::create([
+                                         'user_id' => $user->user_id,
+                                         'amount' => $poinDidapat,
+                                         'type' => 'earn',
+                                         'description' => "Pembayaran Booking HomeCare",
+                                         'reference_id' => $reservasi->no_pemeriksaan,
+                                    ]);
+                                    Log::info("✅ Points added: $poinDidapat for booking " . $reservasi->no_pemeriksaan);
+                                }
+                            } catch (\Exception $e) {
+                                 Log::error("Point Error: " . $e->getMessage());
                             }
-                        } catch (\Exception $e) {
-                             Log::error("Point Error: " . $e->getMessage());
+                        } else {
+                            Log::info("⚠️ Points already added for booking " . $reservasi->no_pemeriksaan . ", skipping.");
                         }
                     }
                 }
@@ -166,32 +176,38 @@ class HomeCareController extends Controller
                     $reservasi->status_reservasi = 'selesai';
                     $reservasi->save();
 
-                    // Tambah Poin Manual (Pelunasan)
+                    // Tambah Poin Manual (Pelunasan) - WITH DUPLICATE CHECK
                     $poinDidapat = floor(($midtransStatus['gross_amount'] ?? 0) / 10000);
                     
-                    $debugPointMsg = "";
                     if ($reservasi->pasien_id && $poinDidapat > 0) {
-                        try {
-                            $user = User::where('user_id', $reservasi->pasien_id)->first();
-                            if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
+                        // Check if points already added for this transaction (use type='earn' for reliable check)
+                        $historyExists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
+                                            ->where('type', 'earn')
+                                            ->exists();
+                        
+                        if (!$historyExists) {
+                            try {
+                                $user = User::where('user_id', $reservasi->pasien_id)->first();
+                                if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
 
-                            if ($user) {
-                                $user->increment('poin', $poinDidapat);
-                                $debugPointMsg = "Success: Added $poinDidapat pts";
-                                \App\Models\PointHistory::create([
-                                     'user_id' => $user->user_id,
-                                     'amount' => $poinDidapat,
-                                     'type' => 'earn',
-                                     'description' => "Pelunasan tagihan via Manual",
-                                     'reference_id' => $reservasi->no_pemeriksaan,
-                                ]);
-                            } else {
-                                $debugPointMsg = "User not found";
-                                Log::error("Point Error: User not found ID: " . $reservasi->pasien_id);
+                                if ($user) {
+                                    $user->increment('poin', $poinDidapat);
+                                    \App\Models\PointHistory::create([
+                                         'user_id' => $user->user_id,
+                                         'amount' => $poinDidapat,
+                                         'type' => 'earn',
+                                         'description' => "Pelunasan tagihan via Manual",
+                                         'reference_id' => $reservasi->no_pemeriksaan,
+                                    ]);
+                                    Log::info("✅ Points added: $poinDidapat for pelunasan " . $reservasi->no_pemeriksaan);
+                                } else {
+                                    Log::error("Point Error: User not found ID: " . $reservasi->pasien_id);
+                                }
+                            } catch (\Exception $e) {
+                                 Log::error("Point Error: " . $e->getMessage());
                             }
-                        } catch (\Exception $e) {
-                             $debugPointMsg = "Error: " . $e->getMessage();
-                             Log::error("Point Error: " . $e->getMessage());
+                        } else {
+                            Log::info("⚠️ Points already added for pelunasan " . $reservasi->no_pemeriksaan . ", skipping.");
                         }
                     }
                 }
