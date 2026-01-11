@@ -268,8 +268,9 @@ class HomeCareService extends BaseReservationService
             // Hitung Potongan
             if ($promo->tipe == 'free_transport') {
                 $discountAmount = $biayaJarak;
-            } elseif ($promo->tipe == 'potongan_total') {
-                $discountAmount = $promo->nilai_potongan;
+            } elseif ($promo->tipe == 'potongan_total' || $promo->nilai_potongan > 0) {
+                // Fallback: Jika tipe tidak sesuai tapi ada nilai potongan, tetap gunakan.
+                 $discountAmount = $promo->nilai_potongan;
             }
 
             $pointsToDeduct = $promo->harga_poin;
