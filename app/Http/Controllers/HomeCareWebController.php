@@ -146,14 +146,15 @@ class HomeCareWebController extends Controller
              if ($dataUpdate['status'] === 'Selesai') {
                 $reservasi = DB::table('homecare_reservasi')->where('id', $id)->first();
                 
-                // Pastikan belum pernah diberi poin untuk transaksi ini (Cek duplicate entry di history)
-                // ATAU kita percaya admin. Untuk safety, kita cek jika belum ada log 'earn' untuk ref ini
+                // Check if poin already added for this transaction (use type='earn' for reliable check)
                 $exists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
                             ->where('type', 'earn')
                             ->exists();
 
                 if (!$exists && $reservasi->pasien_id) {
-                    $totalBayar = ($reservasi->pembayaran_total ?? 0) + ($reservasi->total_biaya_tindakan ?? 0);
+                    // FIXED: Only calculate from total_biaya_tindakan (pelunasan), not the booking amount
+                    // Booking poin is already handled separately when booking payment is confirmed
+                    $totalBayar = $reservasi->total_biaya_tindakan ?? 0;
                     $poinDidapat = floor($totalBayar / 10000);
 
                     if ($poinDidapat > 0) {

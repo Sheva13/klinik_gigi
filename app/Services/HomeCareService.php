@@ -492,21 +492,28 @@ class HomeCareService extends BaseReservationService
 
         $reservasi->markAsPaid(); // Method dari Model
 
-        // DAPATKAN POIN SETELAH PELUNASAN
+        // DAPATKAN POIN SETELAH PELUNASAN - WITH DUPLICATE CHECK
         $pasienId = $reservasi->pasien_id ?? ($reservasi->rekamMedis->user_id ?? null);
         if ($pasienId) {
             $user = User::find($pasienId);
             if ($user) {
-                $user->increment('poin', 10);
+                // Check if bonus points already added (use type='earn' for reliable check)
+                $historyExists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
+                                    ->where('type', 'earn')
+                                    ->exists();
                 
-                // --- CATAT HISTORY ---
-                \App\Models\PointHistory::create([
-                    'user_id' => $user->user_id, // Pastikan pakai user_id yang string
-                    'amount' => 10,
-                    'type' => 'earn',
-                    'description' => "Bonus Poin Pelunasan Layanan",
-                    'reference_id' => $reservasi->no_pemeriksaan
-                ]);
+                if (!$historyExists) {
+                    $user->increment('poin', 10);
+                    
+                    // --- CATAT HISTORY ---
+                    \App\Models\PointHistory::create([
+                        'user_id' => $user->user_id, // Pastikan pakai user_id yang string
+                        'amount' => 10,
+                        'type' => 'earn',
+                        'description' => "Bonus Poin Pelunasan Layanan",
+                        'reference_id' => $reservasi->no_pemeriksaan
+                    ]);
+                }
             }
         }
 

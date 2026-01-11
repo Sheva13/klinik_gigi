@@ -21,7 +21,7 @@ return new class extends Migration
                 $table->string('gambar_banner', 255)->nullable();
                 $table->date('tanggal_mulai')->nullable();
                 $table->date('tanggal_selesai')->nullable();
-                $table->string('tipe', 50)->nullable();
+                $table->string('tipe', 50)->default('potongan_total');
                 $table->integer('harga_poin')->nullable();
                 $table->decimal('nilai_potongan', 15, 2)->nullable();
                 $table->integer('limit_per_user')->nullable()->default(null);

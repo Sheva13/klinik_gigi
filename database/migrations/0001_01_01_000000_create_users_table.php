@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('file_foto', 55)->nullable();
             $table->string('no_hp', 20)->nullable()->index();
             $table->string('email', 100)->nullable()->index();
+            $table->integer('poin')->default(0); // Added to match User model
             $table->string('password'); 
             $table->text('current_token')->nullable();
             $table->timestamps(); 
