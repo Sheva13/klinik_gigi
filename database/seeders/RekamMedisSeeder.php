@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class RekamMedisSeeder extends Seeder
 {
@@ -12,7 +13,7 @@ class RekamMedisSeeder extends Seeder
      */
     public function run(): void
     {
-       \DB::table('rekam_medis')->insert([
+       DB::table('rekam_medis')->insert([
            'id' => 2,
            'rekam_medis' => 'RM002',
            'nama' => 'Farrel',
