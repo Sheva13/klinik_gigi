@@ -174,4 +174,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- UPLOAD FOTO DOKTER ---
     Route::post('/dokter/upload-foto/{id}', [DokterController::class, 'uploadFotoProfil']);
 
+// --- UPLOAD FOTO PROFIL ---
+    Route::post('/profil/upload', [ProfilController::class, 'uploadFoto']);
+    Route::get('/profil/get', [ProfilController::class, 'getFoto']);
+    Route::delete('/profil/delete', [ProfilController::class, 'deleteFoto']);
 });
