@@ -35,6 +35,7 @@ class MpUser extends Authenticatable
         'no_hp',
         'email',
         'password',
+        'alamat',
         'file_foto',
         'current_token',
     ];
