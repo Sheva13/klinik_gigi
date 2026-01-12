@@ -61,6 +61,7 @@ class AuthController extends Controller
                 'no_hp'             => 'nullable|string|max:20|unique:users,no_hp',
                 'tanggal_lahir'     => 'nullable|date',
                 'jenis_kelamin'     => 'nullable|in:Laki-laki,Perempuan',
+                'alamat'            => 'nullable|string|max:1000',
                 'password'          => 'required|string|min:8|confirmed',
             ]);
 
@@ -99,6 +100,7 @@ class AuthController extends Controller
                     'jenis_kelamin'   => $validated['jenis_kelamin'] ?? null,
                     'no_hp'           => $validated['no_hp'],
                     'email'           => $validated['email'],
+                    'alamat'          => $validated['alamat'] ?? null,
                     'password'        => Hash::make($validated['password']),
                 ]);
             }
@@ -116,6 +118,7 @@ class AuthController extends Controller
                     'user_id' => $user->user_id,
                     'nama_pengguna' => $user->nama_pengguna,
                     'email' => $user->email,
+                    'alamat' => $user->alamat,
                     'token' => $token, // 
                 ],
             ], 201);
