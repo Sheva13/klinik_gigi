@@ -44,16 +44,21 @@ class MidtransWebhookController extends Controller
             }
 
             // 1. Validasi Signature (Keamanan)
+            // Normalize payload values to avoid TypeErrors when keys are missing
+            $statusCode = (string) ($payload['status_code'] ?? '');
+            $grossAmount = (string) ($payload['gross_amount'] ?? $payload['gross_amount_str'] ?? '0');
+            $signatureKey = (string) ($payload['signature_key'] ?? $payload['signature'] ?? '');
+
             if (
                 !$this->midtransService->verifySignature(
                     $orderId,
-                    $payload['status_code'],
-                    $payload['gross_amount'],
-                    $payload['signature_key']
+                    $statusCode,
+                    $grossAmount,
+                    $signatureKey
                 )
             ) {
                 Log::error(" Invalid Signature Key untuk Order: $orderId");
-                file_put_contents(storage_path('logs/midtrans_debug.log'), date('Y-m-d H:i:s') . " - ❌ SIGNATURE INVALID for {$orderId}" . PHP_EOL, FILE_APPEND);
+                file_put_contents(storage_path('logs/midtrans_debug.log'), date('Y-m-d H:i:s') . " - ❌ SIGNATURE INVALID for {$orderId} | status_code={$statusCode} gross_amount={$grossAmount} signature_present=" . (!empty($signatureKey) ? 'yes' : 'no') . PHP_EOL, FILE_APPEND);
                 return response()->json(['message' => 'Invalid Signature'], 403);
             }
             file_put_contents(storage_path('logs/midtrans_debug.log'), date('Y-m-d H:i:s') . " - ✅ SIGNATURE VALID" . PHP_EOL, FILE_APPEND);
@@ -87,8 +92,12 @@ class MidtransWebhookController extends Controller
             file_put_contents(storage_path('logs/midtrans_debug.log'), date('Y-m-d H:i:s') . " - ✅ TRANSAKSI FOUND: {$transaksi->no_pemeriksaan}" . PHP_EOL, FILE_APPEND);
 
             // 3. Proses Update Status
-            $transactionStatus = $payload['transaction_status'];
-            
+            $transactionStatus = $payload['transaction_status'] ?? null;
+            if (!$transactionStatus) {
+                file_put_contents(storage_path('logs/midtrans_debug.log'), date('Y-m-d H:i:s') . " - ❌ Missing transaction_status in payload for {$orderId}" . PHP_EOL, FILE_APPEND);
+                return response()->json(['message' => 'Invalid Payload: missing transaction_status'], 400);
+            }
+
             file_put_contents(storage_path('logs/midtrans_debug.log'), date('Y-m-d H:i:s') . " - 🔄 TRANSACTION STATUS: $transactionStatus" . PHP_EOL, FILE_APPEND);
 
             DB::transaction(function () use ($transaksi, $transactionStatus, $tipeTransaksi, $payload) {
@@ -105,7 +114,7 @@ class MidtransWebhookController extends Controller
                     $transaksi->status_pelunasan = 'lunas';
                     $transaksi->status = 'Selesai';
                     $keteranganLog = 'Pelunasan tagihan berhasil via Midtrans.';
-                    $amountPaid = $payload['gross_amount'] ?? 0;
+                    $amountPaid = (int) round(floatval($payload['gross_amount'] ?? 0));
                     $poinDidapat = floor($amountPaid / 10000); 
                 } else {
                     // Booking Awal (Klinik / HomeCare DP)
@@ -124,7 +133,7 @@ class MidtransWebhookController extends Controller
                     }
 
                     $keteranganLog = 'Pembayaran booking terverifikasi via Midtrans.';
-                    $amountPaid = $payload['gross_amount'] ?? 0;
+                    $amountPaid = (int) round(floatval($payload['gross_amount'] ?? 0));
                     $poinDidapat = floor($amountPaid / 10000);
                 }
 
@@ -216,10 +225,11 @@ class MidtransWebhookController extends Controller
 
             // --- B. Simpan Perubahan jika ada update ---
             if ($transaksi->isDirty()) {
-                file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> Saving transaction. Dirty: " . json_encode($transaksi->getDirty()) . PHP_EOL, FILE_APPEND);
+                $dirtyFields = $transaksi->getDirty();
+                file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> Saving transaction. Dirty: " . json_encode($dirtyFields) . PHP_EOL, FILE_APPEND);
                 try {
                     $transaksi->save();
-                    file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> ✅ SAVE SUCCESSFUL. Updated fields: " . json_encode($transaksi->getDirty()) . PHP_EOL, FILE_APPEND);
+                    file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> ✅ SAVE SUCCESSFUL. Updated fields: " . json_encode($dirtyFields) . PHP_EOL, FILE_APPEND);
                 } catch (\Exception $saveError) {
                     file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> ❌ SAVE FAILED: " . $saveError->getMessage() . " | Trace: " . $saveError->getTraceAsString() . PHP_EOL, FILE_APPEND);
                     throw $saveError; // Re-throw to trigger catch block

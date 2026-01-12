@@ -93,12 +93,17 @@ class MidtransService
     public function verifySignature(string $orderId, string $statusCode, string $grossAmount, string $inputSignature): bool
     {
         $serverKey = config('midtrans.server_key');
+        if (empty($serverKey)) {
+            Log::error('Midtrans server key not configured.');
+            return false;
+        }
 
         // Rumus SHA512: order_id + status_code + gross_amount + ServerKey
         $stringToHash = $orderId . $statusCode . $grossAmount . $serverKey;
         $mySignature = hash("sha512", $stringToHash);
 
-        return $inputSignature === $mySignature;
+        // Use hash_equals to avoid timing attacks and trim incoming signature
+        return hash_equals($mySignature, trim((string) $inputSignature));
     }
 
     /**
