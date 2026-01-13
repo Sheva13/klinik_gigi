@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('nama_wali', 30)->nullable(); 
             $table->integer('hubungan_wali')->nullable();
             $table->string('hp_wali', 15)->nullable(); 
-            $table->string('jenis_kelamin', 1)->nullable(); 
+            $table->string('jenis_kelamin', 10)->nullable(); 
             $table->integer('jenis_pasien')->nullable();
             $table->string('no_peserta', 255)->nullable(); 
             $table->string('nama_asuransi', 255)->nullable();
