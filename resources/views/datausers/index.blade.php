@@ -60,8 +60,7 @@
                         <th>Nama</th>
                         <th>NIK</th>
                         <th>Email</th>
-                        <th>Tipe</th>
-                        <th class="text-center">Aksi</th>
+                        <th>Status</th> <th class="text-center">Aksi</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -86,9 +85,25 @@
                             </td>
                             <td>
                                 @if($user->rekamMedis)
-                                    <span class="badge bg-warning-soft text-warning">{{ $user->rekamMedis->tipe_pasien ?? 'Tidak Diketahui' }}</span>
+                                    <div class="d-flex flex-column gap-1">
+                                        {{-- Badge Tipe Pasien --}}
+                                        <span class="badge bg-dark border border-secondary text-light w-auto align-self-start">
+                                            {{ $user->rekamMedis->tipe_pasien ?? 'Umum' }}
+                                        </span>
+
+                                        {{-- Badge Verifikasi --}}
+                                        @if(($user->rekamMedis->verifikasi ?? 0) == 1)
+                                            <span class="badge bg-success bg-opacity-75 text-white w-auto align-self-start">
+                                                <i class="bi bi-check-circle me-1"></i> Terverifikasi
+                                            </span>
+                                        @else
+                                            <span class="badge bg-warning text-dark w-auto align-self-start">
+                                                <i class="bi bi-hourglass-split me-1"></i> Belum Verifikasi
+                                            </span>
+                                        @endif
+                                    </div>
                                 @else
-                                    <span class="badge bg-secondary">Pengguna</span>
+                                    <span class="badge bg-secondary">User Only</span>
                                 @endif
                             </td>
                             <td class="text-center">

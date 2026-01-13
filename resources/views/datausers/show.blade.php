@@ -12,12 +12,35 @@
         </a>
         <div>
             <span class="text-secondary small d-block">Detail User</span>
-            <h1 class="h3 fw-bold mb-0 text-white">{{ $user->nama_pengguna }}</h1>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <h1 class="h3 fw-bold mb-0 text-white">{{ $user->nama_pengguna }}</h1>
+                
+                {{-- BADGE NO RM (BARU DITAMBAHKAN) --}}
+                @if($user->rekamMedis)
+                    <span class="badge bg-primary bg-opacity-25 text-primary border border-primary d-flex align-items-center">
+                        <span class="material-symbols-outlined fs-6 me-1">id_card</span>
+                        {{ $user->rekamMedis->rekam_medis }}
+                    </span>
+                @endif
+
+                {{-- BADGE STATUS VERIFIKASI --}}
+                @if($user->rekamMedis && ($user->rekamMedis->verifikasi ?? 0) == 1)
+                    <span class="badge bg-gold text-dark d-flex align-items-center" title="Akun Terverifikasi">
+                        <span class="material-symbols-outlined fs-6 me-1">verified</span> Valid
+                    </span>
+                @else
+                    <span class="badge bg-secondary d-flex align-items-center" title="Belum Verifikasi KTP">
+                        <span class="material-symbols-outlined fs-6 me-1">warning</span> Unverified
+                    </span>
+                @endif
+            </div>
         </div>
     </div>
 
     <div class="row align-items-stretch">
         <div class="col-lg-8 d-flex flex-column gap-4">
+            
+            {{-- KARTU INFORMASI PENGGUNA --}}
             <div class="card card-dark-premium border-0 mb-0">
                 <div class="card-header border-bottom border-secondary py-3">
                     <div class="d-flex align-items-center">
@@ -34,7 +57,7 @@
                                     <span class="material-symbols-outlined">person</span>
                                 </div>
                                 <div>
-                                    <span class="info-label text-secondary small">Nama</span>
+                                    <span class="info-label text-secondary small">Nama Akun</span>
                                     <div class="text-white fw-bold">{{ $user->nama_pengguna }}</div>
                                 </div>
                             </div>
@@ -46,7 +69,7 @@
                                     <span class="material-symbols-outlined">badge</span>
                                 </div>
                                 <div>
-                                    <span class="info-label text-secondary small">NIK</span>
+                                    <span class="info-label text-secondary small">NIK (Akun)</span>
                                     <div class="text-white fw-bold">{{ $user->nik ?? '-' }}</div>
                                 </div>
                             </div>
@@ -80,43 +103,13 @@
                     </div>
 
                     <div class="row g-4 mt-4">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <div class="icon-box bg-primary bg-opacity-10 text-primary me-3">
-                                    <span class="material-symbols-outlined">calendar_today</span>
-                                </div>
-                                <div>
-                                    <span class="info-label text-secondary small">Tanggal Lahir</span>
-                                    <div class="text-white fw-bold">
-                                        {{ $user->tanggal_lahir ? \Carbon\Carbon::parse($user->tanggal_lahir)->format('d F Y') : '-' }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <div class="icon-box bg-secondary bg-opacity-10 text-secondary me-3">
-                                    <span class="material-symbols-outlined">man</span>
-                                </div>
-                                <div>
-                                    <span class="info-label text-secondary small">Jenis Kelamin</span>
-                                    <div class="text-white fw-bold">
-                                        {{ $user->jenis_kelamin == 'L' ? 'Laki-laki' : ($user->jenis_kelamin == 'P' ? 'Perempuan' : '-') }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-4 mt-4">
                         <div class="col-md-12">
                             <div class="d-flex align-items-center">
                                 <div class="icon-box bg-info bg-opacity-10 text-info me-3">
                                     <span class="material-symbols-outlined">home</span>
                                 </div>
                                 <div>
-                                    <span class="info-label text-secondary small">Alamat</span>
+                                    <span class="info-label text-secondary small">Alamat (Akun)</span>
                                     <div class="text-white fw-bold">
                                         {{ $user->alamat ?? '-' }}
                                     </div>
@@ -127,6 +120,7 @@
                 </div>
             </div>
 
+            {{-- KARTU REKAM MEDIS --}}
             @if($user->rekamMedis)
             <div class="card card-dark-premium border-0 mb-0">
                 <div class="card-header border-bottom border-secondary py-3">
@@ -137,6 +131,23 @@
                 </div>
 
                 <div class="card-body p-4">
+                    
+                    {{-- NO REKAM MEDIS DITAMBAHKAN DI SINI (PALING BESAR) --}}
+                    <div class="row mb-4 pb-3 border-bottom border-secondary">
+                        <div class="col-12">
+                             <div class="d-flex align-items-center">
+                                <div class="icon-box bg-primary bg-opacity-25 text-primary me-3 border border-primary" style="width: 60px; height: 60px;">
+                                    <span class="material-symbols-outlined fs-2">id_card</span>
+                                </div>
+                                <div>
+                                    <span class="info-label text-gold small text-uppercase fw-bold letter-spacing-1">Nomor Rekam Medis</span>
+                                    <div class="text-white fw-bold fs-3">{{ $user->rekamMedis->rekam_medis }}</div>
+                                    <div class="small text-muted">Terdaftar sejak: {{ \Carbon\Carbon::parse($user->rekamMedis->created_at)->format('d F Y') }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row g-4">
                         <div class="col-md-6">
                             <div class="d-flex align-items-center">
@@ -144,7 +155,7 @@
                                     <span class="material-symbols-outlined">home</span>
                                 </div>
                                 <div>
-                                    <span class="info-label text-secondary small">Alamat</span>
+                                    <span class="info-label text-secondary small">Alamat Domisili</span>
                                     <div class="text-white fw-bold">
                                         {{ $user->rekamMedis->alamat ?? '-' }}
                                     </div>
@@ -188,7 +199,7 @@
                                     <span class="material-symbols-outlined">phone</span>
                                 </div>
                                 <div>
-                                    <span class="info-label text-secondary small">No HP</span>
+                                    <span class="info-label text-secondary small">No HP Aktif</span>
                                     <div class="text-white fw-bold">
                                         {{ $user->rekamMedis->hp ?? '-' }}
                                     </div>
@@ -196,7 +207,6 @@
                             </div>
                         </div>
                     </div>
-                    
 
                     <div class="row g-4 mt-4">
                         <div class="col-md-6">
@@ -304,6 +314,7 @@
                         </div>
                     </div>
 
+                    {{-- BAGIAN DATA SENSITIF (Jika ada isinya) --}}
                     @if($user->rekamMedis->no_identitas || $user->rekamMedis->tipe_identitas || $user->rekamMedis->tempat_lahir)
                     <hr class="my-4 border-secondary">
 
@@ -340,7 +351,6 @@
                                 </div>
                             </div>
                         </div>
-                        
 
                         <div class="col-md-4">
                             <div class="d-flex align-items-center">

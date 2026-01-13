@@ -28,7 +28,8 @@ return new class extends Migration
             $table->string('jenis_kelamin', 1)->nullable(); 
             $table->integer('jenis_pasien')->nullable();
             $table->string('no_peserta', 255)->nullable(); 
-            $table->string('nama_asuransi', 255)->nullable(); 
+            $table->string('nama_asuransi', 255)->nullable();
+            $table->tinyInteger('verifikasi')->default(0)->index(); 
             
             $table->timestamps();
         });

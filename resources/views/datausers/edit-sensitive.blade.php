@@ -78,7 +78,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-4">
-                        <label for="no_identitas" class="form-label">No Identitas</label>
+                        <label for="no_identitas" class="form-label">No Identitas (RM)</label>
                         <input type="text" class="form-control form-control-dark" id="no_identitas" name="no_identitas"
                                value="{{ old('no_identitas', $user->rekamMedis->no_identitas ?? '') }}" maxlength="30">
                     </div>
@@ -108,6 +108,33 @@
                             <option value="L" {{ old('rm_jenis_kelamin', $user->rekamMedis->jenis_kelamin) == 'L' ? 'selected' : '' }}>Laki-laki</option>
                             <option value="P" {{ old('rm_jenis_kelamin', $user->rekamMedis->jenis_kelamin) == 'P' ? 'selected' : '' }}>Perempuan</option>
                         </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-warning bg-opacity-10 border border-warning mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        <span class="material-symbols-outlined text-warning me-3 fs-2">verified_user</span>
+                        <div class="flex-grow-1">
+                            <h5 class="fw-bold text-warning mb-1">Verifikasi Data Medis</h5>
+                            <p class="text-white small mb-2">
+                                Apakah dokumen fisik (KTP/KK) pasien sudah sesuai dengan data di atas?
+                                <br>Jika ya, aktifkan tombol di bawah ini.
+                            </p>
+                            
+                            <div class="form-check form-switch">
+                                {{-- Hidden input kirim nilai 0 kalau switch mati --}}
+                                <input type="hidden" name="verifikasi" value="0">
+                                
+                                <input class="form-check-input" type="checkbox" role="switch" id="verifikasi" name="verifikasi" value="1" 
+                                    style="width: 3em; height: 1.5em;"
+                                    {{ ($user->rekamMedis->verifikasi ?? 0) == 1 ? 'checked' : '' }}>
+                                <label class="form-check-label ms-2 align-middle fw-bold text-white mt-1" for="verifikasi">
+                                    DATA TERVERIFIKASI (VALID)
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -18,23 +18,24 @@ use Exception;
 
 class AuthController extends Controller
 {
- // Configurable via env
- private $otpExpireMinutes;
- private $maxRequestsPerHour;
- private $resendCooldownSeconds;
- private $maxVerifyAttemptsPerOtp;
- private $blockAfterFailedAttempts;
- private $blockMinutes;
+    // Configurable via env
+    private $otpExpireMinutes;
+    private $maxRequestsPerHour;
+    private $resendCooldownSeconds;
+    private $maxVerifyAttemptsPerOtp;
+    private $blockAfterFailedAttempts;
+    private $blockMinutes;
 
- public function __construct()
- {
-     $this->otpExpireMinutes = env('OTP_EXPIRE_MINUTES', 5);
-     $this->maxRequestsPerHour = env('OTP_MAX_REQUESTS_PER_HOUR', 3);
-     $this->resendCooldownSeconds = env('OTP_RESEND_COOLDOWN_SECONDS', 60);
-     $this->maxVerifyAttemptsPerOtp = env('OTP_MAX_VERIFY_ATTEMPTS', 5);
-     $this->blockAfterFailedAttempts = env('OTP_BLOCK_AFTER_FAILED_ATTEMPTS', 10);
-     $this->blockMinutes = env('OTP_BLOCK_MINUTES', 15);
- }   
+    public function __construct()
+    {
+        $this->otpExpireMinutes = env('OTP_EXPIRE_MINUTES', 5);
+        $this->maxRequestsPerHour = env('OTP_MAX_REQUESTS_PER_HOUR', 3);
+        $this->resendCooldownSeconds = env('OTP_RESEND_COOLDOWN_SECONDS', 60);
+        $this->maxVerifyAttemptsPerOtp = env('OTP_MAX_VERIFY_ATTEMPTS', 5);
+        $this->blockAfterFailedAttempts = env('OTP_BLOCK_AFTER_FAILED_ATTEMPTS', 10);
+        $this->blockMinutes = env('OTP_BLOCK_MINUTES', 15);
+    }
+
     private function generateUniqueUserId()
     {
         $tanggal = Carbon::now()->format('Ymd');
@@ -46,11 +47,28 @@ class AuthController extends Controller
         return $userId;
     }
 
+    // Generate No RM Unik: RM + YYMMDD + 3 Random Angka
+    private function generateNoRM()
+    {
+        $dateCode = Carbon::now()->format('ymd'); 
+        $prefix = 'RM' . $dateCode; 
+
+        do {
+            $random = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
+            $finalRM = $prefix . $random;
+            
+            $exists = DB::table('rekam_medis')->where('rekam_medis', $finalRM)->exists();
+        } while ($exists);
+
+        return $finalRM;
+    }
+
     /**
      * Register pasien baru atau lama
      */
     public function register(Request $request)
     {
+        DB::beginTransaction();
         try {
             $validated = $request->validate([
                 'tipe_pasien'       => 'required|in:lama,baru',
@@ -64,6 +82,9 @@ class AuthController extends Controller
                 'alamat'            => 'nullable|string|max:1000',
                 'password'          => 'required|string|min:8|confirmed',
             ]);
+
+            $user = null;
+            $finalNoRM = null;
 
             if ($validated['tipe_pasien'] === 'lama') {
                 $rekamMedis = DB::table('rekam_medis')
@@ -89,13 +110,33 @@ class AuthController extends Controller
                     'no_hp'           => $rekamMedis->hp ?: ($validated['no_hp'] ?? null),
                     'email'           => $validated['email'] ?? null,
                     'password'        => Hash::make($validated['password']),
+                    'alamat'          => $rekamMedis->alamat,
                 ]);
+
+                $finalNoRM = $rekamMedis->rekam_medis;
+
             } else {
+                // Logic Pasien Baru: Generate RM -> Insert RM -> Insert User
+                $newNoRM = $this->generateNoRM();
+
+                $rekamMedisId = DB::table('rekam_medis')->insertGetId([
+                    'rekam_medis'    => $newNoRM,
+                    'nama'           => $validated['nama_pengguna'],
+                    'no_identitas'   => $validated['nik'],
+                    'hp'             => $validated['no_hp'],
+                    'alamat'         => $validated['alamat'] ?? '-',
+                    'tanggal_lahir'  => $validated['tanggal_lahir'],
+                    'jenis_kelamin'  => $validated['jenis_kelamin'] ?? null,
+                    'verifikasi'     => 0, // Default belum verifikasi admin
+                    'created_at'     => now(),
+                    'updated_at'     => now(),
+                ]);
+
                 $user = MpUser::create([
                     'user_id'         => $this->generateUniqueUserId(),
                     'nama_pengguna'   => $validated['nama_pengguna'],
                     'nik'             => $validated['nik'],
-                    'rekam_medis_id'  => null,
+                    'rekam_medis_id'  => $rekamMedisId,
                     'tanggal_lahir'   => $validated['tanggal_lahir'] ?? null,
                     'jenis_kelamin'   => $validated['jenis_kelamin'] ?? null,
                     'no_hp'           => $validated['no_hp'],
@@ -103,11 +144,14 @@ class AuthController extends Controller
                     'alamat'          => $validated['alamat'] ?? null,
                     'password'        => Hash::make($validated['password']),
                 ]);
+
+                $finalNoRM = $newNoRM;
             }
 
-            // ✅ Tambahan di bawah ini → generate token setelah register
             $token = $user->createToken('auth_token')->plainTextToken;
             $user->update(['current_token' => $token]);
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -117,14 +161,18 @@ class AuthController extends Controller
                 'data' => [
                     'user_id' => $user->user_id,
                     'nama_pengguna' => $user->nama_pengguna,
+                    'no_rm' => $finalNoRM,
                     'email' => $user->email,
                     'alamat' => $user->alamat,
-                    'token' => $token, // 
+                    'token' => $token,
                 ],
             ], 201);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Validasi gagal', 'errors' => $e->errors()], 422);
         } catch (Exception $e) {
+            DB::rollBack();
             Log::error('Register Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan server', 'error' => $e->getMessage()], 500);
         }
@@ -156,7 +204,6 @@ class AuthController extends Controller
                 return response()->json(['success' => false, 'message' => 'Password salah'], 401);
             }
 
-            // ✅ Tambahan di bawah ini → generate token saat login
             $token = $user->createToken('auth_token')->plainTextToken;
             $user->update(['current_token' => $token]);
 
@@ -168,7 +215,7 @@ class AuthController extends Controller
                     'nama_pengguna'  => $user->nama_pengguna,
                     'email'          => $user->email,
                     'rekam_medis_id' => $user->rekam_medis_id,
-                    'token'          => $token, // ✅ kirim token
+                    'token'          => $token, 
                 ],
             ]);
         } catch (Exception $e) {
@@ -186,7 +233,6 @@ class AuthController extends Controller
             $user = $request->user();
 
             if ($user) {
-                // 
                 $user->tokens()->delete();
                 $user->update(['current_token' => null]);
             }
@@ -199,6 +245,7 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Gagal logout', 'error' => $e->getMessage()], 500);
         }
     }
+
     public function requestOtpEmail(Request $request)
     {
         $request->validate([
@@ -466,4 +513,4 @@ class AuthController extends Controller
                Log::error("Audit log failed: " . $e->getMessage());
            }
        }
-    }       
+    }
