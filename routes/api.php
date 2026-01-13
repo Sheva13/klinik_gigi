@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\OtpController;
 use App\Http\Controllers\PasienController;
 use App\Http\Controllers\DokterController;
 use App\Http\Controllers\HomeCareController;
@@ -75,7 +77,7 @@ Route::get('/promo-image/{filename}', function ($filename) {
 });
 
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
-Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 // Route Callback Midtrans
@@ -92,9 +94,9 @@ Route::get('/homecare/promos', [PromoController::class, 'index']);
 Route::get('/homecare/user-points', [PointController::class, 'getUserPoints']);
 Route::get('/homecare/point-history', [PointController::class, 'getPointHistory']);
 
-// OTP (Password Reset & Verifikasi)
-Route::post('/auth/request-otp', [AuthController::class, 'requestOtpEmail']);
-Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtpEmail']);
+// OTP (Registrasi & Verifikasi)
+Route::post('/auth/request-otp', [OtpController::class, 'requestOtpEmail']);
+Route::post('/auth/verify-otp', [OtpController::class, 'verifyOtp']);
 
 // ==============================
 // 🦷 ROUTE RESERVASI KLINIK (PUBLIK - TANPA LOGIN)

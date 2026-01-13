@@ -55,12 +55,6 @@
                         <label for="alamat" class="form-label">Alamat</label>
                         <textarea class="form-control form-control-dark" id="alamat" name="alamat" rows="3">{{ old('alamat',$user->alamat) }}</textarea>
                     </div>
-
-                    <div class="d-flex gap-3">
-                        <button type="submit" class="btn btn-gold px-4 fw-bold">Simpan Perubahan</button>
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-secondary-dark px-4 fw-bold">Batal</a>
-                    </div>
-                </form>
             </div>
         </div>
 
@@ -99,107 +93,105 @@
             <p class="text-muted mb-0">Informasi medis pasien (non-sensitif)</p>
         </div>
 
-        <form method="POST" action="{{ route('admin.users.update',$user->user_id) }}">
-            @csrf
-            @method('PUT')
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="status_nikah" class="form-label">Status Pernikahan</label>
-                        <select class="form-select form-select-dark" id="status_nikah" name="status_nikah">
-                            <option value="">Pilih Status</option>
-                            <option value="Belum Kawin" {{ old('status_nikah', $user->rekamMedis->status_nikah) == 'Belum Kawin' ? 'selected' : '' }}>Belum Kawin</option>
-                            <option value="Kawin" {{ old('status_nikah', $user->rekamMedis->status_nikah) == 'Kawin' ? 'selected' : '' }}>Kawin</option>
-                            <option value="Cerai Hidup" {{ old('status_nikah', $user->rekamMedis->status_nikah) == 'Cerai Hidup' ? 'selected' : '' }}>Cerai Hidup</option>
-                            <option value="Cerai Mati" {{ old('status_nikah', $user->rekamMedis->status_nikah) == 'Cerai Mati' ? 'selected' : '' }}>Cerai Mati</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="pekerjaan" class="form-label">Pekerjaan</label>
-                        <input type="text" class="form-control form-control-dark" id="pekerjaan" name="pekerjaan"
-                               value="{{ old('pekerjaan',$user->rekamMedis->pekerjaan) }}">
-                    </div>
+        <!-- Gabungkan form rekam medis ke dalam form utama -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="status_nikah" class="form-label">Status Pernikahan</label>
+                    <select class="form-select form-select-dark" id="status_nikah" name="status_nikah">
+                        <option value="">Pilih Status</option>
+                        <option value="Belum Kawin" {{ old('status_nikah', $user->rekamMedis->status_nikah) == 'Belum Kawin' ? 'selected' : '' }}>Belum Kawin</option>
+                        <option value="Kawin" {{ old('status_nikah', $user->rekamMedis->status_nikah) == 'Kawin' ? 'selected' : '' }}>Kawin</option>
+                        <option value="Cerai Hidup" {{ old('status_nikah', $user->rekamMedis->status_nikah) == 'Cerai Hidup' ? 'selected' : '' }}>Cerai Hidup</option>
+                        <option value="Cerai Mati" {{ old('status_nikah', $user->rekamMedis->status_nikah) == 'Cerai Mati' ? 'selected' : '' }}>Cerai Mati</option>
+                    </select>
                 </div>
             </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="hp" class="form-label">No HP</label>
-                        <input type="text" class="form-control form-control-dark" id="hp" name="hp"
-                               value="{{ old('hp',$user->rekamMedis->hp) }}">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="golongan_darah" class="form-label">Golongan Darah</label>
-                        <input type="text" class="form-control form-control-dark" id="golongan_darah" name="golongan_darah"
-                               value="{{ old('golongan_darah',$user->rekamMedis->golongan_darah) }}" maxlength="3" placeholder="A/B/AB/O">
-                    </div>
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="pekerjaan" class="form-label">Pekerjaan</label>
+                    <input type="text" class="form-control form-control-dark" id="pekerjaan" name="pekerjaan"
+                           value="{{ old('pekerjaan',$user->rekamMedis->pekerjaan) }}">
                 </div>
             </div>
+        </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="nama_wali" class="form-label">Nama Wali</label>
-                        <input type="text" class="form-control form-control-dark" id="nama_wali" name="nama_wali"
-                               value="{{ old('nama_wali',$user->rekamMedis->nama_wali) }}">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="hubungan_wali" class="form-label">Hubungan Wali</label>
-                        <input type="text" class="form-control form-control-dark" id="hubungan_wali" name="hubungan_wali"
-                               value="{{ old('hubungan_wali',$user->rekamMedis->hubungan_wali) }}">
-                    </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="hp" class="form-label">No HP</label>
+                    <input type="text" class="form-control form-control-dark" id="hp" name="hp"
+                           value="{{ old('hp',$user->rekamMedis->hp) }}">
                 </div>
             </div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="hp_wali" class="form-label">HP Wali</label>
-                        <input type="text" class="form-control form-control-dark" id="hp_wali" name="hp_wali"
-                               value="{{ old('hp_wali',$user->rekamMedis->hp_wali) }}">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="jenis_pasien" class="form-label">Jenis Pasien</label>
-                        <input type="text" class="form-control form-control-dark" id="jenis_pasien" name="jenis_pasien"
-                               value="{{ old('jenis_pasien',$user->rekamMedis->jenis_pasien) }}">
-                    </div>
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="golongan_darah" class="form-label">Golongan Darah</label>
+                    <input type="text" class="form-control form-control-dark" id="golongan_darah" name="golongan_darah"
+                           value="{{ old('golongan_darah',$user->rekamMedis->golongan_darah) }}" maxlength="3" placeholder="A/B/AB/O">
                 </div>
             </div>
+        </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="no_peserta" class="form-label">No Peserta</label>
-                        <input type="text" class="form-control form-control-dark" id="no_peserta" name="no_peserta"
-                               value="{{ old('no_peserta',$user->rekamMedis->no_peserta) }}">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-4">
-                        <label for="nama_asuransi" class="form-label">Nama Asuransi</label>
-                        <input type="text" class="form-control form-control-dark" id="nama_asuransi" name="nama_asuransi"
-                               value="{{ old('nama_asuransi',$user->rekamMedis->nama_asuransi) }}">
-                    </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="nama_wali" class="form-label">Nama Wali</label>
+                    <input type="text" class="form-control form-control-dark" id="nama_wali" name="nama_wali"
+                           value="{{ old('nama_wali',$user->rekamMedis->nama_wali) }}">
                 </div>
             </div>
-
-            <div class="d-flex gap-3">
-                <button type="submit" class="btn btn-gold px-4 fw-bold">Simpan Perubahan Rekam Medis</button>
-                <a href="{{ route('admin.users.index') }}" class="btn btn-secondary-dark px-4 fw-bold">Batal</a>
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="hubungan_wali" class="form-label">Hubungan Wali</label>
+                    <input type="text" class="form-control form-control-dark" id="hubungan_wali" name="hubungan_wali"
+                           value="{{ old('hubungan_wali',$user->rekamMedis->hubungan_wali) }}">
+                </div>
             </div>
-        </form>
-    </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="hp_wali" class="form-label">HP Wali</label>
+                    <input type="text" class="form-control form-control-dark" id="hp_wali" name="hp_wali"
+                           value="{{ old('hp_wali',$user->rekamMedis->hp_wali) }}">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="jenis_pasien" class="form-label">Jenis Pasien</label>
+                    <input type="text" class="form-control form-control-dark" id="jenis_pasien" name="jenis_pasien"
+                           value="{{ old('jenis_pasien',$user->rekamMedis->jenis_pasien) }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="no_peserta" class="form-label">No Peserta</label>
+                    <input type="text" class="form-control form-control-dark" id="no_peserta" name="no_peserta"
+                           value="{{ old('no_peserta',$user->rekamMedis->no_peserta) }}">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label for="nama_asuransi" class="form-label">Nama Asuransi</label>
+                    <input type="text" class="form-control form-control-dark" id="nama_asuransi" name="nama_asuransi"
+                           value="{{ old('nama_asuransi',$user->rekamMedis->nama_asuransi) }}">
+                </div>
+            </div>
+        </div>
     @endif
 
+                    <div class="d-flex gap-3">
+                        <button type="submit" class="btn btn-gold px-4 fw-bold">Simpan Perubahan</button>
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-secondary-dark px-4 fw-bold">Batal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
