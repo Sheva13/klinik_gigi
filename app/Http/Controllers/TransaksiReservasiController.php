@@ -94,23 +94,60 @@ class TransaksiReservasiController extends ReservasiController
                 'jenis_pasien'      => $validated['jenis_pasien'],
             ]);
 
-            // Logic Midtrans (Snap URL)
+            // Logic Midtrans (Snap Token & Redirect URL)
             $redirectUrl = null;
+            $snapToken = null;
 
             if ($validated['metode_pembayaran'] === 'Midtrans') {
-                $redirectUrl = $this->midtransService->getSnapUrl(
-                    $reservasi->no_pemeriksaan,
-                    $reservasi->pembayaran_total,
-                    $validated['user_name'],
-                    $validated['user_email'],
-                    $validated['user_phone'],
-                    [[
+                $params = [
+                    'transaction_details' => [
+                        'order_id' => $reservasi->no_pemeriksaan,
+                        'gross_amount' => $reservasi->pembayaran_total,
+                    ],
+                    'customer_details' => [
+                        'first_name' => $validated['user_name'],
+                        'email' => $validated['user_email'],
+                        'phone' => $validated['user_phone'],
+                    ],
+                    'item_details' => [[
                         'id' => 'RES-'.$reservasi->id,
                         'price' => $reservasi->pembayaran_total,
                         'quantity' => 1,
                         'name' => 'Biaya Reservasi Dokter'
                     ]]
-                );
+                ];
+
+                try {
+                    $paymentData = $this->midtransService->createSnapToken($params);
+                    $snapToken = $paymentData['token'] ?? null;
+                    $redirectUrl = $paymentData['redirect_url'] ?? null;
+                } catch (\Throwable $e) {
+                    Log::warning('createSnapToken failed: ' . $e->getMessage());
+                    // Fallback: try to get redirect url only
+                    $redirectUrl = $this->midtransService->getSnapUrl(
+                        $reservasi->no_pemeriksaan,
+                        $reservasi->pembayaran_total,
+                        $validated['user_name'],
+                        $validated['user_email'],
+                        $validated['user_phone'],
+                        [[
+                            'id' => 'RES-'.$reservasi->id,
+                            'price' => $reservasi->pembayaran_total,
+                            'quantity' => 1,
+                            'name' => 'Biaya Reservasi Dokter'
+                        ]]
+                    );
+                }
+
+                // Simpan token dan link pembayaran ke tabel reservasi agar dapat diakses kembali
+                if ($snapToken) {
+                    $reservasi->snap_token = $snapToken;
+                }
+                if ($redirectUrl) {
+                    $reservasi->link_pembayaran = $redirectUrl;
+                    $reservasi->redirect_url = $redirectUrl;
+                }
+                $reservasi->save();
             }
 
             DB::commit();
@@ -119,6 +156,7 @@ class TransaksiReservasiController extends ReservasiController
                 'no_pemeriksaan'    => $reservasi->no_pemeriksaan,
                 'total_bayar'       => 'Rp ' . number_format($reservasi->pembayaran_total, 0, ',', '.'),
                 'redirect_url'      => $redirectUrl, // Mengirim URL ke Flutter
+                'snap_token'        => $snapToken,
                 'metode_pembayaran' => $reservasi->metode_pembayaran,
                 'status_pembayaran' => $reservasi->status_pembayaran,
             ], 201);

@@ -40,7 +40,7 @@ return new class extends Migration
             // Tokens & URLs
             $table->string('snap_token')->nullable();
             $table->string('redirect_url')->nullable();
-            $table->string('snap_token_pelunasan')->nullable();
+            $table->string('snap_token_pelunasan')->nullable(); 
 
             // Additional Info
             $table->string('jenis_pasien')->nullable();
@@ -93,6 +93,7 @@ return new class extends Migration
                     'longitude' => $row->longitude,
                     'created_at' => $row->created_at,
                     'updated_at' => $row->updated_at,
+                    'link_pembayaran' => $row->link_pembayaran,
                 ]);
             }
         }

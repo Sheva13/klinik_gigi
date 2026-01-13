@@ -91,6 +91,10 @@ class RiwayatController extends Controller
                         'biaya' => 'Rp ' . number_format($item->pembayaran_total ?? 0, 0, ',', '.'),
                         'total_biaya_tindakan' => 'Rp ' . number_format($item->total_biaya_tindakan ?? 0, 0, ',', '.'),
 
+                        // Payment links/tokens
+                        'redirect_url' => $item->redirect_url ?? $item->link_pembayaran ?? null,
+                        'snap_token' => $item->snap_token ?? null,
+
                         'nama' => $item->pasien?->nama ?? '-',
                         'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
                         'no_rekam_medis' => $item->pasien?->rekam_medis ?? '-',
@@ -107,6 +111,10 @@ class RiwayatController extends Controller
                         'keluhan' => $item->keluhan ?? null,
                         'created_at' => $item->created_at?->toDateTimeString() ?? null,
                         'updated_at' => $item->updated_at?->toDateTimeString() ?? null,
+
+                        // Payment button availability (available for 1 hour after creation)
+                        'payment_available' => $item->created_at ? now()->diffInHours($item->created_at) < 1 : false,
+
                         'full_reservasi' => $item->toArray(),
                     ];
                 });
@@ -165,6 +173,10 @@ class RiwayatController extends Controller
                         // Normalize status_pembayaran: prefer status_booking, fallback to status_pelunasan or status
                         'status_pembayaran' => $item->status_booking ?? $item->status_pelunasan ?? $item->status ?? null,
 
+                        // Payment links/tokens
+                        'redirect_url' => $item->redirect_url ?? $item->link_pembayaran ?? null,
+                        'snap_token' => $item->snap_token ?? null,
+
                         // Nama & Rekam Medis: gunakan beberapa fallback sehingga detail HomeCare menampilkan data
                         'nama' => $pasienNama ?? ($item->pasien_id ?? '-'),
                         'rekam_medis' => $pasienRm ?? ($item->pasien_id ?? '-'),
@@ -173,6 +185,12 @@ class RiwayatController extends Controller
                         'alamat_lengkap' => $item->alamat_lengkap,
                         'latitude' => $item->latitude,
                         'longitude' => $item->longitude,
+
+                        // Payment button availability (available for 1 hour after creation)
+                        'payment_available' => $item->created_at ? now()->diffInHours($item->created_at) < 1 : false,
+
+                        'created_at' => $item->created_at?->toDateTimeString() ?? null,
+                        'updated_at' => $item->updated_at?->toDateTimeString() ?? null,
 
                         'full_reservasi' => $item->toArray(),
                     ];

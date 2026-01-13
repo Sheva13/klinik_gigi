@@ -31,6 +31,7 @@ return new class extends Migration
             $table->timestamps(); 
             $table->decimal('pembayaran_total', 12, 2)->nullable();
             $table->enum('jenis_pasien', ['Umum', 'BPJS', 'Asuransi'])->nullable();
+            $table->string('link_pembayaran',255)->nullable();
         });
     }
 
