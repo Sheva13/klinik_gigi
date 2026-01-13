@@ -24,6 +24,7 @@ return new class extends Migration
             $table->integer('poin')->default(0); // Added to match User model
             $table->string('password'); 
             $table->text('current_token')->nullable();
+            $table->text('alamat')->nullable();
             $table->timestamps(); 
         });
 

@@ -10,6 +10,8 @@ use App\Http\Controllers\HomeCareWebController;
 use App\Http\Controllers\AdminReservasiController;  
 use App\Http\Controllers\AdminAntrianReservasiController; 
 use App\Http\Controllers\AdminPembayaranReservasiController; 
+use App\Http\Controllers\AdminDataUserController;
+use App\Http\Controllers\AdminUserSensitiveController;
 
 /*
 |--------------------------------------------------------------------------
@@ -77,6 +79,29 @@ Route::middleware('auth:admin')->group(function () {
         Route::get('/{id}/edit', [JadwalController::class, 'edit'])->name('jadwal.edit');
         Route::put('/{id}', [JadwalController::class, 'update'])->name('jadwal.update');
         Route::delete('/{id}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
+    });
+    // --- DATA USER ---
+    Route::prefix('admin')->name('admin.')->group(function () {
+
+        Route::get('/users', [AdminDataUserController::class, 'index'])
+            ->name('users.index');
+
+        Route::get('/users/{id}', [AdminDataUserController::class, 'show'])
+            ->name('users.show');
+
+        Route::get('/users/{id}/edit', [AdminDataUserController::class, 'edit'])
+            ->name('users.edit');
+
+        Route::put('/users/{id}', [AdminDataUserController::class, 'update'])
+            ->name('users.update');
+
+        // Route untuk edit data sensitif
+        Route::get('/users/{id}/edit-sensitive', [AdminUserSensitiveController::class, 'edit'])
+            ->name('users.sensitive.edit');
+
+        Route::put('/users/{id}/update-sensitive', [AdminUserSensitiveController::class, 'update'])
+            ->name('users.sensitive.update');
+
     });
 
 });

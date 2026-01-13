@@ -26,6 +26,7 @@ class UsersSeeder extends Seeder
       'email' => 'farrelsheva@gmail.com', 
       'password' => bcrypt('password123'), 
       'current_token' => '71|PEFNQztzamR5FWe1nIQ6MDJ3wUoNhJCSHbtBmDeV30ef1c6f',
+      'alamat' => 'Jl. Merpati No. 45, Surabaya',
        ]);
    //
     }
