@@ -124,7 +124,7 @@ class DokterController extends Controller
                 Storage::disk('public')->delete($dokter->foto_profil);
             }
 
-            $path = $request->file('foto')->store('uploads', 'public');
+            $path = $request->file('foto')->store('uploads/dokter', 'public');
             $dokter->foto_profil = $path;
             $dokter->save();
             

@@ -38,6 +38,12 @@ Route::get('/images/{path}', [HomeCareController::class, 'showImage'])->where('p
 // Proxy Route for Doctor Images (Fixes CORS on Flutter Web Localhost)
 Route::get('/dokter-image/{filename}', function ($filename) {
     $path = storage_path('app/public/uploads/dokter/' . $filename);
+    
+    // Fallback: Check in 'uploads' root if not found in 'dokter' subfolder
+    if (!file_exists($path)) {
+        $path = storage_path('app/public/uploads/' . $filename);
+    }
+
     if (!file_exists($path)) {
         abort(404);
     }
