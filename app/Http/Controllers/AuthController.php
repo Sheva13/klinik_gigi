@@ -29,6 +29,24 @@ class AuthController extends Controller
                 ->first();
 
             if (!$user) {
+                // --- DEBUGGING START ---
+                // Cek paksa via email saja untuk memastikan data terbaca
+                $debugEmail = MpUser::where('email', $validated['identifier'])->first();
+                $debugNik = MpUser::where('nik', $validated['identifier'])->first();
+                
+                // Cek apakah identifier ini ada di tabel rekam_medis secara langsung?
+                $debugRM = \App\Models\RekamMedis::where('rekam_medis', $validated['identifier'])->first();
+
+                if ($debugEmail || $debugNik || $debugRM) {
+                     $foundType = $debugEmail ? 'Email' : ($debugNik ? 'NIK' : 'RekamMedisTable');
+                     return response()->json([
+                        'success' => false, 
+                        'message' => "DEBUG: Data ditemukan di $foundType! Tapi tidak terhubung ke User atau Query utama gagal.",
+                        'debug_data' => $debugEmail ?? $debugNik ?? $debugRM
+                     ], 404);
+                }
+                // --- DEBUGGING END ---
+
                 return response()->json(['success' => false, 'message' => 'Akun tidak ditemukan'], 404);
             }
 

@@ -43,7 +43,7 @@ class HomeCareController extends Controller
     }
 
     // 2. API Get Jadwal
-    public function getMasterJadwal(request $request)
+    public function getMasterJadwal(Request $request)
     {
         try {
             $tanggal = $request->query('tanggal'); // optional YYYY-MM-DD
