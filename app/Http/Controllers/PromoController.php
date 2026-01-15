@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MasterPromo;
 use App\Models\HomeCareReservasi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class PromoController extends Controller
@@ -47,12 +48,8 @@ class PromoController extends Controller
                 
                 $fotoUrl = null;
                 if (!empty($promo->gambar_banner)) {
-                    // Extract filename (clean from path)
-                    $filename = basename($promo->gambar_banner);
-                    
-                    // Use Proxy Route for robust access (Web & Mobile)
-                    // url() helper creates absolute URL: http://host/api/promo-image/filename
-                    $fotoUrl = url('/api/promo-image/' . $filename);
+                    // Use Direct Storage URL (Same as Web Admin)
+                    $fotoUrl = asset(Storage::url($promo->gambar_banner));
                 }
 
                 // Calculate remaining uses for this user
