@@ -87,10 +87,14 @@ class PromoControllerWeb extends Controller
         $dataToUpdate = $request->except(['gambar_banner', '_token', '_method']);
 
         if ($request->hasFile('gambar_banner')) {
+            \Illuminate\Support\Facades\Log::info('Promo Update: File detected. Size: ' . $request->file('gambar_banner')->getSize());
             if ($promo->gambar_banner && Storage::exists('public/' . $promo->gambar_banner)) {
                 Storage::delete('public/' . $promo->gambar_banner);
             }
             $dataToUpdate['gambar_banner'] = $request->file('gambar_banner')->store('promos', 'public');
+            \Illuminate\Support\Facades\Log::info('Promo Update: New file stored at ' . $dataToUpdate['gambar_banner']);
+        } else {
+            \Illuminate\Support\Facades\Log::info('Promo Update: No file detected.');
         }
 
         $promo->update($dataToUpdate);
