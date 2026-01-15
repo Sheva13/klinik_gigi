@@ -65,7 +65,7 @@ Route::middleware('auth:admin')->group(function () {
         Route::get('/create', [PromoControllerWeb::class, 'create'])->name('promo.create');
         Route::post('/', [PromoControllerWeb::class, 'store'])->name('promo.store');
         Route::get('/{id}/edit', [PromoControllerWeb::class, 'edit'])->name('promo.edit');
-        Route::put('/{id}', [PromoControllerWeb::class, 'update'])->name('promo.update');
+        Route::post('/{id}', [PromoControllerWeb::class, 'update'])->name('promo.update');
         Route::delete('/{id}', [PromoControllerWeb::class, 'destroy'])->name('promo.destroy');
     });
 

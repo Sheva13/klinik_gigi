@@ -97,7 +97,7 @@
     <div class="card card-dark p-4 p-md-5">
         <form action="{{ route('promo.update', $promo->id) }}" method="POST" enctype="multipart/form-data">
             @csrf
-            @method('PUT') {{-- PENTING: Method PUT untuk Update --}}
+            {{-- @method('PUT') REMOVED: Using POST for reliable file upload --}}
 
             {{-- 1. Judul Promo --}}
             <div class="mb-4">
