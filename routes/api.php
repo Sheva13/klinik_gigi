@@ -64,6 +64,11 @@ Route::get('/promo-image/{filename}', function ($filename) {
     if (!file_exists($path)) {
         $path = storage_path('app/public/uploads/promos/' . $filename);
     }
+    
+    // Fallback: Check in 'uploads' root (Just in case)
+    if (!file_exists($path)) {
+        $path = storage_path('app/public/uploads/' . $filename);
+    }
 
     if (!file_exists($path)) {
         // Return a default image or empty response instead of 404
