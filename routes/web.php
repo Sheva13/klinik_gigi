@@ -55,6 +55,7 @@ Route::middleware('auth:admin')->group(function () {
     // --- ROUTES HOME CARE WEB ADMIN ---
     Route::middleware(['auth'])->group(function () {
         Route::get('/homecare', [HomeCareWebController::class, 'index'])->name('homecare.index');
+        Route::get('/homecare/antrian', [HomeCareWebController::class, 'antrianIndex'])->name('homecare.antrian'); // 🔥 NEW ROUTE
         Route::get('/homecare/{id}', [HomeCareWebController::class, 'show'])->name('homecare.show');
         Route::post('/homecare/{id}/status', [HomeCareWebController::class, 'updateStatus'])->name('homecare.updateStatus');
     });

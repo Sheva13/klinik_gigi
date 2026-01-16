@@ -107,10 +107,17 @@
 <div class="container-fluid">
     
     {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+    <div class="d-flex justify-content-between align-items-end mb-4 pt-3">
         <div>
             <h1 class="fw-bold text-white mb-1" style="font-size: 1.75rem;">Reservasi Home Care</h1>
             <p class="text-secondary mb-0">Pantau dan kelola pesanan kunjungan dokter ke rumah.</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+             {{-- 🔥 TOMBOL LIHAT ANTRIAN (Route akan dibuat) --}}
+             <a href="{{ route('homecare.antrian') }}" class="btn btn-outline-light d-flex align-items-center gap-2 border-secondary">
+                <span class="material-symbols-outlined text-gold">groups</span>
+                Lihat Antrian
+            </a>
         </div>
     </div>
 
@@ -120,61 +127,50 @@
         </div>
     @endif
 
-    {{-- DASHBOARD STATS --}}
-    <div class="row g-3 mb-4">
-        <div class="col-md-2 col-6">
-            <div class="card card-dark h-100 border-0 bg-dark-input">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="fas fa-clipboard-list text-secondary me-2"></i>
-                        <small class="text-secondary text-uppercase fw-bold">Total</small>
-                    </div>
-                    <h3 class="text-white fw-bold mb-0">{{ $stats['total'] }}</h3>
-                </div>
+    {{-- DASHBOARD STATS (MATCHING RESERVASI STYLE) --}}
+    <div class="row g-4 mb-4">
+        {{-- Total --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">calendar_month</span>
+                <div class="stat-label">Total</div>
+                <div class="stat-value text-gold">{{ $stats['total'] }}</div>
             </div>
         </div>
-        <div class="col-md-2 col-6">
-            <div class="card card-dark h-100 border-warning" style="border-left: 4px solid #ffc107 !important;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="fas fa-clock text-warning me-2"></i>
-                        <small class="text-secondary text-uppercase fw-bold">Menunggu</small>
-                    </div>
-                    <h3 class="text-white fw-bold mb-0">{{ $stats['menunggu'] }}</h3>
-                </div>
+
+        {{-- Menunggu --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">hourglass_top</span>
+                <div class="stat-label">Menunggu</div>
+                <div class="stat-value text-warning">{{ $stats['menunggu'] }}</div>
             </div>
         </div>
-        <div class="col-md-2 col-6">
-            <div class="card card-dark h-100 border-info" style="border-left: 4px solid #0dcaf0 !important;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="fas fa-user-md text-info me-2"></i>
-                        <small class="text-secondary text-uppercase fw-bold">Diproses</small>
-                    </div>
-                    <h3 class="text-white fw-bold mb-0">{{ $stats['diproses'] }}</h3>
-                </div>
+
+        {{-- Diproses --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">stethoscope</span>
+                <div class="stat-label">Diproses</div>
+                <div class="stat-value text-info">{{ $stats['diproses'] }}</div>
             </div>
         </div>
-        <div class="col-md-2 col-6">
-            <div class="card card-dark h-100 border-success" style="border-left: 4px solid #198754 !important;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="fas fa-check-circle text-success me-2"></i>
-                        <small class="text-secondary text-uppercase fw-bold">Selesai</small>
-                    </div>
-                    <h3 class="text-white fw-bold mb-0">{{ $stats['selesai'] }}</h3>
-                </div>
+
+        {{-- Selesai --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">check_circle</span>
+                <div class="stat-label">Selesai</div>
+                <div class="stat-value text-success">{{ $stats['selesai'] }}</div>
             </div>
         </div>
-        <div class="col-md-2 col-6">
-            <div class="card card-dark h-100 border-danger" style="border-left: 4px solid #dc3545 !important;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="fas fa-times-circle text-danger me-2"></i>
-                        <small class="text-secondary text-uppercase fw-bold">Batal</small>
-                    </div>
-                    <h3 class="text-white fw-bold mb-0">{{ $stats['batal'] }}</h3>
-                </div>
+
+        {{-- Batal --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">cancel</span>
+                <div class="stat-label">Batal</div>
+                <div class="stat-value text-danger">{{ $stats['batal'] }}</div>
             </div>
         </div>
     </div>
@@ -191,7 +187,8 @@
                 <div class="col-md-3">
                     <label class="text-secondary small mb-1">Status</label>
                     <select name="status" class="form-select form-control-dark">
-                        <option value="">-- Semua Status --</option>
+                        {{-- OPSI STATUS SESUAI PERMINTAAN EXACT --}}
+                        <option value="">- Semua Status -</option>
                         <option value="menunggu_konfirmasi" {{ request('status') == 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
                         <option value="dokter_menuju_lokasi" {{ request('status') == 'dokter_menuju_lokasi' ? 'selected' : '' }}>Dokter OTW</option>
                         <option value="sedang_diperiksa" {{ request('status') == 'sedang_diperiksa' ? 'selected' : '' }}>Sedang Diperiksa</option>
@@ -280,7 +277,13 @@
                                         'dibatalkan' => 'bg-danger text-white',
                                         default => 'bg-secondary text-white'
                                     };
-                                    $statusLabel = ucwords(str_replace('_', ' ', $item->status_reservasi));
+                                    
+                                    // LABEL CUSTOM SESUAI PERMINTAAN
+                                    $statusLabel = match($item->status_reservasi) {
+                                        'dokter_menuju_lokasi' => 'Dokter OTW',
+                                        'menunggu_pelunasan'   => 'Selesai (Menunggu Bayar)',
+                                        default => ucwords(str_replace('_', ' ', $item->status_reservasi))
+                                    };
                                 @endphp
                                 <span class="badge {{ $statusClass }} badge-status">
                                     {{ $statusLabel }}

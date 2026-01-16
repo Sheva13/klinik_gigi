@@ -97,6 +97,51 @@ class HomeCareWebController extends Controller
         return view('homecare.show', compact('item'));
     }
 
+    // --- ANTRIAN MANAGEMENT ---
+    public function antrianIndex(Request $request)
+    {
+        $tanggalPilih = $request->input('tanggal', \Carbon\Carbon::today()->format('Y-m-d'));
+
+        // Query Reservasi HomeCare
+        $query = DB::table('homecare_reservasi')
+            ->leftJoin('users', 'homecare_reservasi.pasien_id', '=', 'users.user_id')
+            ->leftJoin('rekam_medis', 'users.rekam_medis_id', '=', 'rekam_medis.id')
+            ->leftJoin('master_dokter', 'homecare_reservasi.dokter_id', '=', 'master_dokter.kode_dokter')
+            ->select(
+                'homecare_reservasi.*',
+                'rekam_medis.nama as nama_pasien',
+                'rekam_medis.rekam_medis as no_rm',
+                'master_dokter.nama as nama_dokter'
+            )
+            ->whereDate('homecare_reservasi.tanggal_pesan', $tanggalPilih)
+            ->whereIn('homecare_reservasi.status_reservasi', ['menunggu_konfirmasi', 'dokter_menuju_lokasi', 'sedang_diperiksa', 'menunggu_pelunasan', 'lunas']) // Filter status aktif
+            ->orderBy('homecare_reservasi.jam_mulai', 'asc');
+
+        // Search Filter
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('homecare_reservasi.no_pemeriksaan', 'LIKE', "%$search%")
+                  ->orWhere('rekam_medis.nama', 'LIKE', "%$search%");
+            });
+        }
+
+        $antrian = $query->get();
+
+        // Manual Stats Counters for Queue Page
+        $stats = [
+            'menunggu' => $antrian->whereIn('status_reservasi', ['menunggu_konfirmasi', 'dokter_menuju_lokasi'])->count(),
+            'diproses' => $antrian->where('status_reservasi', 'sedang_diperiksa')->count(),
+            'selesai'  => $antrian->whereIn('status_reservasi', ['menunggu_pelunasan', 'lunas'])->count(),
+            'batal'    => DB::table('homecare_reservasi')
+                            ->whereDate('tanggal_pesan', $tanggalPilih)
+                            ->whereIn('status_reservasi', ['dibatalkan', 'gagal'])
+                            ->count(),
+        ];
+
+        return view('homecare.patient-queue', compact('antrian', 'stats', 'tanggalPilih'));
+    }
+
     public function updateStatus(Request $request, $id)
     {
         // 1. Validasi Input
