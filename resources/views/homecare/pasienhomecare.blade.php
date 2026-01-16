@@ -139,22 +139,15 @@
                             <td class="text-center">
                                 @php
                                     $s = $item->status_reservasi;
-                                    $bgClass = match($s) {
-                                        'menunggu_konfirmasi'  => 'bg-warning-soft',
-                                        'dokter_menuju_lokasi' => 'bg-info-soft',
-                                        'sedang_diperiksa'     => 'bg-primary-soft',
-                                        'menunggu_pelunasan'   => 'bg-secondary text-warning border border-warning',
-                                        'lunas'                => 'bg-success-soft',
-                                        'dibatalkan'           => 'bg-danger-soft',
-                                        default                => 'bg-secondary'
-                                    };
-                                    $label = match($s) {
-                                        'dokter_menuju_lokasi' => 'Dokter OTW',
-                                        'menunggu_pelunasan'   => 'Selesai (Menunggu Bayar)',
-                                        default                => ucwords(str_replace('_', ' ', $s))
+                                    $statusInfo = match(true) {
+                                        in_array($s, ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran']) => ['label' => 'Menunggu', 'class' => 'bg-warning-soft text-dark'],
+                                        in_array($s, ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan']) => ['label' => 'Diproses', 'class' => 'bg-info-soft text-dark'],
+                                        in_array($s, ['selesai', 'lunas', 'menunggu_pelunasan']) => ['label' => 'Selesai', 'class' => 'bg-success-soft'],
+                                        in_array($s, ['dibatalkan', 'gagal', 'expired', 'batal']) => ['label' => 'Batal', 'class' => 'bg-danger-soft'],
+                                        default => ['label' => 'Unk.', 'class' => 'bg-secondary']
                                     };
                                 @endphp
-                                <span class="badge {{ $bgClass }}">{{ $label }}</span>
+                                <span class="badge {{ $statusInfo['class'] }}">{{ $statusInfo['label'] }}</span>
                             </td>
 
                             <td class="text-center">

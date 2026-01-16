@@ -187,14 +187,11 @@
                 <div class="col-md-3">
                     <label class="text-secondary small mb-1">Status</label>
                     <select name="status" class="form-select form-control-dark">
-                        {{-- OPSI STATUS SESUAI PERMINTAAN EXACT --}}
                         <option value="">- Semua Status -</option>
-                        <option value="menunggu_konfirmasi" {{ request('status') == 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
-                        <option value="dokter_menuju_lokasi" {{ request('status') == 'dokter_menuju_lokasi' ? 'selected' : '' }}>Dokter OTW</option>
-                        <option value="sedang_diperiksa" {{ request('status') == 'sedang_diperiksa' ? 'selected' : '' }}>Sedang Diperiksa</option>
-                        <option value="menunggu_pelunasan" {{ request('status') == 'menunggu_pelunasan' ? 'selected' : '' }}>Selesai (Menunggu Bayar)</option>
-                        <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
-                        <option value="dibatalkan" {{ request('status') == 'dibatalkan' ? 'selected' : '' }}>Dibatalkan</option>
+                        <option value="menunggu" {{ request('status') == 'menunggu' ? 'selected' : '' }}>Menunggu</option>
+                        <option value="diproses" {{ request('status') == 'diproses' ? 'selected' : '' }}>Diproses</option>
+                        <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option>
+                        <option value="batal" {{ request('status') == 'batal' ? 'selected' : '' }}>Batal</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -268,25 +265,17 @@
                             </td>
                             <td>
                                 @php
-                                    $statusClass = match($item->status_reservasi) {
-                                        'menunggu_konfirmasi' => 'bg-warning text-dark',
-                                        'dokter_menuju_lokasi' => 'bg-info text-white',
-                                        'sedang_diperiksa' => 'bg-primary text-white',
-                                        'menunggu_pelunasan' => 'bg-secondary text-warning border border-warning',
-                                        'lunas' => 'bg-success text-white',
-                                        'dibatalkan' => 'bg-danger text-white',
-                                        default => 'bg-secondary text-white'
-                                    };
-                                    
-                                    // LABEL CUSTOM SESUAI PERMINTAAN
-                                    $statusLabel = match($item->status_reservasi) {
-                                        'dokter_menuju_lokasi' => 'Dokter OTW',
-                                        'menunggu_pelunasan'   => 'Selesai (Menunggu Bayar)',
-                                        default => ucwords(str_replace('_', ' ', $item->status_reservasi))
+                                    $s = $item->status_reservasi;
+                                    $statusInfo = match(true) {
+                                        in_array($s, ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran']) => ['label' => 'Menunggu', 'class' => 'bg-warning-soft text-dark'],
+                                        in_array($s, ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan']) => ['label' => 'Diproses', 'class' => 'bg-info-soft text-dark'],
+                                        in_array($s, ['selesai', 'lunas', 'menunggu_pelunasan']) => ['label' => 'Selesai', 'class' => 'bg-success-soft'],
+                                        in_array($s, ['dibatalkan', 'gagal', 'expired', 'batal']) => ['label' => 'Batal', 'class' => 'bg-danger-soft'],
+                                        default => ['label' => 'Unk.', 'class' => 'bg-secondary']
                                     };
                                 @endphp
-                                <span class="badge {{ $statusClass }} badge-status">
-                                    {{ $statusLabel }}
+                                <span class="badge {{ $statusInfo['class'] }} badge-status">
+                                    {{ $statusInfo['label'] }}
                                 </span>
                             </td>
                             <td class="text-end pe-4">

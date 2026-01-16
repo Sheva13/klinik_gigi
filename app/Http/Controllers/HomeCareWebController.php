@@ -29,9 +29,26 @@ class HomeCareWebController extends Controller
             });
         }
 
-        // Filter Status
+        // Filter Status Grouping (Sesuai Reservasi: Menunggu, Diproses, Selesai, Batal)
         if ($request->has('status') && $request->status != '') {
-            $query->where('homecare_reservasi.status_reservasi', $request->status);
+            switch ($request->status) {
+                case 'menunggu':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran', 'menunggu_dokter', 'terverifikasi']);
+                    break;
+                case 'diproses':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan']);
+                    break;
+                case 'selesai':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['selesai', 'lunas', 'menunggu_pelunasan']);
+                    break;
+                case 'batal':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['dibatalkan', 'gagal', 'expired']);
+                    break;
+                default:
+                    // Fallback jika ada status spesifik yang dikirim (misal lewat link detail)
+                    $query->where('homecare_reservasi.status_reservasi', $request->status);
+                    break;
+            }
         }
 
         // Filter Tanggal
@@ -139,7 +156,7 @@ class HomeCareWebController extends Controller
                             ->count(),
         ];
 
-        return view('homecare.patient-queue', compact('antrian', 'stats', 'tanggalPilih'));
+        return view('homecare.pasienhomecare', compact('antrian', 'stats', 'tanggalPilih'));
     }
 
     public function updateStatus(Request $request, $id)
