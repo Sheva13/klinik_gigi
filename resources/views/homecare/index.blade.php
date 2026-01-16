@@ -153,12 +153,12 @@
     <div class="card card-dark shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-dark-custom table-hover mb-0 align-middle">
+                <table class="table table-dark-custom table-hover mb-0 align-middle text-nowrap">
                     <thead>
                         <tr>
-                            <th>No. Pemeriksaan</th>
+                            <th class="ps-4">No. Pemeriksaan</th>
                             <th>No. RM</th>
-                            <th>Waktu Kunjungan</th>
+                            <th>Waktu & Antrian</th>
                             <th>Pasien</th>
                             <th>Dokter</th>
                             <th>Status</th>
@@ -180,12 +180,13 @@
                                 <span class="badge bg-secondary font-monospace">{{ $item->no_rm ?? $item->pasien_id }}</span>
                             </td>
                             <td>
-                                <div class="fw-bold text-white">
-                                    {{ \Carbon\Carbon::parse($item->tanggal_pesan)->format('d M Y') }}
-                                </div>
-                                <div class="text-info small mt-1">
+                                <div class="fw-bold">{{ \Carbon\Carbon::parse($item->tanggal_pesan)->format('d M Y') }}</div>
+                                <div class="small text-secondary">
                                     {{ \Carbon\Carbon::parse($item->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($item->jam_selesai)->format('H:i') }}
                                 </div>
+                                @if(isset($item->no_antrian) && $item->no_antrian > 0)
+                                    <span class="badge bg-gold text-dark mt-1">Antrian #{{ $item->no_antrian }}</span>
+                                @endif
                             </td>
                             <td>
                                 <div class="fw-bold text-white">{{ $item->nama_pasien ?? $item->nama_user ?? 'Nama Tidak Diketahui' }}</div>

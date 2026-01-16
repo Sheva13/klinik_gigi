@@ -104,11 +104,11 @@ class HomeCareWebController extends Controller
 
         // Update kolom 'status' (bacaan manusia) agar sinkron
         $readableStatus = [
-            'menunggu_konfirmasi'   => 'Menunggu Konfirmasi',
-            'dokter_menuju_lokasi'  => 'Dokter OTW',
-            'sedang_diperiksa'      => 'Sedang Diperiksa',
-            'menunggu_pelunasan'    => 'Menunggu Pembayaran',
-            'lunas'                 => 'Selesai',
+            'menunggu_konfirmasi'   => 'Menunggu Konfirmasi Admin',
+            'dokter_menuju_lokasi'  => 'Dokter Sedang Menuju Lokasi',
+            'sedang_diperiksa'      => 'Sedang Dalam Pemeriksaan',
+            'menunggu_pelunasan'    => 'Pemeriksaan Selesai (Menunggu Pembayaran)',
+            'lunas'                 => 'Layanan Selesai & Lunas',
             'dibatalkan'            => 'Dibatalkan'
         ];
         

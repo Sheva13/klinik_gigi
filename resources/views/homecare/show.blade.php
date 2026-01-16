@@ -51,6 +51,9 @@
             <p class="text-secondary">
                 No. Reservasi: <span class="text-gold fw-bold">{{ $item->no_pemeriksaan }}</span> 
                 | Tgl: {{ \Carbon\Carbon::parse($item->tanggal_pesan)->format('d M Y') }}
+                @if(isset($item->no_antrian))
+                    | <span class="badge bg-gold text-dark ms-1">Urutan #{{ $item->no_antrian }}</span>
+                @endif
             </p>
         </div>
         <a href="{{ route('homecare.index') }}" class="btn btn-secondary">

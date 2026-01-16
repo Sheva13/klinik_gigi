@@ -22,6 +22,7 @@ class MasterJadwal extends Model
         'jam_selesai',
         'keterangan',
         'quota',
+        'kuota_homecare',
     ];
 
     public function dokter()

@@ -263,6 +263,7 @@ class HomeCareController extends Controller
                 'data' => [
                     'id' => $reservasi->id,
                     'no_pemeriksaan' => $reservasi->no_pemeriksaan,
+                    'no_antrian' => $reservasi->no_antrian, // Add Queue Number
                     'status_pembayaran' => ($reservasi->status_booking === 'belum_lunas') ? 'menunggu_pembayaran' : $reservasi->status_booking,
                     'status_reservasi' => $reservasi->status_reservasi,
                     'status_pelunasan' => $reservasi->status_pelunasan,
