@@ -13,11 +13,13 @@ class AddNoAntrianToHomecareReservasiTable extends Migration
      */
     public function up()
     {
-        Schema::table('homecare_reservasi', function (Blueprint $table) {
-            $table->integer('no_antrian')->nullable()->after('status_reservasi');
-            // Index for faster lookup of max queue based on schedule & date
-            $table->index(['jadwal_id', 'tanggal_pesan']);
-        });
+        if (!Schema::hasColumn('homecare_reservasi', 'no_antrian')) {
+            Schema::table('homecare_reservasi', function (Blueprint $table) {
+                $table->integer('no_antrian')->nullable()->after('status_reservasi');
+                // Index for faster lookup of max queue based on schedule & date
+                $table->index(['jadwal_id', 'tanggal_pesan']);
+            });
+        }
     }
 
     /**

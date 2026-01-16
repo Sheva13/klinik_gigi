@@ -49,7 +49,24 @@ class HomeCareWebController extends Controller
                          ->paginate(10)
                          ->withQueryString();
 
-        return view('homecare.index', compact('riwayat'));
+        // --- DASHBOARD STATS ---
+        $stats = [
+            'total' => DB::table('homecare_reservasi')->count(),
+            'menunggu' => DB::table('homecare_reservasi')
+                ->whereIn('status_reservasi', ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran', 'menunggu_dokter', 'terverifikasi'])
+                ->count(),
+            'diproses' => DB::table('homecare_reservasi')
+                ->whereIn('status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan'])
+                ->count(),
+            'selesai' => DB::table('homecare_reservasi')
+                ->whereIn('status_reservasi', ['selesai', 'lunas', 'menunggu_pelunasan']) // Menunggu pelunasan operasionalnya sudah selesai diperiksa
+                ->count(),
+            'batal' => DB::table('homecare_reservasi')
+                ->whereIn('status_reservasi', ['dibatalkan', 'gagal', 'expired'])
+                ->count(),
+        ];
+
+        return view('homecare.index', compact('riwayat', 'stats'));
     }
 
     public function show($id)
@@ -118,7 +135,10 @@ class HomeCareWebController extends Controller
             $dataUpdate['status'] = ucwords(str_replace('_', ' ', $request->status));
         }
 
-        // Simpan Biaya Tindakan jika ada
+        // Fix: Default total_biaya_tindakan to 0 to prevent null error on Batal/Lunas
+        $dataUpdate['total_biaya_tindakan'] = $request->total_biaya_tindakan ?? 0;
+
+        // Simpan Biaya Tindakan jika ada (Override if provided)
         if ($request->has('total_biaya_tindakan')) {
             $dataUpdate['total_biaya_tindakan'] = $request->total_biaya_tindakan;
         }

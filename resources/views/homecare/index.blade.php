@@ -114,6 +114,70 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div class="alert alert-success bg-success text-white border-0 mb-4">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+        </div>
+    @endif
+
+    {{-- DASHBOARD STATS --}}
+    <div class="row g-3 mb-4">
+        <div class="col-md-2 col-6">
+            <div class="card card-dark h-100 border-0 bg-dark-input">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-clipboard-list text-secondary me-2"></i>
+                        <small class="text-secondary text-uppercase fw-bold">Total</small>
+                    </div>
+                    <h3 class="text-white fw-bold mb-0">{{ $stats['total'] }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="card card-dark h-100 border-warning" style="border-left: 4px solid #ffc107 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-clock text-warning me-2"></i>
+                        <small class="text-secondary text-uppercase fw-bold">Menunggu</small>
+                    </div>
+                    <h3 class="text-white fw-bold mb-0">{{ $stats['menunggu'] }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="card card-dark h-100 border-info" style="border-left: 4px solid #0dcaf0 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-user-md text-info me-2"></i>
+                        <small class="text-secondary text-uppercase fw-bold">Diproses</small>
+                    </div>
+                    <h3 class="text-white fw-bold mb-0">{{ $stats['diproses'] }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="card card-dark h-100 border-success" style="border-left: 4px solid #198754 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <small class="text-secondary text-uppercase fw-bold">Selesai</small>
+                    </div>
+                    <h3 class="text-white fw-bold mb-0">{{ $stats['selesai'] }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6">
+            <div class="card card-dark h-100 border-danger" style="border-left: 4px solid #dc3545 !important;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-times-circle text-danger me-2"></i>
+                        <small class="text-secondary text-uppercase fw-bold">Batal</small>
+                    </div>
+                    <h3 class="text-white fw-bold mb-0">{{ $stats['batal'] }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
     {{-- Filter Card --}}
     <div class="card card-dark p-4 mb-4 shadow-sm">
         <form action="{{ route('homecare.index') }}" method="GET">
@@ -153,7 +217,7 @@
     <div class="card card-dark shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-dark-custom table-hover mb-0 align-middle text-nowrap">
+                <table class="table table-dark-custom table-hover mb-0 align-middle">
                     <thead>
                         <tr>
                             <th class="ps-4">No. Pemeriksaan</th>
