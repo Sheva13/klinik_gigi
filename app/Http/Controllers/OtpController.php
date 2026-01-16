@@ -27,12 +27,12 @@ class OtpController extends Controller
 
     public function __construct()
     {
-        $this->otpExpireMinutes = env('OTP_EXPIRE_MINUTES', 5);
-        $this->maxRequestsPerHour = env('OTP_MAX_REQUESTS_PER_HOUR', 3);
-        $this->resendCooldownSeconds = env('OTP_RESEND_COOLDOWN_SECONDS', 60);
-        $this->maxVerifyAttemptsPerOtp = env('OTP_MAX_VERIFY_ATTEMPTS', 5);
-        $this->blockAfterFailedAttempts = env('OTP_BLOCK_AFTER_FAILED_ATTEMPTS', 10);
-        $this->blockMinutes = env('OTP_BLOCK_MINUTES', 15);
+        $this->otpExpireMinutes = (int) env('OTP_EXPIRE_MINUTES', 5);
+        $this->maxRequestsPerHour = (int) env('OTP_MAX_REQUESTS_PER_HOUR', 3);
+        $this->resendCooldownSeconds = (int) env('OTP_RESEND_COOLDOWN_SECONDS', 60);
+        $this->maxVerifyAttemptsPerOtp = (int) env('OTP_MAX_VERIFY_ATTEMPTS', 5);
+        $this->blockAfterFailedAttempts = (int) env('OTP_BLOCK_AFTER_FAILED_ATTEMPTS', 10);
+        $this->blockMinutes = (int) env('OTP_BLOCK_MINUTES', 15);
     }
 
     private function generateUniqueUserId()
