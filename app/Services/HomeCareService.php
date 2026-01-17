@@ -54,7 +54,7 @@ abstract class BaseReservationService implements ReservationServiceInterface
             // Format: /{lon1},{lat1};{lon2},{lat2}
             $url = "http://router.project-osrm.org/route/v1/driving/$lngKlinik,$latKlinik;$userLng,$userLat?overview=full";
 
-            $response = Http::timeout(3)->get($url); // Timeout pendek agar tidak blocking lama
+            $response = Http::timeout(15)->get($url); // Timeout diperpanjang (15s) agar rute jarak jauh sempat terhitung
 
             if ($response->successful()) {
                 $json = $response->json();

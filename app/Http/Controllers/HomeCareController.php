@@ -268,7 +268,7 @@ class HomeCareController extends Controller
                     'status_reservasi' => $reservasi->status_reservasi,
                     'status_pelunasan' => $reservasi->status_pelunasan,
                     'total_biaya_tindakan' => $reservasi->total_biaya_tindakan ?? 0,
-                    'nama_dokter' => $reservasi->dokter->nama ?? 'Dokter HomeCare',
+                    'nama_dokter' => optional($reservasi->dokter)->nama ?? 'Dokter HomeCare',
                     'jadwal_tanggal' => $reservasi->tanggal_pesan, 
                     'jadwal_jam' => ($reservasi->jam_mulai && $reservasi->jam_selesai) 
                                     ? "{$reservasi->jam_mulai} - {$reservasi->jam_selesai}" 
