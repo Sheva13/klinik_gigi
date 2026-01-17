@@ -128,10 +128,11 @@
     @endif
 
     {{-- DASHBOARD STATS (MATCHING RESERVASI STYLE) --}}
-    <div class="row g-4 mb-4">
+    {{-- Responsive Grid: Mobile 1 col, Tablet 2 cols, Desktop 4 cols (wrap 5th), Large Desktop 5 cols --}}
+    <div class="row g-3 mb-4">
         {{-- Total --}}
-        <div class="col-12 col-sm-6 col-md-4 col-xl">
-            <div class="stat-card">
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
                 <span class="material-symbols-outlined stat-icon">calendar_month</span>
                 <div class="stat-label">Total</div>
                 <div class="stat-value text-gold">{{ $stats['total'] }}</div>
@@ -139,8 +140,8 @@
         </div>
 
         {{-- Menunggu --}}
-        <div class="col-12 col-sm-6 col-md-4 col-xl">
-            <div class="stat-card">
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
                 <span class="material-symbols-outlined stat-icon">hourglass_top</span>
                 <div class="stat-label">Menunggu</div>
                 <div class="stat-value text-warning">{{ $stats['menunggu'] }}</div>
@@ -148,8 +149,8 @@
         </div>
 
         {{-- Diproses --}}
-        <div class="col-12 col-sm-6 col-md-4 col-xl">
-            <div class="stat-card">
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
                 <span class="material-symbols-outlined stat-icon">stethoscope</span>
                 <div class="stat-label">Diproses</div>
                 <div class="stat-value text-info">{{ $stats['diproses'] }}</div>
@@ -157,8 +158,8 @@
         </div>
 
         {{-- Selesai --}}
-        <div class="col-12 col-sm-6 col-md-4 col-xl">
-            <div class="stat-card">
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
                 <span class="material-symbols-outlined stat-icon">check_circle</span>
                 <div class="stat-label">Selesai</div>
                 <div class="stat-value text-success">{{ $stats['selesai'] }}</div>
@@ -166,8 +167,8 @@
         </div>
 
         {{-- Batal --}}
-        <div class="col-12 col-sm-6 col-md-4 col-xl">
-            <div class="stat-card">
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
                 <span class="material-symbols-outlined stat-icon">cancel</span>
                 <div class="stat-label">Batal</div>
                 <div class="stat-value text-danger">{{ $stats['batal'] }}</div>

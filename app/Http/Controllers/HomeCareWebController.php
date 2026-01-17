@@ -70,15 +70,17 @@ class HomeCareWebController extends Controller
         // Refactored to single array to match Blade expectation
         $stats = [
             'total'     => DB::table('homecare_reservasi')->count(),
-            'menunggu'  => DB::table('homecare_reservasi')->where('status_reservasi', 'menunggu_konfirmasi')->count(),
+            'menunggu'  => DB::table('homecare_reservasi')
+                            ->whereIn('status_reservasi', ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran', 'menunggu_dokter', 'terverifikasi'])
+                            ->count(),
             'diproses'  => DB::table('homecare_reservasi')
-                            ->whereIn('status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa']) 
+                            ->whereIn('status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan']) 
                             ->count(),
             'selesai'   => DB::table('homecare_reservasi')
                             ->whereIn('status_reservasi', ['menunggu_pelunasan', 'lunas', 'selesai'])
                             ->count(),
             'batal'     => DB::table('homecare_reservasi')
-                            ->whereIn('status_reservasi', ['dibatalkan', 'expire', 'gagal'])
+                            ->whereIn('status_reservasi', ['dibatalkan', 'expire', 'gagal', 'batal'])
                             ->count(),
         ];
 
