@@ -98,7 +98,7 @@ class RiwayatController extends Controller
                         'nama' => $item->pasien?->nama ?? '-',
                         'rekam_medis' => $item->pasien?->rekam_medis ?? '-',
                         'no_rekam_medis' => $item->pasien?->rekam_medis ?? '-',
-                        'foto' => $item->pasien?->file_foto ?? '',
+                        'foto' => $item->pasien?->file_foto ? asset('storage/' . $item->pasien?->file_foto) : '',
 
                         'pasien_id' => $item->pasien_id,
                         'dokter_id' => $item->dokter_id,
@@ -181,6 +181,7 @@ class RiwayatController extends Controller
                         'nama' => $pasienNama ?? ($item->pasien_id ?? '-'),
                         'rekam_medis' => $pasienRm ?? ($item->pasien_id ?? '-'),
                         'no_rekam_medis' => $pasienRm ?? ($item->pasien_id ?? '-'),
+                        'foto' => $item->pasien?->file_foto ? asset('storage/' . $item->pasien?->file_foto) : '',
                         'keluhan' => $item->keluhan,
                         'alamat_lengkap' => $item->alamat_lengkap,
                         'latitude' => $item->latitude,

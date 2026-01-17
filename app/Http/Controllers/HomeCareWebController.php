@@ -29,9 +29,26 @@ class HomeCareWebController extends Controller
             });
         }
 
-        // Filter Status
+        // Filter Status Grouping (Sesuai Reservasi: Menunggu, Diproses, Selesai, Batal)
         if ($request->has('status') && $request->status != '') {
-            $query->where('homecare_reservasi.status_reservasi', $request->status);
+            switch ($request->status) {
+                case 'menunggu':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran', 'menunggu_dokter', 'terverifikasi']);
+                    break;
+                case 'diproses':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan']);
+                    break;
+                case 'selesai':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['selesai', 'lunas', 'menunggu_pelunasan']);
+                    break;
+                case 'batal':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['dibatalkan', 'gagal', 'expired']);
+                    break;
+                default:
+                    // Fallback jika ada status spesifik yang dikirim (misal lewat link detail)
+                    $query->where('homecare_reservasi.status_reservasi', $request->status);
+                    break;
+            }
         }
 
         // Filter Tanggal
@@ -100,6 +117,51 @@ class HomeCareWebController extends Controller
         return view('homecare.show', compact('item'));
     }
 
+    // --- ANTRIAN MANAGEMENT ---
+    public function antrianIndex(Request $request)
+    {
+        $tanggalPilih = $request->input('tanggal', \Carbon\Carbon::today()->format('Y-m-d'));
+
+        // Query Reservasi HomeCare
+        $query = DB::table('homecare_reservasi')
+            ->leftJoin('users', 'homecare_reservasi.pasien_id', '=', 'users.user_id')
+            ->leftJoin('rekam_medis', 'users.rekam_medis_id', '=', 'rekam_medis.id')
+            ->leftJoin('master_dokter', 'homecare_reservasi.dokter_id', '=', 'master_dokter.kode_dokter')
+            ->select(
+                'homecare_reservasi.*',
+                'rekam_medis.nama as nama_pasien',
+                'rekam_medis.rekam_medis as no_rm',
+                'master_dokter.nama as nama_dokter'
+            )
+            ->whereDate('homecare_reservasi.tanggal_pesan', $tanggalPilih)
+            ->whereIn('homecare_reservasi.status_reservasi', ['menunggu_konfirmasi', 'dokter_menuju_lokasi', 'sedang_diperiksa', 'menunggu_pelunasan', 'lunas']) // Filter status aktif
+            ->orderBy('homecare_reservasi.jam_mulai', 'asc');
+
+        // Search Filter
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('homecare_reservasi.no_pemeriksaan', 'LIKE', "%$search%")
+                  ->orWhere('rekam_medis.nama', 'LIKE', "%$search%");
+            });
+        }
+
+        $antrian = $query->get();
+
+        // Manual Stats Counters for Queue Page
+        $stats = [
+            'menunggu' => $antrian->whereIn('status_reservasi', ['menunggu_konfirmasi', 'dokter_menuju_lokasi'])->count(),
+            'diproses' => $antrian->where('status_reservasi', 'sedang_diperiksa')->count(),
+            'selesai'  => $antrian->whereIn('status_reservasi', ['menunggu_pelunasan', 'lunas'])->count(),
+            'batal'    => DB::table('homecare_reservasi')
+                            ->whereDate('tanggal_pesan', $tanggalPilih)
+                            ->whereIn('status_reservasi', ['dibatalkan', 'gagal'])
+                            ->count(),
+        ];
+
+        return view('homecare.pasienhomecare', compact('antrian', 'stats', 'tanggalPilih'));
+    }
+
     public function updateStatus(Request $request, $id)
     {
         // 1. Validasi Input
@@ -124,11 +186,11 @@ class HomeCareWebController extends Controller
 
         // Update kolom 'status' (bacaan manusia) agar sinkron
         $readableStatus = [
-            'menunggu_konfirmasi'   => 'Menunggu Konfirmasi',
-            'dokter_menuju_lokasi'  => 'Dokter OTW',
-            'sedang_diperiksa'      => 'Sedang Diperiksa',
-            'menunggu_pelunasan'    => 'Menunggu Pembayaran',
-            'lunas'                 => 'Selesai',
+            'menunggu_konfirmasi'   => 'Menunggu Konfirmasi Admin',
+            'dokter_menuju_lokasi'  => 'Dokter Sedang Menuju Lokasi',
+            'sedang_diperiksa'      => 'Sedang Dalam Pemeriksaan',
+            'menunggu_pelunasan'    => 'Pemeriksaan Selesai (Menunggu Pembayaran)',
+            'lunas'                 => 'Layanan Selesai & Lunas',
             'dibatalkan'            => 'Dibatalkan'
         ];
         
@@ -138,7 +200,10 @@ class HomeCareWebController extends Controller
             $dataUpdate['status'] = ucwords(str_replace('_', ' ', $request->status));
         }
 
-        // Simpan Biaya Tindakan jika ada
+        // Fix: Default total_biaya_tindakan to 0 to prevent null error on Batal/Lunas
+        $dataUpdate['total_biaya_tindakan'] = $request->total_biaya_tindakan ?? 0;
+
+        // Simpan Biaya Tindakan jika ada (Override if provided)
         if ($request->has('total_biaya_tindakan')) {
             $dataUpdate['total_biaya_tindakan'] = $request->total_biaya_tindakan;
         }

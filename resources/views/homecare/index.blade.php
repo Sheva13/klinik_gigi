@@ -107,91 +107,73 @@
 <div class="container-fluid">
     
     {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+    <div class="d-flex justify-content-between align-items-end mb-4 pt-3">
         <div>
             <h1 class="fw-bold text-white mb-1" style="font-size: 1.75rem;">Reservasi Home Care</h1>
             <p class="text-secondary mb-0">Pantau dan kelola pesanan kunjungan dokter ke rumah.</p>
         </div>
-    </div>
-
-    {{-- Stats Cards (Responsive Grid: 2 cols on mobile, 3 on tablet, 5 on desktop) --}}
-    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
-        {{-- 1. TOTAL --}}
-        <div class="col">
-            <div class="card card-dark h-100 shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-between p-3">
-                    <div>
-                        <div class="text-secondary small text-uppercase fw-bold">TOTAL</div>
-                        <div class="h2 mb-0 fw-bold text-white">{{ $totalStats }}</div>
-                    </div>
-                    <div class="text-secondary opacity-50">
-                        <i class="fas fa-calendar-alt fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- 2. MENUNGGU --}}
-        <div class="col">
-            <div class="card card-dark h-100 shadow-sm" style="border-left: 4px solid #f5c542;">
-                <div class="card-body d-flex align-items-center justify-content-between p-3">
-                    <div>
-                        <div class="text-secondary small text-uppercase fw-bold">MENUNGGU</div>
-                        <div class="h2 mb-0 fw-bold text-warning">{{ $menungguStats }}</div>
-                    </div>
-                    <div class="text-warning opacity-50">
-                        <i class="fas fa-hourglass-half fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- 3. DIPROSES --}}
-        <div class="col">
-            <div class="card card-dark h-100 shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-between p-3">
-                    <div>
-                        <div class="text-secondary small text-uppercase fw-bold">DIPROSES</div>
-                        <div class="h2 mb-0 fw-bold text-info">{{ $diprosesStats }}</div>
-                    </div>
-                    <div class="text-info opacity-50">
-                        <i class="fas fa-stethoscope fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- 4. SELESAI --}}
-        <div class="col">
-            <div class="card card-dark h-100 shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-between p-3">
-                    <div>
-                        <div class="text-secondary small text-uppercase fw-bold">SELESAI</div>
-                        <div class="h2 mb-0 fw-bold text-success">{{ $selesaiStats }}</div>
-                    </div>
-                    <div class="text-success opacity-50">
-                        <i class="fas fa-check-circle fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- 5. BATAL --}}
-        <div class="col">
-            <div class="card card-dark h-100 shadow-sm">
-                <div class="card-body d-flex align-items-center justify-content-between p-3">
-                    <div>
-                        <div class="text-secondary small text-uppercase fw-bold">BATAL</div>
-                        <div class="h2 mb-0 fw-bold text-danger">{{ $batalStats }}</div>
-                    </div>
-                    <div class="text-danger opacity-50">
-                        <i class="fas fa-times-circle fa-2x"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="d-flex align-items-center gap-3">
+             {{-- 🔥 TOMBOL LIHAT ANTRIAN (Route akan dibuat) --}}
+             <a href="{{ route('homecare.antrian') }}" class="btn btn-outline-light d-flex align-items-center gap-2 border-secondary">
+                <span class="material-symbols-outlined text-gold">groups</span>
+                Lihat Antrian
+            </a>
         </div>
     </div>
 
+    @if(session('success'))
+        <div class="alert alert-success bg-success text-white border-0 mb-4">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+        </div>
+    @endif
+
+    {{-- DASHBOARD STATS (MATCHING RESERVASI STYLE) --}}
+    <div class="row g-4 mb-4">
+        {{-- Total --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">calendar_month</span>
+                <div class="stat-label">Total</div>
+                <div class="stat-value text-gold">{{ $stats['total'] }}</div>
+            </div>
+        </div>
+
+        {{-- Menunggu --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">hourglass_top</span>
+                <div class="stat-label">Menunggu</div>
+                <div class="stat-value text-warning">{{ $stats['menunggu'] }}</div>
+            </div>
+        </div>
+
+        {{-- Diproses --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">stethoscope</span>
+                <div class="stat-label">Diproses</div>
+                <div class="stat-value text-info">{{ $stats['diproses'] }}</div>
+            </div>
+        </div>
+
+        {{-- Selesai --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">check_circle</span>
+                <div class="stat-label">Selesai</div>
+                <div class="stat-value text-success">{{ $stats['selesai'] }}</div>
+            </div>
+        </div>
+
+        {{-- Batal --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
+            <div class="stat-card">
+                <span class="material-symbols-outlined stat-icon">cancel</span>
+                <div class="stat-label">Batal</div>
+                <div class="stat-value text-danger">{{ $stats['batal'] }}</div>
+            </div>
+        </div>
+    </div>
     {{-- Filter Card --}}
     <div class="card card-dark p-4 mb-4 shadow-sm">
         <form action="{{ route('homecare.index') }}" method="GET">
@@ -205,13 +187,11 @@
                 <div class="col-md-3">
                     <label class="text-secondary small mb-1">Status</label>
                     <select name="status" class="form-select form-control-dark">
-                        <option value="">-- Semua Status --</option>
-                        <option value="menunggu_konfirmasi" {{ request('status') == 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
-                        <option value="dokter_menuju_lokasi" {{ request('status') == 'dokter_menuju_lokasi' ? 'selected' : '' }}>Dokter OTW</option>
-                        <option value="sedang_diperiksa" {{ request('status') == 'sedang_diperiksa' ? 'selected' : '' }}>Sedang Diperiksa</option>
-                        <option value="menunggu_pelunasan" {{ request('status') == 'menunggu_pelunasan' ? 'selected' : '' }}>Selesai (Menunggu Bayar)</option>
-                        <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
-                        <option value="dibatalkan" {{ request('status') == 'dibatalkan' ? 'selected' : '' }}>Dibatalkan</option>
+                        <option value="">- Semua Status -</option>
+                        <option value="menunggu" {{ request('status') == 'menunggu' ? 'selected' : '' }}>Menunggu</option>
+                        <option value="diproses" {{ request('status') == 'diproses' ? 'selected' : '' }}>Diproses</option>
+                        <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option>
+                        <option value="batal" {{ request('status') == 'batal' ? 'selected' : '' }}>Batal</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -234,9 +214,9 @@
                 <table class="table table-dark-custom table-hover mb-0 align-middle">
                     <thead>
                         <tr>
-                            <th>No. Pemeriksaan</th>
+                            <th class="ps-4">No. Pemeriksaan</th>
                             <th>No. RM</th>
-                            <th>Waktu Kunjungan</th>
+                            <th>Waktu & Antrian</th>
                             <th>Pasien</th>
                             <th>Dokter</th>
                             <th>Status</th>
@@ -258,12 +238,13 @@
                                 <span class="badge bg-secondary font-monospace">{{ $item->no_rm ?? $item->pasien_id }}</span>
                             </td>
                             <td>
-                                <div class="fw-bold text-white">
-                                    {{ \Carbon\Carbon::parse($item->tanggal_pesan)->format('d M Y') }}
-                                </div>
-                                <div class="text-info small mt-1">
+                                <div class="fw-bold">{{ \Carbon\Carbon::parse($item->tanggal_pesan)->format('d M Y') }}</div>
+                                <div class="small text-secondary">
                                     {{ \Carbon\Carbon::parse($item->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($item->jam_selesai)->format('H:i') }}
                                 </div>
+                                @if(isset($item->no_antrian) && $item->no_antrian > 0)
+                                    <span class="badge bg-gold text-dark mt-1">Antrian #{{ $item->no_antrian }}</span>
+                                @endif
                             </td>
                             <td>
                                 <div class="fw-bold text-white">{{ $item->nama_pasien ?? $item->nama_user ?? 'Nama Tidak Diketahui' }}</div>
@@ -284,19 +265,17 @@
                             </td>
                             <td>
                                 @php
-                                    $statusClass = match($item->status_reservasi) {
-                                        'menunggu_konfirmasi' => 'bg-warning text-dark',
-                                        'dokter_menuju_lokasi' => 'bg-info text-white',
-                                        'sedang_diperiksa' => 'bg-primary text-white',
-                                        'menunggu_pelunasan' => 'bg-secondary text-warning border border-warning',
-                                        'lunas' => 'bg-success text-white',
-                                        'dibatalkan' => 'bg-danger text-white',
-                                        default => 'bg-secondary text-white'
+                                    $s = $item->status_reservasi;
+                                    $statusInfo = match(true) {
+                                        in_array($s, ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran']) => ['label' => 'Menunggu', 'class' => 'bg-warning-soft text-dark'],
+                                        in_array($s, ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan']) => ['label' => 'Diproses', 'class' => 'bg-info-soft text-dark'],
+                                        in_array($s, ['selesai', 'lunas', 'menunggu_pelunasan']) => ['label' => 'Selesai', 'class' => 'bg-success-soft'],
+                                        in_array($s, ['dibatalkan', 'gagal', 'expired', 'batal']) => ['label' => 'Batal', 'class' => 'bg-danger-soft'],
+                                        default => ['label' => 'Unk.', 'class' => 'bg-secondary']
                                     };
-                                    $statusLabel = ucwords(str_replace('_', ' ', $item->status_reservasi));
                                 @endphp
-                                <span class="badge {{ $statusClass }} badge-status">
-                                    {{ $statusLabel }}
+                                <span class="badge {{ $statusInfo['class'] }} badge-status">
+                                    {{ $statusInfo['label'] }}
                                 </span>
                             </td>
                             <td class="text-end pe-4">

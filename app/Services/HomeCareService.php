@@ -197,6 +197,7 @@ class HomeCareService extends BaseReservationService
                     $kuotaTerpakai = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
                         ->where('tanggal_pesan', $tanggal)
                         ->whereIn('status_booking', ['belum_lunas', 'lunas'])
+                        ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan']) // Exclude finished bookings to free up quota
                         ->count();
                 }
             }
@@ -208,6 +209,10 @@ class HomeCareService extends BaseReservationService
                 'kuota_terpakai' => $kuotaTerpakai,
                 'kuota_sisa' => $kuotaSisa,
             ];
+            // Filter out if quota is reached
+            if ($kuotaSisa <= 0) {
+              array_pop($results);
+            }
         }
         return $results;
     }
@@ -307,9 +312,11 @@ class HomeCareService extends BaseReservationService
 
             $kuotaMaster = $masterJadwal->quota ?? 0;
             if ($kuotaMaster > 0) {
+                // Count ACTIVE bookings only (exclude finished/cancelled)
                 $kuotaTerpakai = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
                     ->where('tanggal_pesan', $data['tanggal'])
                     ->whereIn('status_booking', ['belum_lunas', 'lunas'])
+                    ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan']) // Exclude finished bookings to free up quota
                     ->count();
 
                 if ($kuotaTerpakai >= $kuotaMaster)
@@ -321,9 +328,16 @@ class HomeCareService extends BaseReservationService
             $totalBayar = max(0, $grossTotal - $discountAmount); // Ensure not negative
             $orderId = $this->generateReservationNumber('HC-');
 
+            // --- QUEUE NUMBER LOGIC ---
+            $lastQueue = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
+                ->where('tanggal_pesan', $data['tanggal'])
+                ->max('no_antrian');
+            $newQueue = $lastQueue ? $lastQueue + 1 : 1;
+
             // 2. Simpan Data Reservasi
             $reservasi = HomeCareReservasi::create([
                 'no_pemeriksaan' => $orderId,
+                'no_antrian' => $newQueue, // Save Queue Number
                 'pasien_id' => $userId,
                 'rekam_medis_id' => $pasien->id,
                 'dokter_id' => $masterJadwal->kode_dokter, // FIX: master_jadwal uses kode_dokter
