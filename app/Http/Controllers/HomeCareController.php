@@ -309,7 +309,7 @@ class HomeCareController extends Controller
         // Di sini kita coba match user_id
         
         $reservasi = HomeCareReservasi::where('pasien_id', $user->user_id) 
-                        ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan', 'gagal', 'expire'])
+                        ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan', 'gagal', 'expire', 'lunas'])
                         ->whereNotIn('status_booking', ['gagal', 'expire']) // Double check payment status
                         ->orderBy('created_at', 'desc')
                         ->first();
@@ -317,7 +317,7 @@ class HomeCareController extends Controller
         // Fallback: Check 'id' if 'user_id' not matched (legacy)
         if (!$reservasi) {
              $reservasi = HomeCareReservasi::where('pasien_id', $user->id)
-                        ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan', 'gagal', 'expire'])
+                        ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan', 'gagal', 'expire', 'lunas'])
                         ->whereNotIn('status_booking', ['gagal', 'expire'])
                         ->orderBy('created_at', 'desc')
                         ->first();
