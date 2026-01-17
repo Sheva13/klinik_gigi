@@ -67,26 +67,22 @@ class HomeCareWebController extends Controller
                          ->withQueryString();
 
         // --- STATISTIK ---
-        $totalStats     = DB::table('homecare_reservasi')->count();
-        $menungguStats  = DB::table('homecare_reservasi')->where('status_reservasi', 'menunggu_konfirmasi')->count();
-        $diprosesStats  = DB::table('homecare_reservasi')
-                            ->whereIn('status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa']) // On Process
-                            ->count();
-        $selesaiStats   = DB::table('homecare_reservasi')
+        // Refactored to single array to match Blade expectation
+        $stats = [
+            'total'     => DB::table('homecare_reservasi')->count(),
+            'menunggu'  => DB::table('homecare_reservasi')->where('status_reservasi', 'menunggu_konfirmasi')->count(),
+            'diproses'  => DB::table('homecare_reservasi')
+                            ->whereIn('status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa']) 
+                            ->count(),
+            'selesai'   => DB::table('homecare_reservasi')
                             ->whereIn('status_reservasi', ['menunggu_pelunasan', 'lunas', 'selesai'])
-                            ->count();
-        $batalStats     = DB::table('homecare_reservasi')
+                            ->count(),
+            'batal'     => DB::table('homecare_reservasi')
                             ->whereIn('status_reservasi', ['dibatalkan', 'expire', 'gagal'])
-                            ->count();
+                            ->count(),
+        ];
 
-        return view('homecare.index', compact(
-            'riwayat',
-            'totalStats',
-            'menungguStats', 
-            'diprosesStats', 
-            'selesaiStats', 
-            'batalStats'
-        ));
+        return view('homecare.index', compact('riwayat', 'stats'));
     }
 
     public function show($id)
