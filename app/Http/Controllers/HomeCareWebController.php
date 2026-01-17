@@ -198,11 +198,9 @@ class HomeCareWebController extends Controller
             $dataUpdate['status'] = ucwords(str_replace('_', ' ', $request->status));
         }
 
-        // Fix: Default total_biaya_tindakan to 0 to prevent null error on Batal/Lunas
-        $dataUpdate['total_biaya_tindakan'] = $request->total_biaya_tindakan ?? 0;
-
-        // Simpan Biaya Tindakan jika ada (Override if provided)
-        if ($request->has('total_biaya_tindakan')) {
+        // Fix: Hanya update total_biaya_tindakan jika ada input yang valid
+        // Jika tidak ada input (misal saat Batal/Selesai tanpa input biaya), jangan ubah nilai yang sudah ada di DB
+        if ($request->filled('total_biaya_tindakan')) {
             $dataUpdate['total_biaya_tindakan'] = $request->total_biaya_tindakan;
         }
 
