@@ -109,8 +109,8 @@ class HomeCareController extends Controller
     public function checkPaymentStatus($id)
     {
         try {
-            // Fix: Eager load correct relation chain through jadwalHarian
-            $reservasi = HomeCareReservasi::with(['dokter', 'jadwalHarian.masterJadwal.dokter'])->find($id);
+            // Simple find without complex eager loading - we use direct queries now
+            $reservasi = HomeCareReservasi::find($id);
 
             if (!$reservasi) {
                 return response()->json(['message' => 'Data tidak ditemukan'], 404);
@@ -165,21 +165,20 @@ class HomeCareController extends Controller
                 // ... (Logic Pelunasan keep distinct if needed, or simplified)
             }
 
-            // --- RESPONSE PREPARATION ---
-            // Ensure we have doctor name - navigate through correct relation chain
+            // --- RESPONSE PREPARATION (ROBUST APPROACH) ---
+            // Direct query for doctor - avoid complex relation issues
             $namaDokter = 'Dokter HomeCare';
-            if ($reservasi->dokter) {
-                $namaDokter = $reservasi->dokter->nama; 
-            } elseif ($reservasi->jadwalHarian && $reservasi->jadwalHarian->masterJadwal && $reservasi->jadwalHarian->masterJadwal->dokter) {
-                 // Fallback: navigate through JadwalHarian -> MasterJadwal -> Dokter
-                 $namaDokter = $reservasi->jadwalHarian->masterJadwal->dokter->nama ?? $namaDokter;
+            if ($reservasi->dokter_id) {
+                $dokter = \App\Models\MasterDokter::where('kode_dokter', $reservasi->dokter_id)->first();
+                if ($dokter) {
+                    $namaDokter = $dokter->nama;
+                }
             }
-
-            // Ensure time availability - get from masterJadwal through jadwalHarian
-            $masterJadwal = $reservasi->jadwalHarian ? $reservasi->jadwalHarian->masterJadwal : null;
-            $jamMulai = $reservasi->jam_mulai ?? optional($masterJadwal)->jam_mulai;
-            $jamSelesai = $reservasi->jam_selesai ?? optional($masterJadwal)->jam_selesai;
-            $jadwalJam = ($jamMulai && $jamSelesai) ? "$jamMulai - $jamSelesai" : ($jamMulai ?? '-');
+            
+            // Use jam_mulai and jam_selesai directly from reservasi (already stored during booking)
+            $jamMulai = $reservasi->jam_mulai;
+            $jamSelesai = $reservasi->jam_selesai;
+            $jadwalJam = ($jamMulai && $jamSelesai) ? "$jamMulai - $jamSelesai" : '-';
 
             return response()->json([
                 'status' => 'success',
