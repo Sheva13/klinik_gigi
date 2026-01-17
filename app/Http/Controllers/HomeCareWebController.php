@@ -49,7 +49,27 @@ class HomeCareWebController extends Controller
                          ->paginate(10)
                          ->withQueryString();
 
-        return view('homecare.index', compact('riwayat'));
+        // --- STATISTIK ---
+        $totalStats     = DB::table('homecare_reservasi')->count();
+        $menungguStats  = DB::table('homecare_reservasi')->where('status_reservasi', 'menunggu_konfirmasi')->count();
+        $diprosesStats  = DB::table('homecare_reservasi')
+                            ->whereIn('status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa']) // On Process
+                            ->count();
+        $selesaiStats   = DB::table('homecare_reservasi')
+                            ->whereIn('status_reservasi', ['menunggu_pelunasan', 'lunas', 'selesai'])
+                            ->count();
+        $batalStats     = DB::table('homecare_reservasi')
+                            ->whereIn('status_reservasi', ['dibatalkan', 'expire', 'gagal'])
+                            ->count();
+
+        return view('homecare.index', compact(
+            'riwayat',
+            'totalStats',
+            'menungguStats', 
+            'diprosesStats', 
+            'selesaiStats', 
+            'batalStats'
+        ));
     }
 
     public function show($id)

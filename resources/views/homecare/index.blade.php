@@ -114,6 +114,84 @@
         </div>
     </div>
 
+    {{-- Stats Cards (Responsive Grid: 2 cols on mobile, 3 on tablet, 5 on desktop) --}}
+    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
+        {{-- 1. TOTAL --}}
+        <div class="col">
+            <div class="card card-dark h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-between p-3">
+                    <div>
+                        <div class="text-secondary small text-uppercase fw-bold">TOTAL</div>
+                        <div class="h2 mb-0 fw-bold text-white">{{ $totalStats }}</div>
+                    </div>
+                    <div class="text-secondary opacity-50">
+                        <i class="fas fa-calendar-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- 2. MENUNGGU --}}
+        <div class="col">
+            <div class="card card-dark h-100 shadow-sm" style="border-left: 4px solid #f5c542;">
+                <div class="card-body d-flex align-items-center justify-content-between p-3">
+                    <div>
+                        <div class="text-secondary small text-uppercase fw-bold">MENUNGGU</div>
+                        <div class="h2 mb-0 fw-bold text-warning">{{ $menungguStats }}</div>
+                    </div>
+                    <div class="text-warning opacity-50">
+                        <i class="fas fa-hourglass-half fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- 3. DIPROSES --}}
+        <div class="col">
+            <div class="card card-dark h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-between p-3">
+                    <div>
+                        <div class="text-secondary small text-uppercase fw-bold">DIPROSES</div>
+                        <div class="h2 mb-0 fw-bold text-info">{{ $diprosesStats }}</div>
+                    </div>
+                    <div class="text-info opacity-50">
+                        <i class="fas fa-stethoscope fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- 4. SELESAI --}}
+        <div class="col">
+            <div class="card card-dark h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-between p-3">
+                    <div>
+                        <div class="text-secondary small text-uppercase fw-bold">SELESAI</div>
+                        <div class="h2 mb-0 fw-bold text-success">{{ $selesaiStats }}</div>
+                    </div>
+                    <div class="text-success opacity-50">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- 5. BATAL --}}
+        <div class="col">
+            <div class="card card-dark h-100 shadow-sm">
+                <div class="card-body d-flex align-items-center justify-content-between p-3">
+                    <div>
+                        <div class="text-secondary small text-uppercase fw-bold">BATAL</div>
+                        <div class="h2 mb-0 fw-bold text-danger">{{ $batalStats }}</div>
+                    </div>
+                    <div class="text-danger opacity-50">
+                        <i class="fas fa-times-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Filter Card --}}
     <div class="card card-dark p-4 mb-4 shadow-sm">
         <form action="{{ route('homecare.index') }}" method="GET">

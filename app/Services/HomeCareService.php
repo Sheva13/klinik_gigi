@@ -52,7 +52,7 @@ abstract class BaseReservationService implements ReservationServiceInterface
         try {
             // URL OSRM Demo (Sangat disarankan memakai instance sendiri untuk production, tapi demo server cukup untuk testing)
             // Format: /{lon1},{lat1};{lon2},{lat2}
-            $url = "http://router.project-osrm.org/route/v1/driving/$lngKlinik,$latKlinik;$userLng,$userLat?overview=false";
+            $url = "http://router.project-osrm.org/route/v1/driving/$lngKlinik,$latKlinik;$userLng,$userLat?overview=full";
 
             $response = Http::timeout(3)->get($url); // Timeout pendek agar tidak blocking lama
 
@@ -62,6 +62,8 @@ abstract class BaseReservationService implements ReservationServiceInterface
                     $distanceMeters = $json['routes'][0]['distance'];
                     $distance = $distanceMeters / 1000; // Konversi ke KM
                     $usedMethod = 'osrm_road';
+                    // Capture geometry if available
+                    $geometry = $json['routes'][0]['geometry'] ?? null;
                 }
             }
         } catch (\Exception $e) {
@@ -88,7 +90,8 @@ abstract class BaseReservationService implements ReservationServiceInterface
         return [
             'jarakDalamKm' => $distance,
             'biayaJarak' => (int) $biayaJarak,
-            'metode_hitung' => $usedMethod
+            'metode_hitung' => $usedMethod,
+            'route_geometry' => $geometry ?? null
         ];
     }
 
@@ -121,7 +124,8 @@ class HomeCareService extends BaseReservationService
                 'jarak_km' => round($calculation['jarakDalamKm'], 2),
                 'biaya_transport' => $calculation['biayaJarak'],
                 'biaya_layanan' => $biayaLayanan,
-                'estimasi_total' => $calculation['biayaJarak'] + $biayaLayanan
+                'estimasi_total' => $calculation['biayaJarak'] + $biayaLayanan,
+                'route_geometry' => $calculation['route_geometry'] ?? null,
             ]
         ];
     }
@@ -259,6 +263,7 @@ class HomeCareService extends BaseReservationService
             if ($promo->limit_per_user) {
                 $usageCount = HomeCareReservasi::where('pasien_id', $userId)
                     ->where('promo_id', $promo->id)
+                    ->whereNotIn('status_reservasi', ['batal', 'expire']) // Exclude failed/cancelled
                     ->count();
                 if ($usageCount >= $promo->limit_per_user) {
                     throw new \Exception("Promo sudah digunakan maksimum {$promo->limit_per_user} kali.", 400);
