@@ -182,6 +182,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/homecare/settlement', [HomeCareController::class, 'createSettlement']); // NEW ROUTE
 
 
+    Route::get('/homecare/booking/active', [HomeCareController::class, 'getActiveBooking']);
     Route::get('/homecare/booking/{id}/status', [HomeCareController::class, 'checkPaymentStatus']);
 
     // --- UPLOAD FOTO DOKTER ---
