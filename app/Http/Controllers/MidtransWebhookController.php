@@ -112,7 +112,9 @@ class MidtransWebhookController extends Controller
 
                 if ($tipeTransaksi === 'HOME_CARE_PELUNASAN') {
                     $transaksi->status_pelunasan = 'lunas';
-                    $transaksi->status = 'Selesai';
+                    $transaksi->status_reservasi = 'lunas';
+                    $transaksi->status = 'Layanan Selesai & Lunas';
+                    
                     $keteranganLog = 'Pelunasan tagihan berhasil via Midtrans.';
                     $amountPaid = (int) round(floatval($payload['gross_amount'] ?? 0));
                     $poinDidapat = floor($amountPaid / 10000); 
