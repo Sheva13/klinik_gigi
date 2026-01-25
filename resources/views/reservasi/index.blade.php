@@ -2,6 +2,41 @@
 
 @section('title', 'Data Reservasi')
 
+@section('styles')
+<style>
+    .pagination-dark .page-item .page-link {
+        background-color: #121212 !important;
+        border: 1px solid #333 !important;
+        color: #D4AF37 !important;
+        transition: all 0.3s ease;
+    }
+
+    .pagination-dark .page-item .page-link:hover {
+        background-color: #333 !important;
+        color: #fff !important;
+        border-color: #D4AF37 !important;
+    }
+
+    .pagination-dark .page-item.active .page-link {
+        background-color: #D4AF37 !important;
+        border-color: #D4AF37 !important;
+        color: #000 !important;
+        font-weight: bold;
+    }
+
+    .pagination-dark .page-item.disabled .page-link {
+        background-color: #121212 !important;
+        color: #666 !important;
+        border-color: #333 !important;
+        cursor: not-allowed;
+    }
+
+    .pagination-dark .page-item:not(.active) .page-link:focus {
+        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
+    }
+</style>
+@endsection
+
 @section('content')
 
 <div class="container-fluid px-0">
@@ -263,7 +298,7 @@
 
     {{-- Pagination --}}
     <div class="d-flex justify-content-end mt-4">
-        {{ $data->appends(request()->all())->links('pagination::bootstrap-5') }}
+        {{ $data->appends(request()->all())->links('vendor.pagination.custom-dark') }}
     </div>
 
 </div>
