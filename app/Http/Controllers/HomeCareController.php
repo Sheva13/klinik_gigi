@@ -162,7 +162,63 @@ class HomeCareController extends Controller
                     }
                 }
             } else if ($reservasi->status_pelunasan !== 'lunas') {
-                // ... (Logic Pelunasan keep distinct if needed, or simplified)
+                // LOGIC UNTUK PELUNASAN (PL-...)
+                $settlementOrderId = 'PL-' . $reservasi->no_pemeriksaan;
+                $midtransStatus = $this->midtransService->getTransactionStatus($settlementOrderId);
+
+                if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
+                    Log::info("✅ Pelunasan Success Detected via Polling for {$reservasi->no_pemeriksaan}");
+                    
+                    $reservasi->status_pelunasan = 'lunas';
+                    $reservasi->status_reservasi = 'lunas';
+                    $reservasi->status = 'Layanan Selesai & Lunas';
+                    $reservasi->save();
+
+                    // Tambah Poin Manual (Pelunasan)
+                    $amountPaid = (int) round(floatval($midtransStatus['gross_amount'] ?? 0));
+                    $poinDidapat = floor($amountPaid / 10000);
+
+                    if ($reservasi->pasien_id && $poinDidapat > 0) {
+                        try {
+                            // Check Duplicate using reference_id AND type='earn' AND description contains 'Pelunasan' (or just reliance on PL ref ID if stored differently - but here we usually store Order ID. Let's use generic ref NO_PEMERIKSAAN but strict description/type check or better yet check point amount context, BUT simpler: Check if we have an EARN history for this NO_PEMERIKSAAN that is Recent? 
+                            // Better: We used 'reference_id' => $reservasi->no_pemeriksaan in Webhook.
+                            // Warning: Booking also uses no_pemeriksaan. 
+                            // SOLUTION: Use Description to differentiate or metadata? 
+                            // Webhook Controller uses: description => 'Pelunasan tagihan...'
+                            
+                            $historyExists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
+                                                ->where('type', 'earn')
+                                                ->where('description', 'LIKE', '%Pelunasan%') 
+                                                ->exists();
+
+                            if (!$historyExists) {
+                                $user = User::where('user_id', $reservasi->pasien_id)->first();
+                                if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
+                                
+                                if ($user) {
+                                    $user->increment('poin', $poinDidapat);
+                                    \App\Models\PointHistory::create([
+                                            'user_id' => $user->user_id,
+                                            'amount' => $poinDidapat,
+                                            'type' => 'earn',
+                                            'description' => "Pelunasan Tagihan HomeCare via Polling",
+                                            'reference_id' => $reservasi->no_pemeriksaan,
+                                    ]);
+                                }
+                            }
+                        } catch (\Exception $e) {
+                                Log::error("Point Error (Pelunasan): " . $e->getMessage());
+                        }
+                    }
+
+                    // Tracking
+                    HomeCareTracking::create([
+                        'id_periksa' => $reservasi->id,
+                        'status_tracking' => 'finished',
+                        'keterangan' => 'Pelunasan berhasil terverifikasi (Polling). Layanan selesai.',
+                        'waktu' => now()
+                    ]);
+                }
             }
 
             // --- RESPONSE PREPARATION (ROBUST APPROACH) ---
