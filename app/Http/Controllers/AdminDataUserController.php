@@ -8,11 +8,32 @@ use Illuminate\Support\Facades\DB;
 
 class AdminDataUserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = MpUser::with('rekamMedis')
-            ->orderByDesc('created_at')
-            ->paginate(15);
+        $query = MpUser::with('rekamMedis');
+
+        // Filter Search (Nama / NIK)
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_pengguna', 'LIKE', "%{$search}%")
+                  ->orWhere('nik', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Filter Tipe Pasien (Baru / Lama)
+        // Asumsi: Pasien Baru = Terdaftar < 1 Bulan, Pasien Lama = > 1 Bulan
+        if ($request->has('tipe_pasien') && $request->tipe_pasien != '') {
+            if ($request->tipe_pasien == 'baru') {
+                $query->where('created_at', '>=', now()->subMonth());
+            } elseif ($request->tipe_pasien == 'lama') {
+                $query->where('created_at', '<', now()->subMonth());
+            }
+        }
+
+        $users = $query->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString(); // Keep query params in pagination links
 
         return view('datausers.index', compact('users'));
     }
