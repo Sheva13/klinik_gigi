@@ -263,7 +263,7 @@
 
     {{-- Pagination --}}
     <div class="d-flex justify-content-end mt-4">
-        {{ $data->appends(request()->all())->links() }}
+        {{ $data->appends(request()->all())->links('pagination::bootstrap-5') }}
     </div>
 
 </div>
