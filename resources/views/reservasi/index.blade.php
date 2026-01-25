@@ -133,11 +133,10 @@
                 </div>
 
                 {{-- FILTER STATUS PEMBAYARAN --}}
-                <div class="col-md-2">
+                <div class="col-md-3"> {{-- Lebar kolom disesuaikan karena tombol + hilang --}}
                     <label class="small text-muted mb-2">Status Pembayaran</label>
                     <select name="status_pembayaran" class="form-select form-select-dark" onchange="this.form.submit()">
                         <option value="semua" {{ request('status_pembayaran') == 'semua' ? 'selected' : '' }}>Semua Status</option>
-                        {{-- KOREKSI LIXA: Tambahkan status 'lunas' dan pastikan 'terverifikasi' menjadi satu arti (Lunas) --}}
                         <option value="lunas" {{ request('status_pembayaran') == 'lunas' ? 'selected' : '' }}>Lunas (Online)</option>
                         <option value="terverifikasi" {{ request('status_pembayaran') == 'terverifikasi' ? 'selected' : '' }}>Terverifikasi (Manual)</option>
                         <option value="menunggu_pembayaran" {{ request('status_pembayaran') == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar (Online)</option>
@@ -146,12 +145,15 @@
                     </select>
                 </div>
 
+                {{-- TOMBOL TAMBAH DINONAKTIFKAN TANPA MENGUBAH KODE ASLI --}}
+                {{-- 
                 <div class="col-md-1 d-grid">
                     <label class="small text-muted mb-2 d-none d-md-block">&nbsp;</label>
                     <a href="{{ route('reservasi.admin.create') }}" class="btn btn-gold" title="Tambah Reservasi">
                         <span class="material-symbols-outlined">add</span>
                     </a>
-                </div>
+                </div> 
+                --}}
             </div>
         </form>
     </div>
@@ -174,24 +176,15 @@
                 <tbody>
                     @forelse($data as $item)
                         <tr>
-                            {{-- NO RM --}}
                             <td>
                                 <div class="fw-bold">{{ $item->rekamMedis->rekam_medis ?? '-' }}</div>
                                 <small class="text-muted">{{ $item->no_pemeriksaan ?? 'Belum Ada' }}</small>
                             </td>
-
-                            {{-- PASIEN --}}
-                            <td>
-                                {{ $item->rekamMedis->nama ?? 'Data Pasien Hilang' }}
-                            </td>
-
-                            {{-- POLI & DOKTER --}}
+                            <td>{{ $item->rekamMedis->nama ?? 'Data Pasien Hilang' }}</td>
                             <td>
                                 <div class="text-gold">{{ $item->dokter->masterPoli->nama_poli ?? '-' }}</div>
                                 <small class="text-muted">{{ $item->dokter->nama ?? '-' }}</small>
                             </td>
-
-                            {{-- JADWAL --}}
                             <td>
                                 <div>{{ \Carbon\Carbon::parse($item->tanggal_pesan)->translatedFormat('d M Y') }}</div>
                                 <small class="text-muted">
@@ -211,8 +204,6 @@
                                     @endif
                                 </small>
                             </td>
-
-                            {{-- STATUS RESERVASI (SESUAI DB) --}}
                             <td class="text-center">
                                 @php
                                     $s = $item->status_reservasi;
@@ -230,36 +221,28 @@
                                 @endphp
                                 <span class="badge {{ $cls }}">{{ $lbl }}</span>
                             </td>
-
-                            {{-- STATUS PEMBAYARAN (SESUAI DB) --}}
                             <td class="text-center">
                                 @php
                                     $p = $item->status_pembayaran;
-                                    // KOREKSI LIXA: Tambahkan status 'lunas' (dari Webhook)
                                     $pcl = match($p) {
-                                        'lunas'                 => 'bg-success-soft', // Dari Midtrans Webhook
-                                        'terverifikasi'         => 'bg-success-soft', // Dari Admin Manual
-                                        'menunggu_pembayaran'   => 'bg-secondary',
-                                        'menunggu_verifikasi'   => 'bg-warning-soft text-dark',
-                                        'gagal'                 => 'bg-danger-soft',
-                                        default                 => 'bg-secondary'
+                                        'lunas', 'terverifikasi' => 'bg-success-soft',
+                                        'menunggu_pembayaran'    => 'bg-secondary',
+                                        'menunggu_verifikasi'    => 'bg-warning-soft text-dark',
+                                        'gagal'                  => 'bg-danger-soft',
+                                        default                  => 'bg-secondary'
                                     };
-                                    // KOREKSI LIXA: Tambahkan status 'lunas'
                                     $plb = match($p) {
-                                        'lunas'                 => 'Lunas (Online)',
-                                        'terverifikasi'         => 'Lunas (Manual)',
-                                        'menunggu_pembayaran'   => 'Belum Bayar',
-                                        'menunggu_verifikasi'   => 'Cek Bukti',
-                                        'gagal'                 => 'Gagal',
-                                        default                 => $p
+                                        'lunas'               => 'Lunas (Online)',
+                                        'terverifikasi'       => 'Lunas (Manual)',
+                                        'menunggu_pembayaran' => 'Belum Bayar',
+                                        'menunggu_verifikasi' => 'Cek Bukti',
+                                        'gagal'               => 'Gagal',
+                                        default               => $p
                                     };
                                 @endphp
                                 <span class="badge {{ $pcl }}">{{ $plb }}</span>
                             </td>
-
-                            {{-- AKSI --}}
                             <td class="text-center">
-                                {{-- LINK KE DETAIL (Route sudah benar) --}}
                                 <a href="{{ route('reservasi.admin.show', $item->id) }}" class="btn btn-sm btn-outline-light border-0" title="Lihat Detail">
                                     <span class="material-symbols-outlined text-gold">visibility</span>
                                 </a>
@@ -280,31 +263,7 @@
 
     {{-- Pagination --}}
     <div class="d-flex justify-content-end mt-4">
-        <nav>
-            @if($data->hasPages())
-                <ul class="pagination pagination-sm">
-                    @if ($data->onFirstPage())
-                        <li class="page-item disabled"><span class="page-link bg-transparent border-secondary text-muted">&laquo;</span></li>
-                    @else
-                        <li class="page-item">
-                            <a class="page-link bg-transparent border-secondary text-muted"
-                               href="{{ $data->appends(request()->all())->previousPageUrl() }}">&laquo;</a>
-                        </li>
-                    @endif
-
-                    <li class="page-item active"><span class="page-link bg-gold border-gold text-dark fw-bold">{{ $data->currentPage() }}</span></li>
-
-                    @if ($data->hasMorePages())
-                        <li class="page-item">
-                            <a class="page-link bg-transparent border-secondary text-muted"
-                               href="{{ $data->appends(request()->all())->nextPageUrl() }}">&raquo;</a>
-                        </li>
-                    @else
-                        <li class="page-item disabled"><span class="page-link bg-transparent border-secondary text-muted">&raquo;</span></li>
-                    @endif
-                </ul>
-            @endif
-        </nav>
+        {{ $data->appends(request()->all())->links() }}
     </div>
 
 </div>
