@@ -180,15 +180,9 @@ class HomeCareController extends Controller
 
                     if ($reservasi->pasien_id && $poinDidapat > 0) {
                         try {
-                            // Check Duplicate using reference_id AND type='earn' AND description contains 'Pelunasan' (or just reliance on PL ref ID if stored differently - but here we usually store Order ID. Let's use generic ref NO_PEMERIKSAAN but strict description/type check or better yet check point amount context, BUT simpler: Check if we have an EARN history for this NO_PEMERIKSAAN that is Recent? 
-                            // Better: We used 'reference_id' => $reservasi->no_pemeriksaan in Webhook.
-                            // Warning: Booking also uses no_pemeriksaan. 
-                            // SOLUTION: Use Description to differentiate or metadata? 
-                            // Webhook Controller uses: description => 'Pelunasan tagihan...'
-                            
-                            $historyExists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
+                            // Fix: Use $settlementOrderId as reference_id to match Webhook logic and unique constraint
+                            $historyExists = \App\Models\PointHistory::where('reference_id', $settlementOrderId)
                                                 ->where('type', 'earn')
-                                                ->where('description', 'LIKE', '%Pelunasan%') 
                                                 ->exists();
 
                             if (!$historyExists) {
@@ -202,7 +196,7 @@ class HomeCareController extends Controller
                                             'amount' => $poinDidapat,
                                             'type' => 'earn',
                                             'description' => "Pelunasan Tagihan HomeCare via Polling",
-                                            'reference_id' => $reservasi->no_pemeriksaan,
+                                            'reference_id' => $settlementOrderId, // Fixed: Use PL-... ID
                                     ]);
                                 }
                             }

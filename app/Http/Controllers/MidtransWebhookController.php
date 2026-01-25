@@ -140,11 +140,13 @@ class MidtransWebhookController extends Controller
                 }
 
                 // Tambah Poin User - WITH DUPLICATE CHECK
-                Log::info("🔍 [DEBUG POINT] Transaction ID: {$transaksi->no_pemeriksaan}, Pasien ID: {$transaksi->pasien_id}");
+                Log::info("🔍 [DEBUG POINT] Transaction ID: {$orderId}, Pasien ID: {$transaksi->pasien_id}");
                 file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> 🔍 POINTS LOGIC: pasien_id={$transaksi->pasien_id}, poinDidapat={$poinDidapat}" . PHP_EOL, FILE_APPEND);
                 if ($transaksi->pasien_id && $poinDidapat > 0) {
                     // Check if points already added for this transaction (use type + reference_id for reliable check)
-                    $historyExists = \App\Models\PointHistory::where('reference_id', $transaksi->no_pemeriksaan)
+                    // CRITICAL FIX: Use $orderId (contains PL- prefix for Settlement) instead of $transaksi->no_pemeriksaan
+                    // to avoid collision between Booking Points and Settlement Points.
+                    $historyExists = \App\Models\PointHistory::where('reference_id', $orderId)
                                         ->where('type', 'earn')
                                         ->exists();
                     
@@ -168,7 +170,7 @@ class MidtransWebhookController extends Controller
                                          'amount' => $poinDidapat,
                                          'type' => 'earn',
                                          'description' => $keteranganLog,
-                                         'reference_id' => $transaksi->no_pemeriksaan,
+                                         'reference_id' => $orderId, // Use specific Order ID (e.g. PL-HC-...)
                                      ]);
                                      file_put_contents(storage_path('logs/midtrans_debug.log'), "    ✅ POINT HISTORY RECORDED" . PHP_EOL, FILE_APPEND);
                                  } catch (\Exception $e) {
@@ -184,7 +186,7 @@ class MidtransWebhookController extends Controller
                             file_put_contents(storage_path('logs/midtrans_debug.log'), "    ❌ POINTS ERROR: " . $e->getMessage() . " | Trace: " . $e->getTraceAsString() . PHP_EOL, FILE_APPEND);
                         }
                     } else {
-                        Log::info("⚠️ [DUPLICATE] Points already added for {$transaksi->no_pemeriksaan}, skipping.");
+                        Log::info("⚠️ [DUPLICATE] Points already added for {$orderId}, skipping.");
                         file_put_contents(storage_path('logs/midtrans_debug.log'), "  -> ⚠️ POINTS ALREADY ADDED (duplicate prevented)" . PHP_EOL, FILE_APPEND);
                     }
                 } else {
