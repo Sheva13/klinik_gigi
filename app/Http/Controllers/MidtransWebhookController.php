@@ -100,7 +100,7 @@ class MidtransWebhookController extends Controller
 
             file_put_contents(storage_path('logs/midtrans_debug.log'), date('Y-m-d H:i:s') . " - 🔄 TRANSACTION STATUS: $transactionStatus" . PHP_EOL, FILE_APPEND);
 
-            DB::transaction(function () use ($transaksi, $transactionStatus, $tipeTransaksi, $payload) {
+            DB::transaction(function () use ($transaksi, $transactionStatus, $tipeTransaksi, $payload, $orderId) {
             $statusAwal = ($tipeTransaksi === 'HOME_CARE')
                 ? $transaksi->status_pembayaran
                 : $transaksi->status_pembayaran;
