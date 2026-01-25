@@ -85,8 +85,8 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold text-white">Manajemen Jadwal Praktik</h2>
-            <p class="text-secondary mb-0">Atur jadwal hari dan jam praktik untuk setiap dokter.</p>
+            <h2 class="fw-bold text-white">Manajemen Jadwal Praktek</h2>
+            <p class="text-secondary mb-0">Atur jadwal hari dan jam praktek untuk setiap dokter.</p>
         </div>
         </div>
 
@@ -181,7 +181,7 @@
                                 @endif
 
                                 <div>
-                                    <small class="text-gold text-uppercase fw-bold ls-1">Jadwal Praktik</small>
+                                    <small class="text-gold text-uppercase fw-bold ls-1">Jadwal Praktek</small>
                                     <h3 class="fw-bold mb-0 text-white">{{ $selectedDokter->nama }}</h3>
                                     <span class="badge bg-secondary mt-2">{{ $selectedDokter->kode_dokter }}</span>
                                 </div>
@@ -198,7 +198,7 @@
                                 <thead>
                                     <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary">
                                         <th style="background: transparent;">Hari</th>
-                                        <th style="background: transparent;">Jam Praktik</th>
+                                        <th style="background: transparent;">Jam Praktek</th>
                                         <th style="background: transparent;">Poli</th>
                                         <th style="background: transparent;">Quota</th>
                                         <th style="background: transparent;" class="text-end">Aksi</th>
@@ -244,7 +244,7 @@
                                     <tr>
                                         <td colspan="5" class="text-center py-5 bg-transparent text-secondary">
                                             <span class="material-symbols-outlined fs-1 d-block mb-2">calendar_today</span>
-                                            Belum ada jadwal praktik untuk dokter ini.
+                                            Belum ada jadwal praktek untuk dokter ini.
                                         </td>
                                     </tr>
                                     @endforelse
@@ -331,7 +331,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-dark-card text-white">
             <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title">Edit Jadwal Praktik</h5>
+                <h5 class="modal-title">Edit Jadwal Praktek</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="formEditJadwal" method="POST">
