@@ -35,7 +35,7 @@ class ProfilController extends Controller
                 'rekam_medis' => $rekam,
                 'nama_asuransi' => $rekam->nama_asuransi ?? null,
                 'no_peserta' => $rekam->no_peserta ?? null,
-                'status_aktif' => $status_aktif,
+                'alamat' => $user->alamat ?? null,
             ]
         ]);
     }
@@ -71,19 +71,11 @@ class ProfilController extends Controller
             'nama_pengguna',
             'no_hp',
             'email',
-            'tanggal_lahir'
+            'tanggal_lahir',
+            'alamat'
         ]);
 
         $user->update($dataUser);
-
-        if ($request->filled('alamat')) {
-            $rekam = RekamMedis::find($user->rekam_medis_id);
-
-            if ($rekam) {
-                $rekam->alamat = $request->alamat;
-                $rekam->save();
-            }
-        }
 
         return response()->json([
             'success' => true,
