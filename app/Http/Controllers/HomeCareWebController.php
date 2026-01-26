@@ -239,17 +239,27 @@ class HomeCareWebController extends Controller
                     $poinDidapat = floor($totalBayar / 10000);
 
                     if ($poinDidapat > 0) {
-                        // 1. Tambah Poin User
-                        DB::table('users')->where('user_id', $reservasi->pasien_id)->increment('poin', $poinDidapat);
-                        
-                        // 2. Catat History
-                        \App\Models\PointHistory::create([
-                            'user_id' => $reservasi->pasien_id,
-                            'amount' => $poinDidapat,
-                            'type' => 'earn',
-                            'description' => 'Poin dari HomeCare (Update Admin)',
-                            'reference_id' => $reservasi->no_pemeriksaan
-                        ]);
+                        // FIX: Hubungan antara pasien_id (rekam_medis) dan user_id (user) adalah melalui rekam_medis table
+                        $rekamMedis = \App\Models\RekamMedis::where('rekam_medis', $reservasi->pasien_id)->first();
+
+                        if ($rekamMedis) {
+                            // Cari user berdasarkan rekam_medis_id
+                            $user = \App\Models\User::where('rekam_medis_id', $rekamMedis->id)->first();
+
+                            if ($user) {
+                                // 1. Tambah Poin User
+                                $user->increment('poin', $poinDidapat);
+
+                                // 2. Catat History
+                                \App\Models\PointHistory::create([
+                                    'user_id' => $user->user_id,
+                                    'amount' => $poinDidapat,
+                                    'type' => 'earn',
+                                    'description' => 'Poin dari HomeCare (Update Admin)',
+                                    'reference_id' => $reservasi->no_pemeriksaan
+                                ]);
+                            }
+                        }
                     }
                 }
              }

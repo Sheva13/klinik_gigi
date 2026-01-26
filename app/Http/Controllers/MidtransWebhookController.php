@@ -149,20 +149,29 @@ class MidtransWebhookController extends Controller
                     $historyExists = \App\Models\PointHistory::where('reference_id', $orderId)
                                         ->where('type', 'earn')
                                         ->exists();
-                    
+
                     if (!$historyExists) {
                         try {
-                            // ROBUST LOGIC: Prioritas user_id (string), lalu id (integer)
-                            $user = \App\Models\User::where('user_id', $transaksi->pasien_id)->first();
+                            // FIX: Hubungan antara pasien_id (rekam_medis) dan user_id (user) adalah melalui rekam_medis table
+                            // Cari user berdasarkan rekam_medis_id yang sesuai dengan pasien_id (nomor rekam medis)
+                            $rekamMedis = \App\Models\RekamMedis::where('rekam_medis', $transaksi->pasien_id)->first();
+
+                            $user = null;
+                            if ($rekamMedis) {
+                                // Cari user berdasarkan rekam_medis_id
+                                $user = \App\Models\User::where('rekam_medis_id', $rekamMedis->id)->first();
+                            }
+
+                            // Jika tidak ditemukan lewat rekam_medis_id, coba cari langsung dengan user_id yang sama dengan pasien_id (fallback)
                             if (!$user) {
-                                $user = \App\Models\User::where('id', $transaksi->pasien_id)->first();
+                                $user = \App\Models\User::where('user_id', $transaksi->pasien_id)->first();
                             }
 
                             if ($user) {
                                  $user->increment('poin', $poinDidapat);
                                  Log::info("🎁 [SUCCESS] User {$user->user_id} mendapat {$poinDidapat} poin.");
                                  file_put_contents(storage_path('logs/midtrans_debug.log'), "    ✅ POINTS ADDED: {$poinDidapat} to user {$user->user_id}" . PHP_EOL, FILE_APPEND);
-                                 
+
                                  // --- CATAT HISTORY POIN ---
                                  try {
                                      \App\Models\PointHistory::create([
@@ -178,8 +187,8 @@ class MidtransWebhookController extends Controller
                                      file_put_contents(storage_path('logs/midtrans_debug.log'), "    ❌ POINT HISTORY FAILED: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
                                  }
                             } else {
-                                Log::error("❌ [ERROR] Failed to add points. User ID not found in DB: {$transaksi->pasien_id}");
-                                file_put_contents(storage_path('logs/midtrans_debug.log'), "    ❌ USER NOT FOUND: {$transaksi->pasien_id}" . PHP_EOL, FILE_APPEND);
+                                Log::warning("⚠️ [WARNING] User not found for pasien_id: {$transaksi->pasien_id}. Points not added.");
+                                file_put_contents(storage_path('logs/midtrans_debug.log'), "    ⚠️ USER NOT FOUND: {$transaksi->pasien_id}" . PHP_EOL, FILE_APPEND);
                             }
                         } catch (\Exception $e) {
                             Log::error("❌ Critical Point Error: " . $e->getMessage());

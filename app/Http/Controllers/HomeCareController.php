@@ -143,8 +143,20 @@ class HomeCareController extends Controller
                                                 ->exists();
                             
                             if (!$historyExists) {
-                                $user = User::where('user_id', $reservasi->pasien_id)->first();
-                                if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
+                                // FIX: Hubungan antara pasien_id (rekam_medis) dan user_id (user) adalah melalui rekam_medis table
+                                $rekamMedis = \App\Models\RekamMedis::where('rekam_medis', $reservasi->pasien_id)->first();
+
+                                $user = null;
+                                if ($rekamMedis) {
+                                    // Cari user berdasarkan rekam_medis_id
+                                    $user = User::where('rekam_medis_id', $rekamMedis->id)->first();
+                                }
+
+                                // Jika tidak ditemukan lewat rekam_medis_id, coba cari langsung dengan user_id yang sama dengan pasien_id (fallback)
+                                if (!$user) {
+                                    $user = User::where('user_id', $reservasi->pasien_id)->first();
+                                }
+
                                 if ($user) {
                                     $user->increment('poin', $poinDidapat);
                                     \App\Models\PointHistory::create([
@@ -186,9 +198,20 @@ class HomeCareController extends Controller
                                                 ->exists();
 
                             if (!$historyExists) {
-                                $user = User::where('user_id', $reservasi->pasien_id)->first();
-                                if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
-                                
+                                // FIX: Hubungan antara pasien_id (rekam_medis) dan user_id (user) adalah melalui rekam_medis table
+                                $rekamMedis = \App\Models\RekamMedis::where('rekam_medis', $reservasi->pasien_id)->first();
+
+                                $user = null;
+                                if ($rekamMedis) {
+                                    // Cari user berdasarkan rekam_medis_id
+                                    $user = User::where('rekam_medis_id', $rekamMedis->id)->first();
+                                }
+
+                                // Jika tidak ditemukan lewat rekam_medis_id, coba cari langsung dengan user_id yang sama dengan pasien_id (fallback)
+                                if (!$user) {
+                                    $user = User::where('user_id', $reservasi->pasien_id)->first();
+                                }
+
                                 if ($user) {
                                     $user->increment('poin', $poinDidapat);
                                     \App\Models\PointHistory::create([
