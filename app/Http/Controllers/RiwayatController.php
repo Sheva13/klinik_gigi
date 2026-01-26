@@ -105,6 +105,7 @@ class RiwayatController extends Controller
                         'jadwal_id' => $item->jadwal_id,
                         'no_antrian' => $item->no_antrian ?? null,
                         'status_pembayaran' => $item->status_pembayaran ?? null,
+                        'status_pelunasan' => $item->status_pelunasan ?? null,
                         'metode_pembayaran' => $item->metode_pembayaran ?? null,
                         'jenis_pasien' => $item->jenis_pasien ?? null,
                         'pembayaran_total' => 'Rp ' . number_format($item->pembayaran_total ?? 0, 0, ',', '.'),
@@ -169,6 +170,7 @@ class RiwayatController extends Controller
                         'pembayaran_total' => $item->pembayaran_total ?? 0,
                         'metode_pembayaran' => $item->metode_pembayaran ?? null,
                         'status_booking' => $item->status_booking ?? null,
+                        'status_pelunasan' => $item->status_pelunasan ?? null,
                         'status' => $item->status ?? null,
                         // Normalize status_pembayaran: prefer status_booking, fallback to status_pelunasan or status
                         'status_pembayaran' => $item->status_booking ?? $item->status_pelunasan ?? $item->status ?? null,
