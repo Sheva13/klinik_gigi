@@ -101,7 +101,6 @@
                                 </div>
                                 <div>
                                     <span class="info-label text-secondary small">Jam Layanan</span>
-                                    {{-- FIXED: Single line time format --}}
                                     <div class="text-white fw-bold text-nowrap">
                                         {{ \Carbon\Carbon::parse($reservasi->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($reservasi->jam_selesai)->format('H:i') }} WIB
                                     </div>
@@ -131,7 +130,8 @@
                 <div class="card-header border-bottom border-secondary py-3">
                     <div class="d-flex align-items-center">
                          <span class="material-symbols-outlined text-info me-2">timeline</span>
-                         <h5 class="mb-0 text-white fw-bold">Tracking Status Pasien</h5>
+                         {{-- Judul telah diperbarui di bawah ini --}}
+                         <h5 class="mb-0 text-white fw-bold">Status Pemeriksaan Pasien</h5>
                     </div>
                 </div>
 
@@ -239,7 +239,7 @@
     </div>
 </div>
 
-{{-- 🔥🔥 MODAL UTUH (DIPERBAIKI) 🔥🔥 --}}
+{{-- MODAL KELOLA --}}
 <div class="modal fade" id="modalKelolaReservasi" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content modal-content-pro">
@@ -258,9 +258,8 @@
 
                 <div class="modal-body p-4">
                     <div class="row g-4 align-items-stretch">
-                        {{-- KOLOM KIRI (Data Medis) --}}
                         <div class="col-lg-7">
-                            <div class="p-3 rounded border border-secondary bg-dark h-100"> {{-- Added h-100 --}}
+                            <div class="p-3 rounded border border-secondary bg-dark h-100">
                                 <h6 class="text-warning mb-3 fw-bold text-uppercase">Data Medis & Jadwal</h6>
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -291,11 +290,8 @@
                             </div>
                         </div>
 
-                        {{-- KOLOM KANAN (Status & Keuangan) - DISATUKAN AGAR SAMA --}}
                         <div class="col-lg-5">
-                             {{-- FIXED: Dijadikan SATU KOTAK BESAR (h-100) agar sama dengan sebelah kiri --}}
                              <div class="p-3 rounded border border-secondary bg-dark h-100">
-                                {{-- Section Status --}}
                                 <h6 class="text-info mb-3 fw-bold text-uppercase">Status Kunjungan</h6>
                                 <div class="mb-4">
                                     <select name="status_reservasi" class="form-select form-select-pro">
@@ -306,10 +302,8 @@
                                     </select>
                                 </div>
 
-                                {{-- Garis Pemisah --}}
                                 <hr class="border-secondary opacity-25 my-4">
 
-                                {{-- Section Keuangan --}}
                                 <h6 class="text-success mb-3 fw-bold text-uppercase">Keuangan</h6>
                                 <div class="mb-3">
                                     <label class="small text-secondary">Metode Bayar</label>
@@ -337,7 +331,6 @@
 
                 <div class="modal-footer border-top border-secondary p-3 bg-dark">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    {{-- FIXED: Text Capitalize (tidak Capslock) --}}
                     <button type="submit" class="btn btn-warning fw-bold px-5 text-dark shadow">Simpan Semua Perubahan</button>
                 </div>
             </form>
