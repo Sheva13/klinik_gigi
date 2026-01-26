@@ -27,11 +27,19 @@ class ProfilController extends Controller
             ? 'aktif'
             : 'tidak aktif';
 
+        // ===============================
+        // OPSI 2: FORMAT MANUAL TANGGAL LAHIR
+        // ===============================
+        $userFormatted = $user->toArray();
+        $userFormatted['tanggal_lahir'] = $user->tanggal_lahir
+            ? $user->tanggal_lahir->format('Y-m-d')
+            : null;
+
         return response()->json([
             'success' => true,
             'message' => 'Data profil berhasil diambil',
             'data' => [
-                'user' => $user,
+                'user' => $userFormatted, // ⬅️ PAKAI HASIL FORMAT
                 'rekam_medis' => $rekam,
                 'nama_asuransi' => $rekam->nama_asuransi ?? null,
                 'no_peserta' => $rekam->no_peserta ?? null,
@@ -77,11 +85,19 @@ class ProfilController extends Controller
 
         $user->update($dataUser);
 
+        // ===============================
+        // OPSI 2: FORMAT MANUAL TANGGAL LAHIR
+        // ===============================
+        $userFormatted = $user->toArray();
+        $userFormatted['tanggal_lahir'] = $user->tanggal_lahir
+            ? $user->tanggal_lahir->format('Y-m-d')
+            : null;
+
         return response()->json([
             'success' => true,
             'message' => 'Profil berhasil diupdate',
             'data' => [
-                'user' => $user,
+                'user' => $userFormatted, // ⬅️ PAKAI HASIL FORMAT
                 'alamat' => $request->alamat ?? null,
             ],
         ]);
@@ -106,12 +122,10 @@ class ProfilController extends Controller
             ], 422);
         }
 
-        // Hapus foto lama jika ada
         if ($user->file_foto && Storage::disk('public')->exists($user->file_foto)) {
             Storage::disk('public')->delete($user->file_foto);
         }
 
-        // Simpan foto baru
         $path = $request->file('foto')->store('uploads', 'public');
 
         $user->update([
