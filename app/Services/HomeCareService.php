@@ -10,6 +10,7 @@ use App\Models\MasterJadwal;
 use App\Models\MasterPromo;
 use App\Models\RekamMedis;
 use App\Models\User;
+use App\Models\Setting;
 use App\Services\Payment\MidtransService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,18 +33,26 @@ interface ReservationServiceInterface
 // Abstract tetap ada untuk logic jarak (opsional, bisa dipisah juga tapi kita fokus ke Midtrans dulu)
 abstract class BaseReservationService implements ReservationServiceInterface
 {
-    protected $clinicLat = -7.0005141;
-    protected $clinicLng = 110.4250683;
-    protected $hargaPerKm = 1750; // 1750 * 2 (PP) = 3500 per km
+    // Default Fallback Values
+    protected $defaultClinicLat = -7.0005141;
+    protected $defaultClinicLng = 110.4250683;
+    protected $defaultHargaPerKm = 1750;
+    protected $defaultBiayaDasar = 35000;
+    protected $defaultUangMuka = 25000;
 
-    protected $biayaDasar = 35000;
-    protected $uangMuka = 25000;
+    protected function getConfig($key, $default)
+    {
+        // Prioritas: Database -> Property Default
+        // (Env dihapus sesuai request, tapi kalau mau hybrid bisa: DB -> Env -> Default)
+        $setting = Setting::where('key', $key)->first();
+        return $setting ? $setting->value : $default;
+    }
 
     protected function calculateDistanceAndCost($userLat, $userLng)
     {
-        $latKlinik = env('CLINIC_LAT', $this->clinicLat);
-        $lngKlinik = env('CLINIC_LNG', $this->clinicLng);
-        $tarif = env('HOMECARE_HARGA_PER_KM', $this->hargaPerKm);
+        $latKlinik = $this->getConfig('clinic_lat', $this->defaultClinicLat);
+        $lngKlinik = $this->getConfig('clinic_lng', $this->defaultClinicLng);
+        $tarif = $this->getConfig('price_per_km', $this->defaultHargaPerKm);
 
         $distance = 0;
         $usedMethod = 'haversine'; // Default fallback
@@ -116,7 +125,7 @@ class HomeCareService extends BaseReservationService
     public function calculateCost($latitude, $longitude)
     {
         $calculation = $this->calculateDistanceAndCost($latitude, $longitude);
-        $biayaLayanan = env('HOMECARE_BIAYA_DASAR', $this->biayaDasar);
+        $biayaLayanan = $this->getConfig('homecare_base_fee', $this->defaultBiayaDasar);
 
         return [
             'status' => 'success',
@@ -242,7 +251,7 @@ class HomeCareService extends BaseReservationService
         $userId = $userObject->user_id;
         $calculation = $this->calculateDistanceAndCost($data['latitude_pasien'], $data['longitude_pasien']);
         $biayaJarak = $calculation['biayaJarak'];
-        $dpAmount = env('HOMECARE_UANG_MUKA', $this->uangMuka);
+        $dpAmount = $this->getConfig('homecare_down_payment', $this->defaultUangMuka);
 
         $masterJadwal = MasterJadwal::find($data['master_jadwal_id']);
         if (!$masterJadwal || !$masterJadwal->kode_dokter)
@@ -323,7 +332,7 @@ class HomeCareService extends BaseReservationService
                     throw new \Exception('Kuota pada jadwal ini sudah penuh', 422);
             }
 
-            $biayaLayanan = env('HOMECARE_BIAYA_DASAR', 35000);
+            $biayaLayanan = $this->getConfig('homecare_base_fee', $this->defaultBiayaDasar);
             $grossTotal = $biayaJarak + $biayaLayanan;
             $totalBayar = max(0, $grossTotal - $discountAmount); // Ensure not negative
             $orderId = $this->generateReservationNumber('HC-');
