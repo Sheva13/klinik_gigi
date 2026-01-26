@@ -3,18 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\MasterPromo;
+use App\Models\HomeCareReservasi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class PromoController extends Controller
 {
     /**
      * Mengambil daftar promo yang masih aktif.
+     * Filter by user limit if user_id is provided.
      */
     public function index(Request $request)
     {
         try {
             $today = Carbon::now('Asia/Jakarta');
+            $userId = $request->query('user_id'); // Optional: Flutter sends user_id when logged in
 
             $query = MasterPromo::query();
 
@@ -40,17 +44,25 @@ class PromoController extends Controller
             // Tentukan base URL untuk gambar
             $baseUrl = asset('');
 
-            $data = $promos->map(function ($promo) use ($baseUrl) {
+            $data = $promos->map(function ($promo) use ($baseUrl, $userId) {
                 
                 $fotoUrl = null;
                 if (!empty($promo->gambar_banner)) {
-                    $path = trim($promo->gambar_banner);
-                    
-                    // Logika yang sama dengan DokterController untuk membuat URL lengkap
-                    if (!str_starts_with($path, 'uploads/')) {
-                         $path = 'uploads/' . $path;
-                    }
-                    $fotoUrl = $baseUrl . '/' . $path;
+                    // Use Direct Storage URL (Same as Web Admin)
+                    $fotoUrl = asset(Storage::url($promo->gambar_banner));
+                }
+
+                // Calculate remaining uses for this user
+                $remainingUses = null;
+                $usageCount = 0;
+                $isAvailable = true;
+                
+                if ($promo->limit_per_user && $userId) {
+                    $usageCount = HomeCareReservasi::where('pasien_id', $userId)
+                        ->where('promo_id', $promo->id)
+                        ->count();
+                    $remainingUses = max(0, $promo->limit_per_user - $usageCount);
+                    $isAvailable = $remainingUses > 0;
                 }
 
                 return [
@@ -65,8 +77,19 @@ class PromoController extends Controller
                     'gambar_banner' => $fotoUrl, // Kirim URL lengkap
                     'tanggal_mulai' => $promo->tanggal_mulai,
                     'tanggal_selesai' => $promo->tanggal_selesai,
+                    'limit_per_user' => $promo->limit_per_user,
+                    'usage_count' => $usageCount,
+                    'remaining_uses' => $remainingUses,
+                    'is_available' => $isAvailable, // false if limit reached
                 ];
             });
+
+            // Filter out unavailable promos if user_id is provided
+            if ($userId) {
+                $data = $data->filter(function($promo) {
+                    return $promo['is_available'];
+                })->values();
+            }
 
             return response()->json([
                 'status' => 'success',

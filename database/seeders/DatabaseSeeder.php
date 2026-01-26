@@ -17,12 +17,21 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             AdminSeeder::class,
+            MasterPoliSeeder::class,
+            MasterDokterSeeder::class,
+            MasterJadwalSeeder::class,
+            JadwalHarianSeeder::class,
+            RekamMedisSeeder::class,
+            UsersSeeder::class,
+            MasterTindakanSeeder::class,
+            PromoSeeder::class,
+            MasterSpesialisSeeder::class,
         ]);
         // User::factory(10)->create();
 
-        User::factory()->create([
+      /*  User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
-        ]);
+        ]); */
     }
 }

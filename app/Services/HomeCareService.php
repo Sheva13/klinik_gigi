@@ -34,7 +34,8 @@ abstract class BaseReservationService implements ReservationServiceInterface
 {
     protected $clinicLat = -7.0005141;
     protected $clinicLng = 110.4250683;
-    protected $hargaPerKm = 5000;
+    protected $hargaPerKm = 1750; // 1750 * 2 (PP) = 3500 per km
+
     protected $biayaDasar = 35000;
     protected $uangMuka = 25000;
 
@@ -51,9 +52,9 @@ abstract class BaseReservationService implements ReservationServiceInterface
         try {
             // URL OSRM Demo (Sangat disarankan memakai instance sendiri untuk production, tapi demo server cukup untuk testing)
             // Format: /{lon1},{lat1};{lon2},{lat2}
-            $url = "http://router.project-osrm.org/route/v1/driving/$lngKlinik,$latKlinik;$userLng,$userLat?overview=false";
+            $url = "http://router.project-osrm.org/route/v1/driving/$lngKlinik,$latKlinik;$userLng,$userLat?overview=full";
 
-            $response = Http::timeout(3)->get($url); // Timeout pendek agar tidak blocking lama
+            $response = Http::timeout(15)->get($url); // Timeout diperpanjang (15s) agar rute jarak jauh sempat terhitung
 
             if ($response->successful()) {
                 $json = $response->json();
@@ -61,6 +62,8 @@ abstract class BaseReservationService implements ReservationServiceInterface
                     $distanceMeters = $json['routes'][0]['distance'];
                     $distance = $distanceMeters / 1000; // Konversi ke KM
                     $usedMethod = 'osrm_road';
+                    // Capture geometry if available
+                    $geometry = $json['routes'][0]['geometry'] ?? null;
                 }
             }
         } catch (\Exception $e) {
@@ -87,7 +90,8 @@ abstract class BaseReservationService implements ReservationServiceInterface
         return [
             'jarakDalamKm' => $distance,
             'biayaJarak' => (int) $biayaJarak,
-            'metode_hitung' => $usedMethod
+            'metode_hitung' => $usedMethod,
+            'route_geometry' => $geometry ?? null
         ];
     }
 
@@ -120,7 +124,8 @@ class HomeCareService extends BaseReservationService
                 'jarak_km' => round($calculation['jarakDalamKm'], 2),
                 'biaya_transport' => $calculation['biayaJarak'],
                 'biaya_layanan' => $biayaLayanan,
-                'estimasi_total' => $calculation['biayaJarak'] + $biayaLayanan
+                'estimasi_total' => $calculation['biayaJarak'] + $biayaLayanan,
+                'route_geometry' => $calculation['route_geometry'] ?? null,
             ]
         ];
     }
@@ -192,6 +197,7 @@ class HomeCareService extends BaseReservationService
                     $kuotaTerpakai = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
                         ->where('tanggal_pesan', $tanggal)
                         ->whereIn('status_booking', ['belum_lunas', 'lunas'])
+                        ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan']) // Exclude finished bookings to free up quota
                         ->count();
                 }
             }
@@ -203,6 +209,10 @@ class HomeCareService extends BaseReservationService
                 'kuota_terpakai' => $kuotaTerpakai,
                 'kuota_sisa' => $kuotaSisa,
             ];
+            // Filter out if quota is reached
+            if ($kuotaSisa <= 0) {
+              array_pop($results);
+            }
         }
         return $results;
     }
@@ -258,6 +268,7 @@ class HomeCareService extends BaseReservationService
             if ($promo->limit_per_user) {
                 $usageCount = HomeCareReservasi::where('pasien_id', $userId)
                     ->where('promo_id', $promo->id)
+                    ->whereNotIn('status_reservasi', ['batal', 'expire']) // Exclude failed/cancelled
                     ->count();
                 if ($usageCount >= $promo->limit_per_user) {
                     throw new \Exception("Promo sudah digunakan maksimum {$promo->limit_per_user} kali.", 400);
@@ -267,8 +278,9 @@ class HomeCareService extends BaseReservationService
             // Hitung Potongan
             if ($promo->tipe == 'free_transport') {
                 $discountAmount = $biayaJarak;
-            } elseif ($promo->tipe == 'potongan_total') {
-                $discountAmount = $promo->nilai_potongan;
+            } elseif ($promo->tipe == 'potongan_total' || $promo->nilai_potongan > 0) {
+                // Fallback: Jika tipe tidak sesuai tapi ada nilai potongan, tetap gunakan.
+                 $discountAmount = $promo->nilai_potongan;
             }
 
             $pointsToDeduct = $promo->harga_poin;
@@ -300,9 +312,11 @@ class HomeCareService extends BaseReservationService
 
             $kuotaMaster = $masterJadwal->quota ?? 0;
             if ($kuotaMaster > 0) {
+                // Count ACTIVE bookings only (exclude finished/cancelled)
                 $kuotaTerpakai = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
                     ->where('tanggal_pesan', $data['tanggal'])
                     ->whereIn('status_booking', ['belum_lunas', 'lunas'])
+                    ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan']) // Exclude finished bookings to free up quota
                     ->count();
 
                 if ($kuotaTerpakai >= $kuotaMaster)
@@ -314,9 +328,16 @@ class HomeCareService extends BaseReservationService
             $totalBayar = max(0, $grossTotal - $discountAmount); // Ensure not negative
             $orderId = $this->generateReservationNumber('HC-');
 
+            // --- QUEUE NUMBER LOGIC ---
+            $lastQueue = HomeCareReservasi::where('jadwal_id', $jadwalHarian->id)
+                ->where('tanggal_pesan', $data['tanggal'])
+                ->max('no_antrian');
+            $newQueue = $lastQueue ? $lastQueue + 1 : 1;
+
             // 2. Simpan Data Reservasi
             $reservasi = HomeCareReservasi::create([
                 'no_pemeriksaan' => $orderId,
+                'no_antrian' => $newQueue, // Save Queue Number
                 'pasien_id' => $userId,
                 'rekam_medis_id' => $pasien->id,
                 'dokter_id' => $masterJadwal->kode_dokter, // FIX: master_jadwal uses kode_dokter
@@ -325,7 +346,6 @@ class HomeCareService extends BaseReservationService
                 'waktu_pesan' => now()->toTimeString(),
                 'jam_mulai' => $masterJadwal->jam_mulai,
                 'jam_selesai' => $masterJadwal->jam_selesai,
-                'tipe_layanan' => 'home_care',
                 'jenis_pasien' => 'Umum',
                 'status' => 'Menunggu Pembayaran',
                 'status_reservasi' => 'menunggu',
@@ -340,6 +360,7 @@ class HomeCareService extends BaseReservationService
                 'pembayaran_total' => $totalBayar,
                 'metode_pembayaran' => $data['metode_pembayaran'],
                 'status_booking' => 'belum_lunas',
+                'tipe_layanan' => 'home_care', // Added matches SQL default
                 'promo_id' => $promo ? $promo->id : null,
                 'potongan_promo' => $discountAmount,
             ]);
@@ -491,21 +512,28 @@ class HomeCareService extends BaseReservationService
 
         $reservasi->markAsPaid(); // Method dari Model
 
-        // DAPATKAN POIN SETELAH PELUNASAN
+        // DAPATKAN POIN SETELAH PELUNASAN - WITH DUPLICATE CHECK
         $pasienId = $reservasi->pasien_id ?? ($reservasi->rekamMedis->user_id ?? null);
         if ($pasienId) {
             $user = User::find($pasienId);
             if ($user) {
-                $user->increment('poin', 10);
+                // Check if bonus points already added (use type='earn' for reliable check)
+                $historyExists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
+                                    ->where('type', 'earn')
+                                    ->exists();
                 
-                // --- CATAT HISTORY ---
-                \App\Models\PointHistory::create([
-                    'user_id' => $user->user_id, // Pastikan pakai user_id yang string
-                    'amount' => 10,
-                    'type' => 'earn',
-                    'description' => "Bonus Poin Pelunasan Layanan",
-                    'reference_id' => $reservasi->no_pemeriksaan
-                ]);
+                if (!$historyExists) {
+                    $user->increment('poin', 10);
+                    
+                    // --- CATAT HISTORY ---
+                    \App\Models\PointHistory::create([
+                        'user_id' => $user->user_id, // Pastikan pakai user_id yang string
+                        'amount' => 10,
+                        'type' => 'earn',
+                        'description' => "Bonus Poin Pelunasan Layanan",
+                        'reference_id' => $reservasi->no_pemeriksaan
+                    ]);
+                }
             }
         }
 

@@ -33,7 +33,10 @@ class Reservasi extends Model
         'bank_transaksi_id',
         'pembayaran_total',
         'jenis_pasien',
-        
+        'link_pembayaran',
+        'snap_token',
+        'redirect_url',
+        'snap_token_pelunasan',
         // --- ⚠️ AREA BERBAHAYA (HOME CARE) ⚠️ ---
         // Kolom di bawah ini SEMENTARA dimatikan karena BELUM ADA di Database (Gambar 4)
         // Jika dipaksa, akan error "Column not found".

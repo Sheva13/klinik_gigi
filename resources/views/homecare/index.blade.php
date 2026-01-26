@@ -6,21 +6,19 @@
 <style>
     /* --- STYLE TABEL DARK MODE YANG KUAT --- */
     .table-dark-custom {
-        /* Override variabel Bootstrap agar tabel benar-benar gelap */
         --bs-table-bg: #1A1A1A;
         --bs-table-color: #ffffff;
         --bs-table-hover-bg: #252525;
         --bs-table-hover-color: #ffffff;
         --bs-table-border-color: #333333;
         
-        background-color: #1A1A1A; /* Fallback */
+        background-color: #1A1A1A;
         color: #ffffff;
         border-color: #333333;
     }
     
-    /* Header Tabel */
     .table-dark-custom th {
-        background-color: #2C2C2C !important; /* Pakai !important agar tidak tertimpa */
+        background-color: #2C2C2C !important;
         color: #f5c542; /* Warna Emas */
         font-weight: 600;
         text-transform: uppercase;
@@ -30,30 +28,35 @@
         padding: 1rem;
     }
 
-    /* Body Tabel */
     .table-dark-custom td {
         padding: 1rem;
         vertical-align: middle;
         border-bottom: 1px solid #333;
     }
 
-    /* Card Wrapper */
     .card-dark {
         background-color: #1A1A1A;
         border: 1px solid #333;
-        border-radius: 12px; /* Lebih rounded */
-        overflow: hidden; /* Agar sudut tabel mengikuti card */
+        border-radius: 12px;
+        overflow: hidden;
     }
 
-    /* Form Inputs Dark Mode */
+    /* --- FORM INPUTS --- */
     .form-control-dark {
         background-color: #2C2C2C;
         border: 1px solid #4b5563;
-        color: #fff;
+        color: #ffffff !important;
+    }
+    .form-control-dark::placeholder {
+        color: #adb5bd !important;
+        opacity: 1;
+    }
+    .form-control-dark[type="date"] {
+        color-scheme: dark;
     }
     .form-control-dark:focus {
         background-color: #2C2C2C;
-        color: #fff;
+        color: #ffffff;
         border-color: #f5c542;
         box-shadow: 0 0 0 0.2rem rgba(245, 197, 66, 0.25);
     }
@@ -61,13 +64,41 @@
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
     }
 
-    /* Status Badges */
     .badge-status { 
         font-size: 0.8rem; 
         padding: 6px 12px; 
         border-radius: 6px; 
         font-weight: 500;
         letter-spacing: 0.3px;
+    }
+
+    /* --- PERBAIKAN PAGINASI (FIX TEXT COLOR) --- */
+    /* Mengubah warna teks 'Showing x results' menjadi terang */
+    .card-footer .text-muted {
+        color: #d1d5db !important; /* Abu-abu terang */
+    }
+    
+    /* Styling Tombol Paginasi Dark Mode */
+    .page-link {
+        background-color: #2C2C2C;
+        border-color: #444;
+        color: #f5c542; /* Text Emas */
+    }
+    .page-link:hover {
+        background-color: #333;
+        color: #fff;
+        border-color: #f5c542;
+    }
+    .page-item.active .page-link {
+        background-color: #f5c542;
+        border-color: #f5c542;
+        color: #121212;
+        font-weight: bold;
+    }
+    .page-item.disabled .page-link {
+        background-color: #1A1A1A;
+        border-color: #333;
+        color: #555;
     }
 </style>
 @endsection
@@ -76,13 +107,74 @@
 <div class="container-fluid">
     
     {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+    <div class="d-flex justify-content-between align-items-end mb-4 pt-3">
         <div>
             <h1 class="fw-bold text-white mb-1" style="font-size: 1.75rem;">Reservasi Home Care</h1>
             <p class="text-secondary mb-0">Pantau dan kelola pesanan kunjungan dokter ke rumah.</p>
         </div>
+        <div class="d-flex align-items-center gap-3">
+             {{-- 🔥 TOMBOL LIHAT ANTRIAN (Route akan dibuat) --}}
+             <a href="{{ route('homecare.antrian') }}" class="btn btn-outline-light d-flex align-items-center gap-2 border-secondary">
+                <span class="material-symbols-outlined text-gold">groups</span>
+                Lihat Antrian
+            </a>
+        </div>
     </div>
 
+    @if(session('success'))
+        <div class="alert alert-success bg-success text-white border-0 mb-4">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+        </div>
+    @endif
+
+    {{-- DASHBOARD STATS (MATCHING RESERVASI STYLE) --}}
+    {{-- Responsive Grid: Mobile 1 col, Tablet 2 cols, Desktop 4 cols (wrap 5th), Large Desktop 5 cols --}}
+    <div class="row g-3 mb-4">
+        {{-- Total --}}
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
+                <span class="material-symbols-outlined stat-icon">calendar_month</span>
+                <div class="stat-label">Total</div>
+                <div class="stat-value text-gold">{{ $stats['total'] }}</div>
+            </div>
+        </div>
+
+        {{-- Menunggu --}}
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
+                <span class="material-symbols-outlined stat-icon">hourglass_top</span>
+                <div class="stat-label">Menunggu</div>
+                <div class="stat-value text-warning">{{ $stats['menunggu'] }}</div>
+            </div>
+        </div>
+
+        {{-- Diproses --}}
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
+                <span class="material-symbols-outlined stat-icon">stethoscope</span>
+                <div class="stat-label">Diproses</div>
+                <div class="stat-value text-info">{{ $stats['diproses'] }}</div>
+            </div>
+        </div>
+
+        {{-- Selesai --}}
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
+                <span class="material-symbols-outlined stat-icon">check_circle</span>
+                <div class="stat-label">Selesai</div>
+                <div class="stat-value text-success">{{ $stats['selesai'] }}</div>
+            </div>
+        </div>
+
+        {{-- Batal --}}
+        <div class="col-6 col-md-4 col-lg-3 col-xl">
+            <div class="stat-card h-100">
+                <span class="material-symbols-outlined stat-icon">cancel</span>
+                <div class="stat-label">Batal</div>
+                <div class="stat-value text-danger">{{ $stats['batal'] }}</div>
+            </div>
+        </div>
+    </div>
     {{-- Filter Card --}}
     <div class="card card-dark p-4 mb-4 shadow-sm">
         <form action="{{ route('homecare.index') }}" method="GET">
@@ -96,13 +188,11 @@
                 <div class="col-md-3">
                     <label class="text-secondary small mb-1">Status</label>
                     <select name="status" class="form-select form-control-dark">
-                        <option value="">-- Semua Status --</option>
-                        <option value="menunggu_konfirmasi" {{ request('status') == 'menunggu_konfirmasi' ? 'selected' : '' }}>Menunggu Konfirmasi</option>
-                        <option value="dokter_menuju_lokasi" {{ request('status') == 'dokter_menuju_lokasi' ? 'selected' : '' }}>Dokter OTW</option>
-                        <option value="sedang_diperiksa" {{ request('status') == 'sedang_diperiksa' ? 'selected' : '' }}>Sedang Diperiksa</option>
-                        <option value="menunggu_pelunasan" {{ request('status') == 'menunggu_pelunasan' ? 'selected' : '' }}>Selesai (Menunggu Bayar)</option>
-                        <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
-                        <option value="dibatalkan" {{ request('status') == 'dibatalkan' ? 'selected' : '' }}>Dibatalkan</option>
+                        <option value="">- Semua Status -</option>
+                        <option value="menunggu" {{ request('status') == 'menunggu' ? 'selected' : '' }}>Menunggu</option>
+                        <option value="diproses" {{ request('status') == 'diproses' ? 'selected' : '' }}>Diproses</option>
+                        <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option>
+                        <option value="batal" {{ request('status') == 'batal' ? 'selected' : '' }}>Batal</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -125,9 +215,9 @@
                 <table class="table table-dark-custom table-hover mb-0 align-middle">
                     <thead>
                         <tr>
-                            <th>No. Pemeriksaan</th>
+                            <th class="ps-4">No. Pemeriksaan</th>
                             <th>No. RM</th>
-                            <th>Waktu Kunjungan</th>
+                            <th>Waktu & Antrian</th>
                             <th>Pasien</th>
                             <th>Dokter</th>
                             <th>Status</th>
@@ -149,12 +239,13 @@
                                 <span class="badge bg-secondary font-monospace">{{ $item->no_rm ?? $item->pasien_id }}</span>
                             </td>
                             <td>
-                                <div class="fw-bold text-white">
-                                    {{ \Carbon\Carbon::parse($item->tanggal_pesan)->format('d M Y') }}
-                                </div>
-                                <div class="text-info small mt-1">
+                                <div class="fw-bold">{{ \Carbon\Carbon::parse($item->tanggal_pesan)->format('d M Y') }}</div>
+                                <div class="small text-secondary">
                                     {{ \Carbon\Carbon::parse($item->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($item->jam_selesai)->format('H:i') }}
                                 </div>
+                                @if(isset($item->no_antrian) && $item->no_antrian > 0)
+                                    <span class="badge bg-gold text-dark mt-1">Antrian #{{ $item->no_antrian }}</span>
+                                @endif
                             </td>
                             <td>
                                 <div class="fw-bold text-white">{{ $item->nama_pasien ?? $item->nama_user ?? 'Nama Tidak Diketahui' }}</div>
@@ -175,19 +266,17 @@
                             </td>
                             <td>
                                 @php
-                                    $statusClass = match($item->status_reservasi) {
-                                        'menunggu_konfirmasi' => 'bg-warning text-dark',
-                                        'dokter_menuju_lokasi' => 'bg-info text-white',
-                                        'sedang_diperiksa' => 'bg-primary text-white',
-                                        'menunggu_pelunasan' => 'bg-secondary text-warning border border-warning',
-                                        'lunas' => 'bg-success text-white',
-                                        'dibatalkan' => 'bg-danger text-white',
-                                        default => 'bg-secondary text-white'
+                                    $s = $item->status_reservasi;
+                                    $statusInfo = match(true) {
+                                        in_array($s, ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran']) => ['label' => 'Menunggu', 'class' => 'bg-warning-soft text-dark'],
+                                        in_array($s, ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan']) => ['label' => 'Diproses', 'class' => 'bg-info-soft text-dark'],
+                                        in_array($s, ['selesai', 'lunas', 'menunggu_pelunasan']) => ['label' => 'Selesai', 'class' => 'bg-success-soft'],
+                                        in_array($s, ['dibatalkan', 'gagal', 'expired', 'batal']) => ['label' => 'Batal', 'class' => 'bg-danger-soft'],
+                                        default => ['label' => 'Unk.', 'class' => 'bg-secondary']
                                     };
-                                    $statusLabel = ucwords(str_replace('_', ' ', $item->status_reservasi));
                                 @endphp
-                                <span class="badge {{ $statusClass }} badge-status">
-                                    {{ $statusLabel }}
+                                <span class="badge {{ $statusInfo['class'] }} badge-status">
+                                    {{ $statusInfo['label'] }}
                                 </span>
                             </td>
                             <td class="text-end pe-4">

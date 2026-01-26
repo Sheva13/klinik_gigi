@@ -29,9 +29,26 @@ class HomeCareWebController extends Controller
             });
         }
 
-        // Filter Status
+        // Filter Status Grouping (Sesuai Reservasi: Menunggu, Diproses, Selesai, Batal)
         if ($request->has('status') && $request->status != '') {
-            $query->where('homecare_reservasi.status_reservasi', $request->status);
+            switch ($request->status) {
+                case 'menunggu':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran', 'menunggu_dokter', 'terverifikasi']);
+                    break;
+                case 'diproses':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan']);
+                    break;
+                case 'selesai':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['selesai', 'lunas', 'menunggu_pelunasan']);
+                    break;
+                case 'batal':
+                    $query->whereIn('homecare_reservasi.status_reservasi', ['dibatalkan', 'gagal', 'expired']);
+                    break;
+                default:
+                    // Fallback jika ada status spesifik yang dikirim (misal lewat link detail)
+                    $query->where('homecare_reservasi.status_reservasi', $request->status);
+                    break;
+            }
         }
 
         // Filter Tanggal
@@ -49,7 +66,25 @@ class HomeCareWebController extends Controller
                          ->paginate(10)
                          ->withQueryString();
 
-        return view('homecare.index', compact('riwayat'));
+        // --- STATISTIK ---
+        // Refactored to single array to match Blade expectation
+        $stats = [
+            'total'     => DB::table('homecare_reservasi')->count(),
+            'menunggu'  => DB::table('homecare_reservasi')
+                            ->whereIn('status_reservasi', ['menunggu', 'menunggu_konfirmasi', 'menunggu_pembayaran', 'menunggu_dokter', 'terverifikasi'])
+                            ->count(),
+            'diproses'  => DB::table('homecare_reservasi')
+                            ->whereIn('status_reservasi', ['dokter_menuju_lokasi', 'sedang_diperiksa', 'dalam_pemeriksaan']) 
+                            ->count(),
+            'selesai'   => DB::table('homecare_reservasi')
+                            ->whereIn('status_reservasi', ['menunggu_pelunasan', 'lunas', 'selesai'])
+                            ->count(),
+            'batal'     => DB::table('homecare_reservasi')
+                            ->whereIn('status_reservasi', ['dibatalkan', 'expire', 'gagal', 'batal'])
+                            ->count(),
+        ];
+
+        return view('homecare.index', compact('riwayat', 'stats'));
     }
 
     public function show($id)
@@ -80,6 +115,51 @@ class HomeCareWebController extends Controller
         return view('homecare.show', compact('item'));
     }
 
+    // --- ANTRIAN MANAGEMENT ---
+    public function antrianIndex(Request $request)
+    {
+        $tanggalPilih = $request->input('tanggal', \Carbon\Carbon::today()->format('Y-m-d'));
+
+        // Query Reservasi HomeCare
+        $query = DB::table('homecare_reservasi')
+            ->leftJoin('users', 'homecare_reservasi.pasien_id', '=', 'users.user_id')
+            ->leftJoin('rekam_medis', 'users.rekam_medis_id', '=', 'rekam_medis.id')
+            ->leftJoin('master_dokter', 'homecare_reservasi.dokter_id', '=', 'master_dokter.kode_dokter')
+            ->select(
+                'homecare_reservasi.*',
+                'rekam_medis.nama as nama_pasien',
+                'rekam_medis.rekam_medis as no_rm',
+                'master_dokter.nama as nama_dokter'
+            )
+            ->whereDate('homecare_reservasi.tanggal_pesan', $tanggalPilih)
+            ->whereIn('homecare_reservasi.status_reservasi', ['menunggu_konfirmasi', 'dokter_menuju_lokasi', 'sedang_diperiksa', 'menunggu_pelunasan', 'lunas']) // Filter status aktif
+            ->orderBy('homecare_reservasi.jam_mulai', 'asc');
+
+        // Search Filter
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('homecare_reservasi.no_pemeriksaan', 'LIKE', "%$search%")
+                  ->orWhere('rekam_medis.nama', 'LIKE', "%$search%");
+            });
+        }
+
+        $antrian = $query->get();
+
+        // Manual Stats Counters for Queue Page
+        $stats = [
+            'menunggu' => $antrian->whereIn('status_reservasi', ['menunggu_konfirmasi', 'dokter_menuju_lokasi'])->count(),
+            'diproses' => $antrian->where('status_reservasi', 'sedang_diperiksa')->count(),
+            'selesai'  => $antrian->whereIn('status_reservasi', ['menunggu_pelunasan', 'lunas'])->count(),
+            'batal'    => DB::table('homecare_reservasi')
+                            ->whereDate('tanggal_pesan', $tanggalPilih)
+                            ->whereIn('status_reservasi', ['dibatalkan', 'gagal'])
+                            ->count(),
+        ];
+
+        return view('homecare.pasienhomecare', compact('antrian', 'stats', 'tanggalPilih'));
+    }
+
     public function updateStatus(Request $request, $id)
     {
         // 1. Validasi Input
@@ -104,11 +184,11 @@ class HomeCareWebController extends Controller
 
         // Update kolom 'status' (bacaan manusia) agar sinkron
         $readableStatus = [
-            'menunggu_konfirmasi'   => 'Menunggu Konfirmasi',
-            'dokter_menuju_lokasi'  => 'Dokter OTW',
-            'sedang_diperiksa'      => 'Sedang Diperiksa',
-            'menunggu_pelunasan'    => 'Menunggu Pembayaran',
-            'lunas'                 => 'Selesai',
+            'menunggu_konfirmasi'   => 'Menunggu Konfirmasi Admin',
+            'dokter_menuju_lokasi'  => 'Dokter Sedang Menuju Lokasi',
+            'sedang_diperiksa'      => 'Sedang Dalam Pemeriksaan',
+            'menunggu_pelunasan'    => 'Pemeriksaan Selesai (Menunggu Pembayaran)',
+            'lunas'                 => 'Layanan Selesai & Lunas',
             'dibatalkan'            => 'Dibatalkan'
         ];
         
@@ -118,9 +198,17 @@ class HomeCareWebController extends Controller
             $dataUpdate['status'] = ucwords(str_replace('_', ' ', $request->status));
         }
 
-        // Simpan Biaya Tindakan jika ada
-        if ($request->has('total_biaya_tindakan')) {
+        // Fix: Hanya update total_biaya_tindakan jika ada input yang valid
+        // Jika tidak ada input (misal saat Batal/Selesai tanpa input biaya), jangan ubah nilai yang sudah ada di DB
+        if ($request->filled('total_biaya_tindakan')) {
             $dataUpdate['total_biaya_tindakan'] = $request->total_biaya_tindakan;
+        }
+
+        // Logic Sinkronisasi status_booking (Payment Status)
+        if ($request->status === 'lunas' || $request->status === 'selesai' || $dataUpdate['status'] === 'Selesai') {
+            $dataUpdate['status_booking'] = 'lunas';
+        } elseif ($request->status === 'dibatalkan') {
+            $dataUpdate['status_booking'] = 'gagal';
         }
 
         // 3. Eksekusi Update
@@ -139,14 +227,15 @@ class HomeCareWebController extends Controller
              if ($dataUpdate['status'] === 'Selesai') {
                 $reservasi = DB::table('homecare_reservasi')->where('id', $id)->first();
                 
-                // Pastikan belum pernah diberi poin untuk transaksi ini (Cek duplicate entry di history)
-                // ATAU kita percaya admin. Untuk safety, kita cek jika belum ada log 'earn' untuk ref ini
+                // Check if poin already added for this transaction (use type='earn' for reliable check)
                 $exists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
                             ->where('type', 'earn')
                             ->exists();
 
                 if (!$exists && $reservasi->pasien_id) {
-                    $totalBayar = ($reservasi->pembayaran_total ?? 0) + ($reservasi->total_biaya_tindakan ?? 0);
+                    // FIXED: Only calculate from total_biaya_tindakan (pelunasan), not the booking amount
+                    // Booking poin is already handled separately when booking payment is confirmed
+                    $totalBayar = $reservasi->total_biaya_tindakan ?? 0;
                     $poinDidapat = floor($totalBayar / 10000);
 
                     if ($poinDidapat > 0) {

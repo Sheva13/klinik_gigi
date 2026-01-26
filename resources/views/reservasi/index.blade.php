@@ -2,170 +2,45 @@
 
 @section('title', 'Data Reservasi')
 
+@section('styles')
+<style>
+    .pagination-dark .page-item .page-link {
+        background-color: #121212 !important;
+        border: 1px solid #333 !important;
+        color: #D4AF37 !important;
+        transition: all 0.3s ease;
+    }
+
+    .pagination-dark .page-item .page-link:hover {
+        background-color: #333 !important;
+        color: #fff !important;
+        border-color: #D4AF37 !important;
+    }
+
+    .pagination-dark .page-item.active .page-link {
+        background-color: #D4AF37 !important;
+        border-color: #D4AF37 !important;
+        color: #000 !important;
+        font-weight: bold;
+    }
+
+    .pagination-dark .page-item.disabled .page-link {
+        background-color: #121212 !important;
+        color: #666 !important;
+        border-color: #333 !important;
+        cursor: not-allowed;
+    }
+
+    .pagination-dark .page-item:not(.active) .page-link:focus {
+        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.25);
+    }
+</style>
+@endsection
+
 @section('content')
 
-<style>
-    /* Config Warna */
-    :root {
-        --gold-primary: #D4AF37;
-        --gold-hover: #b89628;
-        --bg-dark: #121212;
-        --card-bg: #1A1A1A;
-        --border-color: #333333;
-        --text-muted: #a0a0a0;
-    }
-
-    /* Typography Overrides */
-    h1, h2, h3, h4, h5, h6 { color: #fff !important; }
-    .text-gold { color: var(--gold-primary) !important; }
-    .text-muted { color: var(--text-muted) !important; }
-
-    /* 1. STATS CARD */
-    .stat-card {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.5rem;
-        position: relative;
-        overflow: hidden;
-        transition: transform 0.2s;
-        height: 100%; /* Agar tinggi kartu seragam */
-    }
-    .stat-card:hover {
-        border-color: var(--gold-primary);
-        transform: translateY(-3px);
-    }
-    .stat-icon {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        font-size: 3rem !important;
-        opacity: 0.1;
-        color: #fff;
-    }
-    .stat-value {
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin-top: 5px;
-        line-height: 1;
-        color: var(--gold-primary); 
-    }
-    .stat-label {
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--text-muted);
-    }
-    
-    /* Warna Khusus Value Stats */
-    .text-warning { color: #ffc107 !important; }
-    .text-info { color: #17a2b8 !important; }
-    .text-success { color: #28a745 !important; }
-    .text-danger { color: #dc3545 !important; }
-
-    /* 2. FILTER SECTION */
-    .filter-card {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-    .form-control-dark, .form-select-dark {
-        background-color: #121212;
-        border: 1px solid var(--border-color);
-        color: #E0E0E0;
-        border-radius: 8px;
-        padding: 0.6rem 1rem;
-    }
-    .form-control-dark:focus, .form-select-dark:focus {
-        background-color: #121212;
-        border-color: var(--gold-primary);
-        color: #fff;
-        box-shadow: none;
-    }
-    .input-group-text-dark {
-        background-color: #121212;
-        border: 1px solid var(--border-color);
-        border-right: none;
-        color: var(--text-muted);
-    }
-    
-    /* Tombol Gold */
-    .btn-gold {
-        background-color: var(--gold-primary);
-        color: #000;
-        font-weight: 700;
-        border: none;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 0.6rem 1.2rem;
-        transition: all 0.2s;
-        text-decoration: none;
-    }
-    .btn-gold:hover {
-        background-color: var(--gold-hover);
-        color: #000;
-    }
-
-    /* 3. TABLE CUSTOM */
-    .table-container {
-        background-color: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        overflow: hidden;
-        min-height: 300px;
-    }
-    .table-dark-custom {
-        width: 100%;
-        color: #E0E0E0;
-        margin-bottom: 0;
-        --bs-table-bg: transparent; 
-        background-color: transparent;
-    }
-    .table-dark-custom thead th {
-        background-color: #252525 !important;
-        border-bottom: 1px solid var(--border-color);
-        color: var(--text-muted);
-        font-weight: 600;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        padding: 1rem 1.5rem;
-        white-space: nowrap; /* Agar header tidak turun baris */
-    }
-    .table-dark-custom tbody td {
-        padding: 1rem 1.5rem;
-        vertical-align: middle;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 0.95rem;
-        background-color: var(--card-bg) !important;
-        color: #E0E0E0 !important; 
-    }
-    .table-dark-custom tr:last-child td {
-        border-bottom: none;
-    }
-    .table-dark-custom tbody tr:hover td {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-    }
-
-    /* Badge Status */
-    .badge {
-        font-weight: 600;
-        padding: 0.5em 0.8em;
-        border-radius: 6px;
-    }
-    .bg-warning { background-color: rgba(255, 193, 7, 0.2) !important; color: #ffc107 !important; border: 1px solid #ffc107; }
-    .bg-info { background-color: rgba(23, 162, 184, 0.2) !important; color: #17a2b8 !important; border: 1px solid #17a2b8; }
-    .bg-success { background-color: rgba(40, 167, 69, 0.2) !important; color: #28a745 !important; border: 1px solid #28a745; }
-    .bg-danger { background-color: rgba(220, 53, 69, 0.2) !important; color: #dc3545 !important; border: 1px solid #dc3545; }
-    .bg-secondary { background-color: rgba(108, 117, 125, 0.2) !important; color: #adb5bd !important; border: 1px solid #adb5bd; }
-</style>
-
 <div class="container-fluid px-0">
-    
+
     {{-- 1. HEADER HALAMAN --}}
     <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
@@ -173,8 +48,8 @@
             <p class="text-muted mb-0">Manajemen data reservasi pasien hari ini.</p>
         </div>
         <div class="d-flex align-items-center gap-3">
-            
-            {{-- 🔥 TOMBOL LIHAT ANTRIAN (Added by Lixa) --}}
+
+            {{-- 🔥 TOMBOL LIHAT ANTRIAN (Route sudah benar) --}}
             <a href="{{ route('reservasi.admin.antrian') }}" class="btn btn-outline-light d-flex align-items-center gap-2 border-secondary">
                 <span class="material-symbols-outlined text-gold">groups</span>
                 Lihat Antrian
@@ -184,21 +59,21 @@
                 <div class="fw-bold text-white">Basudewa</div>
                 <small class="text-muted">Administrator</small>
             </div>
-            <img src="{{ asset('assets/images/profile/wais.jpg') }}" 
-                 alt="Profile" 
-                 class="rounded-circle border border-secondary" 
+            <img src="{{ asset('assets/images/profile/wais.jpg') }}"
+                 alt="Profile"
+                 class="rounded-circle border border-secondary"
                  style="width: 45px; height: 45px; object-fit: cover;">
         </div>
     </div>
 
-   {{-- 2. INFO CARDS (UPDATED - 5 Columns) --}}
+    {{-- 2. INFO CARDS (UPDATED - 5 Columns) --}}
     <div class="row g-4 mb-4">
         {{-- Total --}}
         <div class="col-12 col-sm-6 col-md-4 col-xl">
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">calendar_month</span>
                 <div class="stat-label">Total</div>
-                <div class="stat-value text-gold">{{ $stats['total'] }}</div> 
+                <div class="stat-value text-gold">{{ $stats['total'] }}</div>
             </div>
         </div>
 
@@ -210,13 +85,13 @@
                 <div class="stat-value text-warning">{{ $stats['menunggu'] }}</div>
             </div>
         </div>
-        
-        {{-- 🔥 DIPROSES (Added by Lixa) --}}
-        <div class="col-12 col-sm-6 col-md-4 col-xl"> 
+
+        {{-- 🔥 DIPROSES --}}
+        <div class="col-12 col-sm-6 col-md-4 col-xl">
             <div class="stat-card">
                 <span class="material-symbols-outlined stat-icon">stethoscope</span>
                 <div class="stat-label">Diproses</div>
-                <div class="stat-value text-info">{{ $stats['diproses'] ?? 0 }}</div> 
+                <div class="stat-value text-info">{{ $stats['diproses'] ?? 0 }}</div>
             </div>
         </div>
 
@@ -293,23 +168,27 @@
                 </div>
 
                 {{-- FILTER STATUS PEMBAYARAN --}}
-                <div class="col-md-2">
+                <div class="col-md-3"> {{-- Lebar kolom disesuaikan karena tombol + hilang --}}
                     <label class="small text-muted mb-2">Status Pembayaran</label>
                     <select name="status_pembayaran" class="form-select form-select-dark" onchange="this.form.submit()">
                         <option value="semua" {{ request('status_pembayaran') == 'semua' ? 'selected' : '' }}>Semua Status</option>
-                        <option value="terverifikasi" {{ request('status_pembayaran') == 'terverifikasi' ? 'selected' : '' }}>Lunas</option>
-                        <option value="menunggu_pembayaran" {{ request('status_pembayaran') == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar</option>
-                        <option value="menunggu_verifikasi" {{ request('status_pembayaran') == 'menunggu_verifikasi' ? 'selected' : '' }}>Cek Bukti</option>
+                        <option value="lunas" {{ request('status_pembayaran') == 'lunas' ? 'selected' : '' }}>Lunas (Online)</option>
+                        <option value="terverifikasi" {{ request('status_pembayaran') == 'terverifikasi' ? 'selected' : '' }}>Terverifikasi (Manual)</option>
+                        <option value="menunggu_pembayaran" {{ request('status_pembayaran') == 'menunggu_pembayaran' ? 'selected' : '' }}>Belum Bayar (Online)</option>
+                        <option value="menunggu_verifikasi" {{ request('status_pembayaran') == 'menunggu_verifikasi' ? 'selected' : '' }}>Cek Bukti (Manual)</option>
                         <option value="gagal" {{ request('status_pembayaran') == 'gagal' ? 'selected' : '' }}>Gagal</option>
                     </select>
                 </div>
 
+                {{-- TOMBOL TAMBAH DINONAKTIFKAN TANPA MENGUBAH KODE ASLI --}}
+                {{-- 
                 <div class="col-md-1 d-grid">
                     <label class="small text-muted mb-2 d-none d-md-block">&nbsp;</label>
                     <a href="{{ route('reservasi.admin.create') }}" class="btn btn-gold" title="Tambah Reservasi">
                         <span class="material-symbols-outlined">add</span>
                     </a>
-                </div>
+                </div> 
+                --}}
             </div>
         </form>
     </div>
@@ -332,24 +211,15 @@
                 <tbody>
                     @forelse($data as $item)
                         <tr>
-                            {{-- NO RM --}}
                             <td>
                                 <div class="fw-bold">{{ $item->rekamMedis->rekam_medis ?? '-' }}</div>
                                 <small class="text-muted">{{ $item->no_pemeriksaan ?? 'Belum Ada' }}</small>
                             </td>
-
-                            {{-- PASIEN --}}
-                            <td>
-                                {{ $item->rekamMedis->nama ?? 'Data Pasien Hilang' }}
-                            </td>
-
-                            {{-- POLI & DOKTER --}}
+                            <td>{{ $item->rekamMedis->nama ?? 'Data Pasien Hilang' }}</td>
                             <td>
                                 <div class="text-gold">{{ $item->dokter->masterPoli->nama_poli ?? '-' }}</div>
                                 <small class="text-muted">{{ $item->dokter->nama ?? '-' }}</small>
                             </td>
-
-                            {{-- JADWAL --}}
                             <td>
                                 <div>{{ \Carbon\Carbon::parse($item->tanggal_pesan)->translatedFormat('d M Y') }}</div>
                                 <small class="text-muted">
@@ -369,51 +239,45 @@
                                     @endif
                                 </small>
                             </td>
-
-                            {{-- STATUS RESERVASI (SESUAI DB) --}}
                             <td class="text-center">
                                 @php
                                     $s = $item->status_reservasi;
-                                    $cls = match($s) { 
-                                        'menunggu'      => 'bg-warning text-dark', 
-                                        'dalam_proses'  => 'bg-info text-dark', 
-                                        'selesai'       => 'bg-success', 
-                                        'batal'         => 'bg-danger', 
-                                        default         => 'bg-secondary' 
+                                    $cls = match($s) {
+                                        'menunggu'      => 'bg-warning-soft text-dark',
+                                        'dalam_proses'  => 'bg-info-soft text-dark',
+                                        'selesai'       => 'bg-success-soft',
+                                        'batal'         => 'bg-danger-soft',
+                                        default         => 'bg-secondary'
                                     };
-                                    $lbl = match($s) { 
-                                        'dalam_proses' => 'Diproses', 
-                                        default        => ucfirst($s) 
+                                    $lbl = match($s) {
+                                        'dalam_proses' => 'Diproses',
+                                        default        => ucfirst($s)
                                     };
                                 @endphp
                                 <span class="badge {{ $cls }}">{{ $lbl }}</span>
                             </td>
-
-                            {{-- STATUS PEMBAYARAN (SESUAI DB) --}}
                             <td class="text-center">
                                 @php
                                     $p = $item->status_pembayaran;
-                                    $pcl = match($p) { 
-                                        'terverifikasi'       => 'bg-success', 
-                                        'menunggu_pembayaran' => 'bg-secondary', 
-                                        'menunggu_verifikasi' => 'bg-warning text-dark',
-                                        'gagal'               => 'bg-danger',
-                                        default               => 'bg-secondary' 
+                                    $pcl = match($p) {
+                                        'lunas', 'terverifikasi' => 'bg-success-soft',
+                                        'menunggu_pembayaran'    => 'bg-secondary',
+                                        'menunggu_verifikasi'    => 'bg-warning-soft text-dark',
+                                        'gagal'                  => 'bg-danger-soft',
+                                        default                  => 'bg-secondary'
                                     };
-                                    $plb = match($p) { 
-                                        'terverifikasi'       => 'Lunas', 
-                                        'menunggu_pembayaran' => 'Belum Bayar', 
+                                    $plb = match($p) {
+                                        'lunas'               => 'Lunas (Online)',
+                                        'terverifikasi'       => 'Lunas (Manual)',
+                                        'menunggu_pembayaran' => 'Belum Bayar',
                                         'menunggu_verifikasi' => 'Cek Bukti',
                                         'gagal'               => 'Gagal',
-                                        default               => $p 
+                                        default               => $p
                                     };
                                 @endphp
                                 <span class="badge {{ $pcl }}">{{ $plb }}</span>
                             </td>
-
-                            {{-- AKSI --}}
                             <td class="text-center">
-                                {{-- LINK KE DETAIL (Route sudah benar) --}}
                                 <a href="{{ route('reservasi.admin.show', $item->id) }}" class="btn btn-sm btn-outline-light border-0" title="Lihat Detail">
                                     <span class="material-symbols-outlined text-gold">visibility</span>
                                 </a>
@@ -431,34 +295,10 @@
             </table>
         </div>
     </div>
-    
+
     {{-- Pagination --}}
     <div class="d-flex justify-content-end mt-4">
-        <nav>
-            @if($data->hasPages())
-                <ul class="pagination pagination-sm">
-                    @if ($data->onFirstPage())
-                        <li class="page-item disabled"><span class="page-link bg-transparent border-secondary text-muted">&laquo;</span></li>
-                    @else
-                        <li class="page-item">
-                            <a class="page-link bg-transparent border-secondary text-muted" 
-                               href="{{ $data->appends(request()->all())->previousPageUrl() }}">&laquo;</a>
-                        </li>
-                    @endif
-
-                    <li class="page-item active"><span class="page-link bg-gold border-gold text-dark fw-bold">{{ $data->currentPage() }}</span></li>
-
-                    @if ($data->hasMorePages())
-                        <li class="page-item">
-                            <a class="page-link bg-transparent border-secondary text-muted" 
-                               href="{{ $data->appends(request()->all())->nextPageUrl() }}">&raquo;</a>
-                        </li>
-                    @else
-                        <li class="page-item disabled"><span class="page-link bg-transparent border-secondary text-muted">&raquo;</span></li>
-                    @endif
-                </ul>
-            @endif
-        </nav>
+        {{ $data->appends(request()->all())->links('vendor.pagination.custom-dark') }}
     </div>
 
 </div>

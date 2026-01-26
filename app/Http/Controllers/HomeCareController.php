@@ -8,6 +8,11 @@ use App\Models\HomeCareReservasi;
 use App\Models\MasterPromo;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+
+use App\Models\HomeCareTracking;
 use Illuminate\Support\Facades\Log;
 
 class HomeCareController extends Controller
@@ -21,6 +26,7 @@ class HomeCareController extends Controller
         $this->midtransService = $midtransService;
     }
 
+    // 1. API untuk Cek Ongkir
     public function calculateCost(Request $request)
     {
         $request->validate([
@@ -28,17 +34,15 @@ class HomeCareController extends Controller
             'longitude' => 'required|numeric',
         ]);
 
-        try {
-            $result = $this->reservationService->calculateCost(
-                $request->latitude,
-                $request->longitude
-            );
-            return response()->json($result);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
-        }
+        $result = $this->reservationService->calculateCost(
+            $request->latitude,
+            $request->longitude
+        );
+
+        return response()->json($result);
     }
 
+    // 2. API Get Jadwal
     public function getMasterJadwal(Request $request)
     {
         try {
@@ -57,6 +61,7 @@ class HomeCareController extends Controller
         }
     }
 
+    // 3. API Booking (Inti Transaksi)
     public function storeBooking(Request $request)
     {
         $request->validate([
@@ -104,6 +109,7 @@ class HomeCareController extends Controller
     public function checkPaymentStatus($id)
     {
         try {
+            // Simple find without complex eager loading - we use direct queries now
             $reservasi = HomeCareReservasi::find($id);
 
             if (!$reservasi) {
@@ -111,67 +117,136 @@ class HomeCareController extends Controller
             }
 
             // --- ACTIVE CHECK (FOR LOCALHOST / WEBHOOK FAILURES) ---
+            // Log::info("🔍 Polling Check for {$reservasi->no_pemeriksaan}. DB Status: {$reservasi->status_booking}");
+
             // Jika status di DB masih belum lunas, coba tanya langsung ke Midtrans
             if ($reservasi->status_booking === 'belum_lunas') {
                 $midtransStatus = $this->midtransService->getTransactionStatus($reservasi->no_pemeriksaan);
+                // Log::info("🔍 Midtrans Response: " . json_encode($midtransStatus));
 
                 if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
+                    Log::info("✅ Payment Success Detected via Polling!");
                     // Update Status
                     $reservasi->status_booking = 'lunas';
-                    $reservasi->status = 'Menunggu Konfirmasi'; // Fix: Jangan 'Menunggu Dokter' agar App tidak bilang OTW
-                    $reservasi->status_reservasi = 'menunggu_konfirmasi'; // Fix: Samakan dengan enum di Admin Panel
+                    $reservasi->status = 'Menunggu Konfirmasi';
+                    $reservasi->status_reservasi = 'menunggu_konfirmasi';
                     $reservasi->save();
 
-                    // Tambah Poin Manual (Copy Logic from Webhook)
+                    // Tambah Poin Manual (Booking) - WITH DUPLICATE CHECK
                     $poinDidapat = floor(($midtransStatus['gross_amount'] ?? 0) / 10000);
+                    
+                    // Point Logic - CHECK IF ALREADY ADDED
                     if ($reservasi->pasien_id && $poinDidapat > 0) {
-                        \Illuminate\Support\Facades\DB::table('users')
-                            ->where('user_id', $reservasi->pasien_id)
-                            ->increment('poin', $poinDidapat);
+                        try {
+                             $historyExists = \App\Models\PointHistory::where('reference_id', $reservasi->no_pemeriksaan)
+                                                ->where('type', 'earn')
+                                                ->exists();
+                            
+                            if (!$historyExists) {
+                                $user = User::where('user_id', $reservasi->pasien_id)->first();
+                                if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
+                                if ($user) {
+                                    $user->increment('poin', $poinDidapat);
+                                    \App\Models\PointHistory::create([
+                                         'user_id' => $user->user_id,
+                                         'amount' => $poinDidapat,
+                                         'type' => 'earn',
+                                         'description' => "Pembayaran Booking HomeCare",
+                                         'reference_id' => $reservasi->no_pemeriksaan,
+                                    ]);
+                                }
+                            }
+                        } catch (\Exception $e) {
+                             Log::error("Point Error: " . $e->getMessage());
+                        }
                     }
                 }
             } else if ($reservasi->status_pelunasan !== 'lunas') {
-                // Cek pelunasan (PL-)
-                // Deterministic ID logic:
+                // LOGIC UNTUK PELUNASAN (PL-...)
                 $settlementOrderId = 'PL-' . $reservasi->no_pemeriksaan;
                 $midtransStatus = $this->midtransService->getTransactionStatus($settlementOrderId);
 
                 if ($midtransStatus && ($midtransStatus['transaction_status'] == 'capture' || $midtransStatus['transaction_status'] == 'settlement')) {
-                    // Update Status Pelunasan
+                    Log::info("✅ Pelunasan Success Detected via Polling for {$reservasi->no_pemeriksaan}");
+                    
                     $reservasi->status_pelunasan = 'lunas';
-                    // status_booking tetap 'lunas'
-                    // status_reservasi bisa 'selesai' atau tetap?
-                    // Biasanya setelah lunas jadi 'selesai'
-                    $reservasi->status = 'Selesai';
-                    $reservasi->status_reservasi = 'selesai';
+                    $reservasi->status_reservasi = 'lunas';
+                    $reservasi->status = 'Layanan Selesai & Lunas';
                     $reservasi->save();
 
                     // Tambah Poin Manual (Pelunasan)
-                    $poinDidapat = floor(($midtransStatus['gross_amount'] ?? 0) / 10000);
+                    $amountPaid = (int) round(floatval($midtransStatus['gross_amount'] ?? 0));
+                    $poinDidapat = floor($amountPaid / 10000);
+
                     if ($reservasi->pasien_id && $poinDidapat > 0) {
-                        \Illuminate\Support\Facades\DB::table('users')
-                            ->where('user_id', $reservasi->pasien_id)
-                            ->increment('poin', $poinDidapat);
+                        try {
+                            // Fix: Use $settlementOrderId as reference_id to match Webhook logic and unique constraint
+                            $historyExists = \App\Models\PointHistory::where('reference_id', $settlementOrderId)
+                                                ->where('type', 'earn')
+                                                ->exists();
+
+                            if (!$historyExists) {
+                                $user = User::where('user_id', $reservasi->pasien_id)->first();
+                                if (!$user) $user = User::where('id', $reservasi->pasien_id)->first();
+                                
+                                if ($user) {
+                                    $user->increment('poin', $poinDidapat);
+                                    \App\Models\PointHistory::create([
+                                            'user_id' => $user->user_id,
+                                            'amount' => $poinDidapat,
+                                            'type' => 'earn',
+                                            'description' => "Pelunasan Tagihan HomeCare via Polling",
+                                            'reference_id' => $settlementOrderId, // Fixed: Use PL-... ID
+                                    ]);
+                                }
+                            }
+                        } catch (\Exception $e) {
+                                Log::error("Point Error (Pelunasan): " . $e->getMessage());
+                        }
                     }
+
+                    // Tracking
+                    HomeCareTracking::create([
+                        'id_periksa' => $reservasi->id,
+                        'status_tracking' => 'finished',
+                        'keterangan' => 'Pelunasan berhasil terverifikasi (Polling). Layanan selesai.',
+                        'waktu' => now()
+                    ]);
                 }
             }
+
+            // --- RESPONSE PREPARATION (ROBUST APPROACH) ---
+            // Direct query for doctor - avoid complex relation issues
+            $namaDokter = 'Dokter HomeCare';
+            if ($reservasi->dokter_id) {
+                $dokter = \App\Models\MasterDokter::where('kode_dokter', $reservasi->dokter_id)->first();
+                if ($dokter) {
+                    $namaDokter = $dokter->nama;
+                }
+            }
+            
+            // Use jam_mulai and jam_selesai directly from reservasi (already stored during booking)
+            $jamMulai = $reservasi->jam_mulai;
+            $jamSelesai = $reservasi->jam_selesai;
+            $jadwalJam = ($jamMulai && $jamSelesai) ? "$jamMulai - $jamSelesai" : '-';
 
             return response()->json([
                 'status' => 'success',
                 'data' => [
                     'id' => $reservasi->id,
                     'no_pemeriksaan' => $reservasi->no_pemeriksaan,
+                    'no_antrian' => $reservasi->no_antrian, 
                     'status_pembayaran' => ($reservasi->status_booking === 'belum_lunas') ? 'menunggu_pembayaran' : $reservasi->status_booking,
                     'status_reservasi' => $reservasi->status_reservasi,
                     'status_pelunasan' => $reservasi->status_pelunasan,
                     'total_biaya_tindakan' => $reservasi->total_biaya_tindakan ?? 0,
-                    // Additional Info for Tracking Screen
-                    'nama_dokter' => $reservasi->jadwalHarian->masterJadwal->dokter->nama ?? 'Dokter HomeCare',
-                    'jadwal_tanggal' => $reservasi->jadwalHarian->tanggal ?? $reservasi->tanggal_pesan,
-                    'jadwal_jam' => $reservasi->jadwalHarian->masterJadwal->jam_mulai ?? '-',
+                    'nama_dokter' => $namaDokter,
+                    'jadwal_tanggal' => $reservasi->tanggal_pesan, 
+                    'jadwal_jam' => $jadwalJam,
                     'estimasi_tiba' => '15 menit',
                 ]
             ]);
+
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -181,12 +256,11 @@ class HomeCareController extends Controller
 
     public function getTrackingHistory($id)
     {
-        try {
-            $result = $this->reservationService->getPaymentHistory($id);
-            return response()->json($result);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
-        }
+        $history = HomeCareTracking::where('id_periksa', $id)
+                                   ->orderBy('waktu', 'desc') // Ganti timestamp jadi waktu
+                                   ->get();
+        
+        return response()->json(['data' => $history]);
     }
 
     public function getInvoice($id)
@@ -270,7 +344,50 @@ class HomeCareController extends Controller
         }
     }
 
-        public function showImage($path)
+    public function getActiveBooking()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        // Cari reservasi aktif (bukan selesai/batal/expire/gagal)
+        // Kita asumsikan user bisa punya pasien_id (jika dia pasien)
+        // Logic ini perlu disesuaikan dengan bagaimana relasi user ke pasien
+        // Di storeBooking: $userId = $userObject->user_id; (User ID String) atau $user->id (Auto Inc)
+        // Mari kita cek kolom pasien_id di database, biasanya connect ke rekam_medis atau user_id string
+        // Di sini kita coba match user_id
+        
+        $reservasi = HomeCareReservasi::where('pasien_id', $user->user_id) 
+                        ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan', 'gagal', 'expire', 'lunas'])
+                        ->whereNotIn('status_booking', ['gagal', 'expire']) // Double check payment status
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+        // Fallback: Check 'id' if 'user_id' not matched (legacy)
+        if (!$reservasi) {
+             $reservasi = HomeCareReservasi::where('pasien_id', $user->id)
+                        ->whereNotIn('status_reservasi', ['selesai', 'dibatalkan', 'gagal', 'expire', 'lunas'])
+                        ->whereNotIn('status_booking', ['gagal', 'expire'])
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+        }
+
+        if ($reservasi) {
+             return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'id' => $reservasi->id,
+                    'no_pemeriksaan' => $reservasi->no_pemeriksaan,
+                    'status_reservasi' => $reservasi->status_reservasi
+                ]
+             ]);
+        }
+
+        return response()->json(['status' => 'empty', 'data' => null]);
+    }
+
+    public function showImage($path)
     {
         $path = storage_path('app/public/' . $path);
 
