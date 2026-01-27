@@ -155,7 +155,7 @@
                                placeholder="50000" 
                                value="{{ old('nilai_potongan', 0) }}" required>
                     </div>
-                    <small class="text-secondary" style="font-size: 0.75rem">Nominal diskon yang didapat user.</small>
+                    <small class="text-secondary" style="font-size: 0.75rem">Nominal diskon yang didapat user. (Maksimal sebesar Biaya Layanan, tidak memotong Transport)</small>
                 </div>
 
                 <div class="col-md-4">

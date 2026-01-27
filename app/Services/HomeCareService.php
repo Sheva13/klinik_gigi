@@ -285,11 +285,14 @@ class HomeCareService extends BaseReservationService
             }
 
             // Hitung Potongan
+            $biayaLayananStandard = $this->getConfig('homecare_base_fee', $this->defaultBiayaDasar); // Ambil biaya layanan untuk batasan diskon
+
             if ($promo->tipe == 'free_transport') {
                 $discountAmount = $biayaJarak;
             } elseif ($promo->tipe == 'potongan_total' || $promo->nilai_potongan > 0) {
                 // Fallback: Jika tipe tidak sesuai tapi ada nilai potongan, tetap gunakan.
-                 $discountAmount = $promo->nilai_potongan;
+                 // UPDATE: Diskon nominal HANYA memotong biaya layanan, tidak boleh memotong transport.
+                 $discountAmount = min($promo->nilai_potongan, $biayaLayananStandard);
             }
 
             $pointsToDeduct = $promo->harga_poin;
