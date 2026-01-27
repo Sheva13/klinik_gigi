@@ -192,4 +192,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profil/upload', [ProfilController::class, 'uploadFoto']);
     Route::get('/profil/get', [ProfilController::class, 'getFoto']);
     Route::delete('/profil/delete', [ProfilController::class, 'deleteFoto']);
+
+    // --- SETTINGS ---
+    Route::get('/settings', [SettingController::class, 'getSettings']);
+    Route::get('/setting', [SettingController::class, 'getSetting']);
 });
