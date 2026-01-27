@@ -34,6 +34,8 @@ use App\Http\Controllers\PointController;
 // ========================================================================
 
 Route::get('/images/{path}', [HomeCareController::class, 'showImage'])->where('path', '.*');
+<<<<<<< HEAD
+=======
 
 // Proxy Route for Doctor Images (Fixes CORS on Flutter Web Localhost)
 Route::get('/dokter-image/{filename}', function ($filename) {
@@ -86,6 +88,7 @@ Route::get('/promo-image/{filename}', function ($filename) {
         'Content-Type' => mime_content_type($path),
     ]);
 });
+>>>>>>> 9d9a93031c0fe30d7adc814a1f20a57a9989475e
 
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [RegisterController::class, 'register']);
