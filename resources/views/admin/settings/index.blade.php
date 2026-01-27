@@ -152,7 +152,7 @@ crossorigin=""/>
                     </div>
                 </div>
 
-                <!-- PRICING SETTINGS -->
+                <!-- HOMECARE PRICING SETTINGS -->
                 <div class="col-lg-6 mb-4">
                     <div class="card card-custom h-100">
                         <div class="card-header-custom">
@@ -166,8 +166,8 @@ crossorigin=""/>
                                 <label class="form-label-custom">Biaya Dasar Layanan (Rp)</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-dark border-secondary text-secondary">Rp</span>
-                                    <input type="number" name="settings[homecare_base_fee]" 
-                                           class="form-control form-control-dark font-weight-bold" 
+                                    <input type="number" name="settings[homecare_base_fee]"
+                                           class="form-control form-control-dark font-weight-bold"
                                            style="font-size: 1.1rem; color: #4ade80;"
                                            value="{{ $settings['homecare_base_fee']->value ?? '' }}">
                                 </div>
@@ -178,12 +178,37 @@ crossorigin=""/>
                                 <label class="form-label-custom">Harga Per Kilometer (Rp)</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-dark border-secondary text-secondary">Rp</span>
-                                    <input type="number" name="settings[price_per_km]" 
+                                    <input type="number" name="settings[price_per_km]"
                                            class="form-control form-control-dark font-weight-bold"
-                                           style="font-size: 1.1rem; color: #f5c542;" 
+                                           style="font-size: 1.1rem; color: #f5c542;"
                                            value="{{ $settings['price_per_km']->value ?? '' }}">
                                 </div>
                                 <div class="helper-text">Tarif transport per km (sistem menghitung PP otomatis).</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESERVATION PRICING SETTINGS -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card card-custom h-100">
+                        <div class="card-header-custom">
+                            <h3 class="card-title-custom">
+                                <span class="material-symbols-outlined">receipt_long</span>
+                                Biaya Layanan Reservasi
+                            </h3>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="form-group mb-4">
+                                <label class="form-label-custom">Biaya Administrasi Reservasi (Rp)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-secondary">Rp</span>
+                                    <input type="number" name="settings[reservation_fee]"
+                                           class="form-control form-control-dark font-weight-bold"
+                                           style="font-size: 1.1rem; color: #f5c542;"
+                                           value="{{ $settings['reservation_fee']->value ?? '' }}">
+                                </div>
+                                <div class="helper-text">Biaya administrasi reservasi konsultasi dokter.</div>
                             </div>
                         </div>
                     </div>
