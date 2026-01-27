@@ -198,7 +198,10 @@
                                placeholder="50000" 
                                value="{{ old('nilai_potongan', $promo->nilai_potongan ?? 0) }}" required>
                     </div>
-                    <small class="text-secondary" style="font-size: 0.75rem">Nominal diskon yang didapat user. (Maksimal sebesar Biaya Layanan, tidak memotong Transport)</small>
+                    <small class="text-secondary" style="font-size: 0.75rem">
+                        Jika Target = <b>Booking</b>, Maksimal sebesar Biaya Layanan.<br>
+                        Jika Target = <b>Pelunasan</b>, Maksimal sebesar Biaya Tindakan.
+                    </small>
                 </div>
 
                 <div class="col-md-4">
