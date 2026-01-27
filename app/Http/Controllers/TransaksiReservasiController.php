@@ -72,8 +72,24 @@ class TransaksiReservasiController extends ReservasiController
 
             // Logic Reservasi - menggunakan service untuk generate nomor
             $noPemeriksaan = $this->reservasiService->generateNoPemeriksaan();
-            $biaya = ($validated['metode_pembayaran'] === 'Midtrans') ? 25000 : 0;
             $statusPembayaranAwal = ($validated['metode_pembayaran'] === 'Midtrans') ? 'menunggu_pembayaran' : 'menunggu_verifikasi';
+
+            // Ambil biaya dari tabel master berdasarkan tipe layanan dan jenis pasien
+            $biayaFromMaster = $this->reservasiService->getBiayaReservasiForPreview('klinik', $validated['jenis_pasien']);
+
+            if ($biayaFromMaster === null) {
+                // Jika biaya tidak ditemukan di tabel master, kembalikan error
+                DB::rollback();
+                return $this->errorResponse('Biaya layanan tidak ditemukan untuk kombinasi layanan dan jenis pasien yang dipilih', null, 422);
+            } else {
+                // Gunakan biaya dari tabel master
+                $biaya = $biayaFromMaster;
+
+                // Jika metode pembayaran bukan Midtrans, biaya dianggap 0 (gratis)
+                if ($validated['metode_pembayaran'] !== 'Midtrans') {
+                    $biaya = 0;
+                }
+            }
 
             $reservasi = $this->reservasiService->simpanReservasi([
                 'no_pemeriksaan'    => $noPemeriksaan,

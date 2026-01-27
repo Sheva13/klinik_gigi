@@ -17,6 +17,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UbahPasswordController;
 use App\Http\Controllers\MidtransWebhookController;
 use App\Http\Controllers\PointController;
+use App\Http\Controllers\BiayaLayananController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,8 +35,6 @@ use App\Http\Controllers\PointController;
 // ========================================================================
 
 Route::get('/images/{path}', [HomeCareController::class, 'showImage'])->where('path', '.*');
-<<<<<<< HEAD
-=======
 
 // Proxy Route for Doctor Images (Fixes CORS on Flutter Web Localhost)
 Route::get('/dokter-image/{filename}', function ($filename) {
@@ -88,7 +87,6 @@ Route::get('/promo-image/{filename}', function ($filename) {
         'Content-Type' => mime_content_type($path),
     ]);
 });
->>>>>>> 9d9a93031c0fe30d7adc814a1f20a57a9989475e
 
 Route::get('/check', fn() => response()->json(['message' => 'API aktif']));
 Route::post('/register', [RegisterController::class, 'register']);
@@ -195,4 +193,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profil/upload', [ProfilController::class, 'uploadFoto']);
     Route::get('/profil/get', [ProfilController::class, 'getFoto']);
     Route::delete('/profil/delete', [ProfilController::class, 'deleteFoto']);
+
+    // --- BIAYA LAYANAN ---
+    Route::prefix('biaya-layanan')->group(function () {
+        Route::get('/', [BiayaLayananController::class, 'index']);
+        Route::post('/get-biaya', [BiayaLayananController::class, 'getBiayaByLayananAndPasien']);
+        Route::post('/store', [BiayaLayananController::class, 'store']);
+    });
 });
