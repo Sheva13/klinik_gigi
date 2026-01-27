@@ -34,11 +34,6 @@ class SettingsSeeder extends Seeder
                 'description' => 'Biaya dasar layanan Home Care',
             ],
             [
-                'key' => 'homecare_down_payment',
-                'value' => '25000',
-                'description' => 'Uang muka (DP) Home Care',
-            ],
-            [
                 'key' => 'reservation_fee',
                 'value' => '25000',
                 'description' => 'Biaya reservasi konsultasi dokter',
