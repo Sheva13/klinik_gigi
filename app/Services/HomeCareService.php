@@ -251,7 +251,9 @@ class HomeCareService extends BaseReservationService
         $userId = $userObject->user_id;
         $calculation = $this->calculateDistanceAndCost($data['latitude_pasien'], $data['longitude_pasien']);
         $biayaJarak = $calculation['biayaJarak'];
-        $dpAmount = $this->getConfig('homecare_down_payment', $this->defaultUangMuka);
+        $biayaJarak = $calculation['biayaJarak'];
+        // DP Logic Removed
+
 
         $masterJadwal = MasterJadwal::find($data['master_jadwal_id']);
         if (!$masterJadwal || !$masterJadwal->kode_dokter)
@@ -273,6 +275,11 @@ class HomeCareService extends BaseReservationService
                 throw new \Exception('Poin tidak mencukupi untuk promo ini', 400);
             }
 
+            // Validasi Target Transaksi (Booking Only or Semua)
+            if (!in_array($promo->target_transaksi, ['booking', 'semua'])) {
+                throw new \Exception('Promo ini tidak dapat digunakan untuk Booking awal.', 400);
+            }
+
             // Validasi Limit Pemakaian
             if ($promo->limit_per_user) {
                 $usageCount = HomeCareReservasi::where('pasien_id', $userId)
@@ -284,19 +291,24 @@ class HomeCareService extends BaseReservationService
                 }
             }
 
-            // Hitung Potongan
+            // Hitung Potongan (BOOKING CONTEXT)
+            // Rules:
+            // 1. Free Transport: Potong Biaya Jarak
+            // 2. Nominal/Potongan: Potong Biaya Layanan (Capped at Biaya Layanan)
+            $biayaLayananStandard = $this->getConfig('homecare_base_fee', $this->defaultBiayaDasar);
+
             if ($promo->tipe == 'free_transport') {
                 $discountAmount = $biayaJarak;
             } elseif ($promo->tipe == 'potongan_total' || $promo->nilai_potongan > 0) {
-                // Fallback: Jika tipe tidak sesuai tapi ada nilai potongan, tetap gunakan.
-                 $discountAmount = $promo->nilai_potongan;
+                 // Context: Booking -> Cap at Service Fee
+                 $discountAmount = min($promo->nilai_potongan, $biayaLayananStandard);
             }
 
             $pointsToDeduct = $promo->harga_poin;
         }
         // --- PROMO LOGIC END ---
 
-        return DB::transaction(function () use ($data, $pasien, $userId, $biayaJarak, $dpAmount, $masterJadwal, $promo, $discountAmount, $pointsToDeduct) {
+        return DB::transaction(function () use ($data, $pasien, $userId, $biayaJarak, $masterJadwal, $promo, $discountAmount, $pointsToDeduct) {
 
             // Deduct Points if used
             if ($pointsToDeduct > 0) {
@@ -374,14 +386,7 @@ class HomeCareService extends BaseReservationService
                 'potongan_promo' => $discountAmount,
             ]);
 
-            BiayaTambahan::create([
-                'id_periksa' => $reservasi->id,
-                'homecare_reservasi_id' => $reservasi->id,
-                'komponen' => 'UANG_MUKA',
-                'biaya' => $dpAmount,
-                'qty' => 1,
-                'jumlah_kali' => 1,
-            ]);
+
 
             HomeCareTracking::create([
                 'id_periksa' => $reservasi->id,
@@ -480,9 +485,10 @@ class HomeCareService extends BaseReservationService
         if (!$reservasi)
             throw new \Exception('Data tidak ditemukan', 404);
 
-        $totalTindakan = $reservasi->tindakanPemeriksaan->sum(function ($item) {
+        $tindakanCollection = $reservasi->tindakanPemeriksaan;
+        $totalTindakan = $tindakanCollection->map(function ($item) {
             return $item->biaya ?? $item->masterTindakan->biaya_tindakan;
-        });
+        })->sum();
         $biayaTransport = $reservasi->biaya_transport;
         $subTotal = $totalTindakan + $biayaTransport;
         $uangMuka = $reservasi->biayaTambahan->where('komponen', 'UANG_MUKA')->sum('biaya');
@@ -635,6 +641,11 @@ class HomeCareService extends BaseReservationService
                 throw new \Exception('Promo Free Transport tidak bisa digunakan untuk pelunasan.', 400);
             }
 
+            // Validasi Target Transaksi (Pelunasan Only or Semua)
+            if (!in_array($promo->target_transaksi, ['pelunasan', 'semua'])) {
+                throw new \Exception('Promo ini khusus untuk Booking awal, tidak bisa dipakai Pelunasan.', 400);
+            }
+
             // Check Points
             $pasienId = $reservasi->pasien_id;
             $user = User::find($pasienId);
@@ -653,8 +664,11 @@ class HomeCareService extends BaseReservationService
                 }
             }
 
-            if ($promo->tipe == 'potongan_total') {
-                $discountAmount = $promo->nilai_potongan;
+            // Hitung Potongan (SETTLEMENT CONTEXT)
+            // Rules:
+            // 1. Context: Pelunasan -> Cap at Total Tagihan Tindakan ($amount)
+            if ($promo->tipe == 'potongan_total' || $promo->nilai_potongan > 0) {
+                $discountAmount = min($promo->nilai_potongan, $amount);
             }
 
             // Deduct Points NOW (or should we wait? Usually deduct when link is generated to prevent double use, can refund if failed/cancelled - sticking to simple deduction now)

@@ -153,8 +153,12 @@
                     <span class="material-symbols-outlined">event_note</span> Reservasi
                 </a>
                 <a href="{{ route('admin.users.index') }}" class="{{ request()->is('admin/users*') ? 'active' : '' }}">
-    <span class="material-symbols-outlined">group</span> Data User
-</a>
+                    <span class="material-symbols-outlined">group</span> Data User
+                </a>
+
+                <a href="{{ route('admin.settings.index') }}" class="{{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                    <span class="material-symbols-outlined">settings</span> Pengaturan
+                </a>
             </nav>
         </div>
 

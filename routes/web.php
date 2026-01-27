@@ -6,6 +6,7 @@ use App\Http\Controllers\PromoControllerWeb;
 use App\Http\Controllers\DokterControllerWeb;
 use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\AdminSettingController;
 use App\Http\Controllers\HomeCareWebController;
 use App\Http\Controllers\AdminReservasiController;  
 use App\Http\Controllers\AdminAntrianReservasiController; 
@@ -95,6 +96,10 @@ Route::middleware('auth:admin')->group(function () {
 
         Route::put('/users/{id}', [AdminDataUserController::class, 'update'])
             ->name('users.update');
+
+        // Settings Route
+        Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.index');
+        Route::post('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
 
         // Route untuk edit data sensitif
         Route::get('/users/{id}/edit-sensitive', [AdminUserSensitiveController::class, 'edit'])
