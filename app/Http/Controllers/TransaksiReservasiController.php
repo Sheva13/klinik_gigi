@@ -182,10 +182,15 @@ class TransaksiReservasiController extends ReservasiController
 
             $status = $reservasi->status_pembayaran;
 
+            // Check for various paid statuses including settlement from Midtrans
+            $isLunas = ($status === 'lunas' ||
+                        $status === 'terverifikasi' ||
+                        $status === 'settlement');
+
             return $this->successResponse('Status pembayaran berhasil diambil', [
                 'no_pemeriksaan'    => $no_pemeriksaan,
                 'status_pembayaran' => $status,
-                'is_lunas'          => ($status === 'lunas' || $status === 'terverifikasi'),
+                'is_lunas'          => $isLunas,
                 'is_pending'        => ($status === 'menunggu_pembayaran'),
                 'is_failed'         => ($status === 'gagal'),
                 'detail_status'     => $reservasi->status,
