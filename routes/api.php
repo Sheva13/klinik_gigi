@@ -194,10 +194,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profil/get', [ProfilController::class, 'getFoto']);
     Route::delete('/profil/delete', [ProfilController::class, 'deleteFoto']);
 
+<<<<<<< HEAD
     // --- BIAYA LAYANAN ---
     Route::prefix('biaya-layanan')->group(function () {
         Route::get('/', [BiayaLayananController::class, 'index']);
         Route::post('/get-biaya', [BiayaLayananController::class, 'getBiayaByLayananAndPasien']);
         Route::post('/store', [BiayaLayananController::class, 'store']);
     });
+=======
+    // --- SETTINGS ---
+    Route::get('/settings', [SettingController::class, 'getSettings']);
+    Route::get('/setting', [SettingController::class, 'getSetting']);
+>>>>>>> 41054b51e32cd7ac676412125c1a9d200a3cb68b
 });

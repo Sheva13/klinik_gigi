@@ -38,6 +38,11 @@ class SettingsSeeder extends Seeder
                 'value' => '25000',
                 'description' => 'Uang muka (DP) Home Care',
             ],
+            [
+                'key' => 'reservation_fee',
+                'value' => '25000',
+                'description' => 'Biaya reservasi konsultasi dokter',
+            ],
         ];
 
         foreach ($settings as $setting) {

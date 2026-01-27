@@ -72,6 +72,13 @@ class TransaksiReservasiController extends ReservasiController
 
             // Logic Reservasi - menggunakan service untuk generate nomor
             $noPemeriksaan = $this->reservasiService->generateNoPemeriksaan();
+<<<<<<< HEAD
+=======
+
+            // Ambil biaya reservasi dari settings
+            $reservationFee = \App\Models\Setting::where('key', 'reservation_fee')->first();
+            $biaya = ($validated['metode_pembayaran'] === 'Midtrans') ? ($reservationFee ? (int)$reservationFee->value : 25000) : 0;
+>>>>>>> 41054b51e32cd7ac676412125c1a9d200a3cb68b
             $statusPembayaranAwal = ($validated['metode_pembayaran'] === 'Midtrans') ? 'menunggu_pembayaran' : 'menunggu_verifikasi';
 
             // Ambil biaya dari tabel master berdasarkan tipe layanan dan jenis pasien
