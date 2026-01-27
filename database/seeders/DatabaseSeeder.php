@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             MasterTindakanSeeder::class,
             PromoSeeder::class,
             MasterSpesialisSeeder::class,
+            SettingsSeeder::class,
         ]);
         // User::factory(10)->create();
 
