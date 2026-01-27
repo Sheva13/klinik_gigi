@@ -185,17 +185,6 @@ crossorigin=""/>
                                 </div>
                                 <div class="helper-text">Tarif transport per km (sistem menghitung PP otomatis).</div>
                             </div>
-
-                             <div class="form-group mb-3">
-                                <label class="form-label-custom">Uang Muka / DP (Rp)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-dark border-secondary text-secondary">Rp</span>
-                                    <input type="number" name="settings[homecare_down_payment]" 
-                                           class="form-control form-control-dark" 
-                                           value="{{ $settings['homecare_down_payment']->value ?? '' }}">
-                                </div>
-                                <div class="helper-text">Minimal pembayaran awal untuk konfirmasi booking.</div>
-                            </div>
                         </div>
                     </div>
                 </div>

@@ -33,11 +33,6 @@ class SettingsSeeder extends Seeder
                 'value' => '35000',
                 'description' => 'Biaya dasar layanan Home Care',
             ],
-            [
-                'key' => 'homecare_down_payment',
-                'value' => '25000',
-                'description' => 'Uang muka (DP) Home Care',
-            ],
         ];
 
         foreach ($settings as $setting) {

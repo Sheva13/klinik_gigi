@@ -251,7 +251,9 @@ class HomeCareService extends BaseReservationService
         $userId = $userObject->user_id;
         $calculation = $this->calculateDistanceAndCost($data['latitude_pasien'], $data['longitude_pasien']);
         $biayaJarak = $calculation['biayaJarak'];
-        $dpAmount = $this->getConfig('homecare_down_payment', $this->defaultUangMuka);
+        $biayaJarak = $calculation['biayaJarak'];
+        // DP Logic Removed
+
 
         $masterJadwal = MasterJadwal::find($data['master_jadwal_id']);
         if (!$masterJadwal || !$masterJadwal->kode_dokter)
@@ -306,7 +308,7 @@ class HomeCareService extends BaseReservationService
         }
         // --- PROMO LOGIC END ---
 
-        return DB::transaction(function () use ($data, $pasien, $userId, $biayaJarak, $dpAmount, $masterJadwal, $promo, $discountAmount, $pointsToDeduct) {
+        return DB::transaction(function () use ($data, $pasien, $userId, $biayaJarak, $masterJadwal, $promo, $discountAmount, $pointsToDeduct) {
 
             // Deduct Points if used
             if ($pointsToDeduct > 0) {
@@ -384,14 +386,7 @@ class HomeCareService extends BaseReservationService
                 'potongan_promo' => $discountAmount,
             ]);
 
-            BiayaTambahan::create([
-                'id_periksa' => $reservasi->id,
-                'homecare_reservasi_id' => $reservasi->id,
-                'komponen' => 'UANG_MUKA',
-                'biaya' => $dpAmount,
-                'qty' => 1,
-                'jumlah_kali' => 1,
-            ]);
+
 
             HomeCareTracking::create([
                 'id_periksa' => $reservasi->id,
