@@ -38,6 +38,41 @@ class RegisterController extends Controller
                 return response()->json(['success' => false, 'message' => 'Email sudah terdaftar'], 409);
             }
 
+            // Mode demo: OTP dimatikan, akun langsung dibuat dan aktif.
+            if (config('otp.disabled', false)) {
+                DB::table('pending_registrations')->where('email', $validated['email'])->delete();
+
+                DB::beginTransaction();
+                try {
+                    [$user, $finalNoRM] = $this->createAccount($validated);
+
+                    $token = $user->createToken('auth_token')->plainTextToken;
+                    $user->update(['current_token' => $token]);
+
+                    DB::commit();
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Registrasi berhasil, akun langsung aktif',
+                        'otp_required' => false,
+                        'data' => [
+                            'user_id' => $user->user_id,
+                            'nama_pengguna' => $user->nama_pengguna,
+                            'no_rm' => $finalNoRM,
+                            'email' => $user->email,
+                            'token' => $token,
+                        ],
+                    ], 201);
+                } catch (\RuntimeException $e) {
+                    DB::rollBack();
+                    return response()->json(['success' => false, 'message' => $e->getMessage()], 409);
+                } catch (Exception $e) {
+                    DB::rollBack();
+                    Log::error('Register (OTP disabled) Error: ' . $e->getMessage());
+                    return response()->json(['success' => false, 'message' => 'Terjadi kesalahan server', 'error' => $e->getMessage()], 500);
+                }
+            }
+
             // Cek apakah email sudah ada di pending_registrations
             $existingPending = DB::table('pending_registrations')
                 ->where('email', $validated['email'])
@@ -101,5 +136,94 @@ class RegisterController extends Controller
             Log::error('Register Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan server', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    private function createAccount(array $validated): array
+    {
+        if ($validated['tipe_pasien'] === 'lama') {
+            $rekamMedis = DB::table('rekam_medis')
+                ->where('rekam_medis', $validated['rekam_medis_id'] ?? '')
+                ->first();
+
+            if (!$rekamMedis) {
+                throw new \RuntimeException('Nomor rekam medis tidak ditemukan');
+            }
+
+            $existingUser = MpUser::where('rekam_medis_id', $rekamMedis->id)->first();
+            if ($existingUser) {
+                throw new \RuntimeException('Akun untuk rekam medis ini sudah terdaftar');
+            }
+
+            $user = MpUser::create([
+                'user_id' => $this->generateUniqueUserId(),
+                'nama_pengguna' => $rekamMedis->nama,
+                'nik' => $rekamMedis->no_identitas,
+                'rekam_medis_id' => $rekamMedis->id,
+                'tanggal_lahir' => $rekamMedis->tanggal_lahir,
+                'jenis_kelamin' => $rekamMedis->jenis_kelamin,
+                'no_hp' => $rekamMedis->hp ?: ($validated['no_hp'] ?? null),
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'alamat' => $rekamMedis->alamat,
+            ]);
+
+            return [$user, $rekamMedis->rekam_medis];
+        }
+
+        $newNoRM = $this->generateNoRM();
+
+        $rekamMedisId = DB::table('rekam_medis')->insertGetId([
+            'rekam_medis' => $newNoRM,
+            'nama' => $validated['nama_pengguna'],
+            'no_identitas' => $validated['nik'] ?? null,
+            'hp' => $validated['no_hp'] ?? null,
+            'alamat' => $validated['alamat'] ?? '-',
+            'tanggal_lahir' => $validated['tanggal_lahir'] ?? null,
+            'jenis_kelamin' => $validated['jenis_kelamin'] ?? null,
+            'verifikasi' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $user = MpUser::create([
+            'user_id' => $this->generateUniqueUserId(),
+            'nama_pengguna' => $validated['nama_pengguna'],
+            'nik' => $validated['nik'] ?? null,
+            'rekam_medis_id' => $rekamMedisId,
+            'tanggal_lahir' => $validated['tanggal_lahir'] ?? null,
+            'jenis_kelamin' => $validated['jenis_kelamin'] ?? null,
+            'no_hp' => $validated['no_hp'] ?? null,
+            'email' => $validated['email'],
+            'alamat' => $validated['alamat'] ?? null,
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return [$user, $newNoRM];
+    }
+
+    private function generateUniqueUserId(): string
+    {
+        $tanggal = Carbon::now()->format('Ymd');
+
+        do {
+            $random = random_int(100, 999);
+            $userId = "PSN{$tanggal}{$random}";
+        } while (MpUser::where('user_id', $userId)->exists());
+
+        return $userId;
+    }
+
+    private function generateNoRM(): string
+    {
+        $dateCode = Carbon::now()->format('ymd');
+        $prefix = 'RM' . $dateCode;
+
+        do {
+            $random = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
+            $finalRM = $prefix . $random;
+            $exists = DB::table('rekam_medis')->where('rekam_medis', $finalRM)->exists();
+        } while ($exists);
+
+        return $finalRM;
     }
 }
