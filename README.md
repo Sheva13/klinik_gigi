@@ -116,6 +116,8 @@ Catatan deployment:
   object storage seperti S3.
 - Untuk demo, `QUEUE_CONNECTION=sync` dan `MAIL_MAILER=log` cukup. Untuk OTP
   produksi, gunakan SMTP/Mailtrap dan worker queue.
+- `OTP_DISABLED=true` membuat registrasi pasien langsung aktif tanpa email OTP,
+  cocok untuk demo saat `MAIL_MAILER=log` belum bisa mengirim email.
 - `APP_DEBUG` wajib `false` di production.
 - Railway menyuntikkan konfigurasi Apache saat runtime, jadi entrypoint
   menonaktifkan MPM ganda dan menyesuaikan Apache ke `$PORT`.
@@ -135,8 +137,12 @@ Web:
 ```bash
 flutter build web --release \
   --dart-define=DEMO_MODE=false \
-  --dart-define=API_BASE_URL=https://web-production-3e9a.up.railway.app/api
+  --dart-define=API_BASE_URL=https://web-production-3e9a.up.railway.app/api \
+  --dart-define=OTP_DISABLED=true
 ```
+
+Jika backend memakai `OTP_DISABLED=true`, tambahkan juga
+`--dart-define=OTP_DISABLED=true` pada build Flutter.
 
 Untuk development lokal:
 
