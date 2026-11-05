@@ -352,6 +352,16 @@ class HomeCareController extends Controller
         }
     }
 
+    public function finishTreatment(Request $request, $id)
+    {
+        $request->merge([
+            'id' => $id,
+            'status' => 'Selesai Diperiksa',
+        ]);
+
+        return $this->updateStatus($request);
+    }
+
     public function createSettlement(Request $request)
     {
         $request->validate([

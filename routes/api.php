@@ -128,20 +128,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // --- AUTH & USER ---
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/password/request-change', [UbahPasswordController::class, 'requestOtpForPasswordChange']);
-    Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtpAndChangePassword']);
 
     // --- PROFIL & PASIEN ---
     Route::get('/profil', [ProfilController::class, 'show']);
     Route::post('/profil/update', [ProfilController::class, 'update']);
     Route::post('/password/verify-change', [UbahPasswordController::class, 'verifyOtp']);
     Route::post('/password/reset', [UbahPasswordController::class, 'resetPassword']);
-    Route::post('/homecare/calculate', [HomeCareController::class, 'calculateCost']);
 
     // --- Rute Autentikasi & Pasien ---
-    Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/pasien', [PasienController::class, 'index']);
     Route::get('/pasien/me', [PasienController::class, 'me']);
-    Route::get('/pasien/{userId}', [PasienController::class, 'showPasienById']);
 
     // --- RIWAYAT UMUM ---
     Route::get('/riwayat', [RiwayatController::class, 'getRiwayat']);
@@ -171,7 +167,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ==============================
     Route::get('/homecare/jadwal', [HomeCareController::class, 'getMasterJadwal']);
     Route::post('/homecare/calculate', [HomeCareController::class, 'calculateCost']);
-    Route::post('/homecare/book', [HomeCareController::class, 'store']); // Alias lama
+    Route::post('/homecare/book', [HomeCareController::class, 'storeBooking']); // Alias lama
     Route::post('/homecare/booking', [HomeCareController::class, 'storeBooking']); // Alias baru
 
     Route::post('/homecare/booking/{id}/konfirmasi-bayar', [HomeCareController::class, 'confirmPayment']);
@@ -194,16 +190,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profil/get', [ProfilController::class, 'getFoto']);
     Route::delete('/profil/delete', [ProfilController::class, 'deleteFoto']);
 
-<<<<<<< HEAD
     // --- BIAYA LAYANAN ---
     Route::prefix('biaya-layanan')->group(function () {
         Route::get('/', [BiayaLayananController::class, 'index']);
         Route::post('/get-biaya', [BiayaLayananController::class, 'getBiayaByLayananAndPasien']);
         Route::post('/store', [BiayaLayananController::class, 'store']);
     });
-=======
+
     // --- SETTINGS ---
     Route::get('/settings', [SettingController::class, 'getSettings']);
     Route::get('/setting', [SettingController::class, 'getSetting']);
->>>>>>> 41054b51e32cd7ac676412125c1a9d200a3cb68b
 });

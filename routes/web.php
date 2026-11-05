@@ -20,11 +20,13 @@ use App\Http\Controllers\AdminUserSensitiveController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
-    return redirect()->route('auth.login'); 
+    return redirect()->route('login'); 
 })->name('home');
 
-Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('auth.login');
-Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('login');
+Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('login');
+Route::post('/admin/login', [AdminAuthController::class, 'login'])
+    ->middleware('throttle:5,1')
+    ->name('login.attempt');
 
 /*
 |--------------------------------------------------------------------------
@@ -54,12 +56,10 @@ Route::middleware('auth:admin')->group(function () {
     });
 
     // --- ROUTES HOME CARE WEB ADMIN ---
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/homecare', [HomeCareWebController::class, 'index'])->name('homecare.index');
-        Route::get('/homecare/antrian', [HomeCareWebController::class, 'antrianIndex'])->name('homecare.antrian'); // 🔥 NEW ROUTE
-        Route::get('/homecare/{id}', [HomeCareWebController::class, 'show'])->name('homecare.show');
-        Route::post('/homecare/{id}/status', [HomeCareWebController::class, 'updateStatus'])->name('homecare.updateStatus');
-    });
+    Route::get('/homecare', [HomeCareWebController::class, 'index'])->name('homecare.index');
+    Route::get('/homecare/antrian', [HomeCareWebController::class, 'antrianIndex'])->name('homecare.antrian');
+    Route::get('/homecare/{id}', [HomeCareWebController::class, 'show'])->name('homecare.show');
+    Route::post('/homecare/{id}/status', [HomeCareWebController::class, 'updateStatus'])->name('homecare.updateStatus');
 
     // --- PROMO ---
     Route::prefix('promo')->group(function () {
@@ -72,7 +72,7 @@ Route::middleware('auth:admin')->group(function () {
     });
 
     // --- DOKTER ---
-    Route::resource('dokter', DokterControllerWeb::class);
+    Route::resource('dokter', DokterControllerWeb::class)->except(['show']);
 
     // --- JADWAL ---
     Route::prefix('jadwal')->group(function () {
