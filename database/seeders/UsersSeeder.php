@@ -25,7 +25,7 @@ class UsersSeeder extends Seeder
       'no_hp' => '081234567809', 
       'email' => 'farrelsheva@gmail.com', 
       'password' => bcrypt('password123'), 
-      'current_token' => '71|PEFNQztzamR5FWe1nIQ6MDJ3wUoNhJCSHbtBmDeV30ef1c6f',
+      'current_token' => null,
       'alamat' => 'Jl. Merpati No. 45, Surabaya',
        ]);
    //
