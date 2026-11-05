@@ -10,21 +10,23 @@ melayani dua kebutuhan sekaligus:
 
 | Bagian | URL | Keterangan |
 | --- | --- | --- |
-| Aplikasi Flutter (web) | <https://klinikgigi-wika.netlify.app> | Demo UI, `DEMO_MODE=true` |
-| Web admin + API | Belum di-deploy | Siap deploy lewat Docker/Railway |
+| Aplikasi Flutter (web) | <https://klinikgigi-wika.netlify.app> | Live, `DEMO_MODE=false` |
+| Web admin | <https://web-production-3e9a.up.railway.app/admin/login> | Live, MySQL Railway |
+| API | <https://web-production-3e9a.up.railway.app/api> | Live, `GET /api/check` |
 
-Demo web Flutter di atas memakai data contoh. Untuk mencoba integrasi penuh,
-deploy backend ini lalu build Flutter dengan `DEMO_MODE=false`.
+Backend dan aplikasi Flutter web sudah terhubung ke API Railway. Mode demo
+(`DEMO_MODE=true`) tetap tersedia untuk development tanpa backend.
 
 ## Akun Demo
 
 | Role | Username / Email | Password |
 | --- | --- | --- |
-| Admin | `Farrel` | `admin123` |
+| Admin lokal | `Farrel` | `admin123` |
+| Admin production | `Farrel` | diatur lewat `ADMIN_PASSWORD` |
 | Pasien | `farrelsheva@gmail.com` | `password123` |
 
 Akun admin bisa dioverride lewat `ADMIN_USERNAME` dan `ADMIN_PASSWORD` sebelum
-menjalankan seeder. Ganti password default sebelum dipakai publik.
+menjalankan seeder. Password production tidak ditulis di repo.
 
 ## Fitur
 
@@ -96,23 +98,27 @@ Repo sudah menyertakan `Dockerfile`, `docker/entrypoint.sh`, dan `railway.json`.
    - `MIDTRANS_*`: isi kredensial sandbox
 5. Deploy pertama: set `RUN_MIGRATIONS=true` agar tabel dibuat otomatis.
    Setelah berhasil, set kembali `false`.
-6. Jalankan seeder sekali lewat Railway Shell:
+6. Jalankan seeder sekali dengan `RUN_SEED=true`, lalu set kembali `false`.
+   Alternatif lewat Railway Shell:
 
    ```bash
    php artisan db:seed --force
    ```
 
 7. Buka `/admin/login` dan login dengan akun admin.
-8. Callback Midtrans: `https://domain-anda/api/payment/midtrans-callback`.
+8. Callback Midtrans:
+   `https://web-production-3e9a.up.railway.app/api/payment/midtrans-callback`.
 
 Catatan deployment:
 
-- Filesystem Railway bersifat sementara. Mount volume ke
-  `/var/www/html/storage/app/public` jika upload foto harus permanen, atau
-  gunakan object storage seperti S3.
+- Filesystem Railway bersifat sementara. Volume sudah dipasang di
+  `/var/www/html/storage/app/public` untuk upload foto; alternatifnya gunakan
+  object storage seperti S3.
 - Untuk demo, `QUEUE_CONNECTION=sync` dan `MAIL_MAILER=log` cukup. Untuk OTP
   produksi, gunakan SMTP/Mailtrap dan worker queue.
 - `APP_DEBUG` wajib `false` di production.
+- Railway menyuntikkan konfigurasi Apache saat runtime, jadi entrypoint
+  menonaktifkan MPM ganda dan menyesuaikan Apache ke `$PORT`.
 
 ## Build Flutter yang Terhubung ke API
 
@@ -121,7 +127,7 @@ Android/emulator:
 ```bash
 flutter build apk --release \
   --dart-define=DEMO_MODE=false \
-  --dart-define=API_BASE_URL=https://domain-anda/api
+  --dart-define=API_BASE_URL=https://web-production-3e9a.up.railway.app/api
 ```
 
 Web:
@@ -129,7 +135,7 @@ Web:
 ```bash
 flutter build web --release \
   --dart-define=DEMO_MODE=false \
-  --dart-define=API_BASE_URL=https://domain-anda/api
+  --dart-define=API_BASE_URL=https://web-production-3e9a.up.railway.app/api
 ```
 
 Untuk development lokal:
@@ -169,9 +175,9 @@ docker/                 konfigurasi Apache, PHP, entrypoint
 
 ## Checklist Portofolio
 
-- [ ] Deploy backend dan isi URL admin/API di README.
-- [ ] Ganti password admin default.
-- [ ] Isi data demo (dokter, jadwal, promo, reservasi).
+- [x] Deploy backend dan isi URL admin/API di README.
+- [x] Ganti password admin default.
+- [x] Isi data demo (dokter, jadwal, promo, reservasi).
 - [ ] Tambahkan screenshot web admin dan aplikasi Flutter.
 - [ ] Jelaskan arsitektur dan tantangan teknis di bagian case study.
 - [ ] Pastikan `.env`, kunci Midtrans, dan database dump tidak ikut commit.

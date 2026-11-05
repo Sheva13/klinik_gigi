@@ -13,6 +13,11 @@ RUN apt-get update \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.* \
+    /etc/apache2/mods-enabled/mpm_worker.* \
+    && a2enmod mpm_prefork \
+    && apache2ctl -M 2>&1 | grep mpm
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
@@ -42,6 +47,6 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/zz-app.ini
 COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint
 RUN chmod +x /usr/local/bin/docker-entrypoint
 
-EXPOSE 80
+EXPOSE 8080
 
 ENTRYPOINT ["docker-entrypoint"]
