@@ -14,7 +14,7 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         Admin::firstOrCreate(
-            ['username' => env('ADMIN_USERNAME', 'Farrel')],
+            ['username' => env('ADMIN_USERNAME', 'admin')],
             [
                 'name' => 'Administrator',
                 'password' => env('ADMIN_PASSWORD', 'admin123'),

@@ -14,7 +14,7 @@ class RekamMedisSeeder extends Seeder
             'id' => 2,
             // Biar sesuai format baru, kita buat agak panjang dikit, atau RM002 tetep oke
             'rekam_medis' => 'RM260110002', 
-            'nama' => 'Farrel',
+            'nama' => 'Pasien Demo',
             'tempat_lahir' => 'Semarang',
             'tanggal_lahir' => '2006-10-02',
             'no_identitas' => '3374567890',

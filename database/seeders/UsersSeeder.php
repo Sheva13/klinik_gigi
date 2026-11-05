@@ -16,14 +16,14 @@ class UsersSeeder extends Seeder
        \DB::table('users')->insert([
         
       'user_id' => 'PSN20251029661', 
-      'nama_pengguna' => 'Farrel', 
+      'nama_pengguna' => 'Pasien Demo', 
       'nik' => '3374567890', 
       'rekam_medis_id' => 2, 
       'tanggal_lahir' => '2006-10-02', 
       'jenis_kelamin' => 'L', 
       'file_foto' => null, 
       'no_hp' => '081234567809', 
-      'email' => 'farrelsheva@gmail.com', 
+      'email' => 'pasien.demo@3kdentalcare.id', 
       'password' => bcrypt('password123'), 
       'current_token' => null,
       'alamat' => 'Jl. Merpati No. 45, Surabaya',

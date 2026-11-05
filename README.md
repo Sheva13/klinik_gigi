@@ -21,9 +21,9 @@ Backend dan aplikasi Flutter web sudah terhubung ke API Railway. Mode demo
 
 | Role | Username / Email | Password |
 | --- | --- | --- |
-| Admin lokal | `Farrel` | `admin123` |
-| Admin production | `Farrel` | diatur lewat `ADMIN_PASSWORD` |
-| Pasien | `farrelsheva@gmail.com` | `password123` |
+| Admin lokal | `admin` | `admin123` |
+| Admin production | `admin3k` | diatur lewat `ADMIN_PASSWORD` |
+| Pasien | `pasien.demo@3kdentalcare.id` | `password123` |
 
 Akun admin bisa dioverride lewat `ADMIN_USERNAME` dan `ADMIN_PASSWORD` sebelum
 menjalankan seeder. Password production tidak ditulis di repo.
